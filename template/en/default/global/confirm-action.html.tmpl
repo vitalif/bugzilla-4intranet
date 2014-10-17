@@ -26,7 +26,7 @@
 [% PROCESS global/header.html.tmpl title = "Suspicious Action"
                                    style_urls = ['skins/standard/global.css'] %]
 
-<div class="throw_error">
+<div class="user-error-div"><div class="user-error-div-first">
   [% IF reason == "expired_token" %]
     Your changes have been rejected because you exceeded the time limit
     of [% constants.MAX_TOKEN_AGE FILTER html %] days before submitting your
@@ -48,7 +48,7 @@
   <p>
     Are you sure you want to commit these changes?
   </p>
-</div>
+</div></div>
 
 <form name="check" id="check" method="post" action="[% script_name FILTER html %]">
   [% PROCESS "global/hidden-fields.html.tmpl"

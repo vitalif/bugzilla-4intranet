@@ -365,14 +365,6 @@ input.requestee {
     font-size: x-large;
 }
 
-.throw_error {
-    background-color: #ff0000;
-    color: black;
-    font-size: 120%;
-    margin: 1em;
-    padding: 0.5em 1em;
-}
-
 dt {
     font-weight: bold;
 }
@@ -600,7 +592,7 @@ filter:mask();
 .numeric_invalid { background-color: #FFE0E0; }
 .buglist-navbar { float: left; margin: 4pt; font-size: 120%; padding: 2pt; }
 
-.user-error-div { margin: 20px; padding: 10px; font-size: 130%; font-family: sans-serif; border: 10px solid red; background: white; }
+.user-error-div { margin: 20px; padding: 10px; font-size: 130%; border: 10px solid red; background: white; }
 .user-error-div-first { background-color: #ffd0d0; padding: 10px; }
 
 .quicksearch { width: 300px; }

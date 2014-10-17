@@ -935,6 +935,10 @@ table.tabs {
     padding: 1em 2em;
 }
 
+.admin_table tr {
+    background: white;
+}
+
 .admin_table tr.even_row {
     background: white;
 }

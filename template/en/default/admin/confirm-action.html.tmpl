@@ -28,7 +28,7 @@
                                    style_urls = ['skins/standard/global.css'] %]
 
 [% IF abuser %]
-  <div class="throw_error">
+  <div class="user-error-div"><div class="user-error-div-first">
     <p>When you view an administrative form in [% terms.Bugzilla %], a token string
     is randomly generated and stored both in the database and in the form you loaded,
     to make sure that the requested changes are being made as a result of submitting
@@ -66,9 +66,9 @@
     </table>
 
     <p>Please report this problem to [%+ Param("maintainer") FILTER html %].</p>
-  </div>
+  </div></div>
 [% ELSE %]
-  <div class="throw_error">
+  <div class="user-error-div"><div class="user-error-div-first">
     It looks like you didn't come from the right page (you have no valid token for
     the <em>[% expected_action FILTER html %]</em> action while processing the
     '[% script_name FILTER html%]' script). The reason could be one of:<br>
@@ -82,7 +82,7 @@
     </ul>
     Are you sure you want to commit these changes anyway? This may result in
     unexpected and undesired results.
-  </div>
+  </div></div>
 
   <form name="check" id="check" method="post" action="[% script_name FILTER html %]">
     [% PROCESS "global/hidden-fields.html.tmpl"

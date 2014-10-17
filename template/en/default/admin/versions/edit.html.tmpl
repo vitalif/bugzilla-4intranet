@@ -25,23 +25,23 @@
   <table border="0" cellpadding="4" cellspacing="0">
     <tr>
       <th class="field_label"><label for="version">Version:</label></th>
-      <td><input id="version" size="64" maxlength="64" name="version" id="version" value="[%- version.name | html %]"></td>
+      <td><input id="version" size="64" maxlength="64" name="version" id="version" value="[%- version.name | html %]" /></td>
     </tr>
     [% IF version.id %]
     <tr>
       <th class="field_label"><label for="isactive">Enabled For [% terms.Bugs %]:</label></th>
-      <td><input id="isactive" name="isactive" type="checkbox" value="1" [% 'checked="checked"' IF version.isactive %]></td>
+      <td><input id="isactive" name="isactive" type="checkbox" value="1" [% 'checked="checked"' IF version.isactive %] /></td>
     </tr>
     [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=version.field this_value=version %]
     [% END %]
   </table>
 
-  <input type="submit" value="[% version.id ? "Save Changes" : "Add" %]">
-  <input type="hidden" name="action" value="[% version.id ? "update" : "new" %]">
-  <input type="hidden" name="product" value="[% product.name | html %]">
-  <input type="hidden" name="token" value="[% token | html %]">
+  <p><input type="submit" value="[% version.id ? "Save Changes" : "Add" %]" /></p>
+  <input type="hidden" name="action" value="[% version.id ? "update" : "new" %]" />
+  <input type="hidden" name="product" value="[% product.name | html %]" />
+  <input type="hidden" name="token" value="[% token | html %]" />
   [% IF version.id %]
-  <input type="hidden" name="versionold" value="[% version.name | html %]">
+  <input type="hidden" name="versionold" value="[% version.name | html %]" />
   [% END %]
 </form>
 
