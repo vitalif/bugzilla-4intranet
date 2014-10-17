@@ -32,7 +32,7 @@ onDomReady(function()
             {
                 e = e || window.event;
                 var f = e.relatedTarget || e.fromElement;
-                if (f == s || f.parentNode == s || !s.style.width && s.offsetWidth <= lim)
+                if (!f || f == s || f.parentNode == s || !s.style.width && s.offsetWidth <= lim)
                     return;
                 var c = s;
                 while (c && c.nodeName != 'TABLE')

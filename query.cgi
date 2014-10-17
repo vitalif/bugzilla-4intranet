@@ -292,7 +292,7 @@ if ($vars->{query_format} eq 'create-series')
 }
 
 # Set cookie to current format as default.
-if ($vars->{query_format})
+if ($vars->{query_format} eq 'advanced' || $vars->{query_format} eq 'specific')
 {
     Bugzilla->cgi->send_cookie(
         -name => 'DEFAULTFORMAT',
