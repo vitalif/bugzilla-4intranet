@@ -188,20 +188,18 @@ function showbugcomma()
 
   [%# TODO extract these links into an array and move display into a loop %]
 
-  [% IF bugs.size > 1 && caneditbugs && !dotweak %]
-    <div class="buglist-navbar"><a target="graphview" href="showdependencygraph.cgi?id=[% buglist_joined | html %]">Graph</a></div>
-  [% END %]
+  <div class="buglist-navbar">
+    [% IF bugs.size > 1 && caneditbugs && !dotweak %]
+    <a target="graphview" href="showdependencygraph.cgi?id=[% buglist_joined | html %]">Graph</a>
+    <br />
+    [% END %]
+    <a href="scrum.cgi?id=[% buglist.join(',') %]">SCRUM</a>
+  </div>
 
   <div class="buglist-navbar">
     <a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=csv">CSV</a>
     <br />
     <a href="buglist.cgi?format=simple&amp;[% urlquerypart.replace('[&\?]format=[^&]*', '') | html %]" target="_blank">Print</a>
-  </div>
-
-  <div class="buglist-navbar">
-    <a href="scrum.cgi?id=[% buglist.join(',') %]">Scrum Cards</a>
-    <br />
-    <a href="editscrum.cgi?id=[% buglist.join(',') %]">Estimates...</a>
   </div>
 
   <div class="buglist-navbar">
