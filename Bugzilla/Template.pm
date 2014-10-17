@@ -60,7 +60,7 @@ use Scalar::Util qw(blessed);
 
 use base qw(Template);
 
-my ($custom_proto, $custom_proto_regex, $custom_proto_cached);
+my ($custom_proto, $custom_proto_regex, $custom_proto_cached, $custom_wiki_urls, $custom_wiki_proto);
 
 # Convert the constants in the Bugzilla::Constants module into a hash we can
 # pass to the template object for reflection into its "constants" namespace
@@ -275,8 +275,38 @@ sub quoteUrls
         ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) && ("\0\0" . ($count-1) . "\0\0")
         ~egox;
 
+    if (!$custom_proto || $custom_proto_cached < Bugzilla->params_modified)
+    {
+        # initialize custom protocols
+        $custom_proto_cached = time;
+        $custom_proto = {};
+        $custom_wiki_urls = [];
+        $custom_wiki_proto = {};
+        # MediaWiki link integration
+        for (split /\n/, Bugzilla->params->{mediawiki_urls})
+        {
+            my ($wiki, $url) = split /\s+/, trim($_), 2;
+            $custom_proto->{$wiki} = sub { quote_wiki_url($url, @_) } if $wiki && $url;
+            push @$custom_wiki_urls, lc "\Q$url\E";
+            $custom_wiki_proto->{lc $url} = $wiki;
+        }
+        Bugzilla::Hook::process('quote_urls-custom_proto', { custom_proto => $custom_proto });
+        $custom_wiki_urls = join '|', @$custom_wiki_urls;
+        $custom_wiki_urls = qr~\b($custom_wiki_urls)([^\s<>\"]+[\w/])~si if $custom_wiki_urls ne '';
+        $custom_proto_regex = join '|', keys %$custom_proto;
+    }
+
     # non-mailto protocols
     my $safe_protocols = join('|', SAFE_PROTOCOLS);
+
+    # unquote known MediaWiki URLs and show them nicely
+    if ($custom_wiki_urls ne '')
+    {
+        $text =~ s~$custom_wiki_urls~
+                ($things[$count++] = unquote_wiki_url($1, $2)) &&
+                ("\0\0" . ($count-1) . "\0\0")
+            ~gesix;
+    }
 
     $text =~ s~
             \b((?:$safe_protocols): # The protocol:
@@ -287,21 +317,6 @@ sub quoteUrls
             ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
             ("\0\0" . ($count-1) . "\0\0")
         ~gesox;
-
-    if (!$custom_proto || $custom_proto_cached < Bugzilla->params_modified)
-    {
-        # initialize custom protocols
-        $custom_proto_cached = time;
-        $custom_proto = {};
-        # MediaWiki link integration
-        for (split /\n/, Bugzilla->params->{mediawiki_urls})
-        {
-            my ($wiki, $url) = split /\s+/, trim($_), 2;
-            $custom_proto->{$wiki} = sub { process_wiki_url($url, @_) } if $wiki && $url;
-        }
-        Bugzilla::Hook::process('quote_urls-custom_proto', { custom_proto => $custom_proto });
-        $custom_proto_regex = join '|', keys %$custom_proto;
-    }
 
     if ($custom_proto && %$custom_proto)
     {
@@ -387,7 +402,7 @@ sub quoteUrls
 }
 
 # MediaWiki page anchor encoding
-sub process_wiki_anchor
+sub quote_wiki_anchor
 {
     my ($anchor) = (@_);
     return "" unless $anchor;
@@ -395,18 +410,50 @@ sub process_wiki_anchor
     $anchor = url_quote($anchor);
     $anchor =~ s/\%3A/:/giso;
     $anchor =~ tr/%/./;
-    return $anchor;
+    return '#'.$anchor;
 }
 
 # Convert MediaWiki page titles to URLs
-sub process_wiki_url
+sub quote_wiki_url
 {
     my ($base, $url, $anchor) = @_;
     $url = trim($url);
     $url =~ s/\s+/_/gso;
     # Use url_quote without converting / to %2F
     $url = url_quote_noslash($url);
-    return $base . $url . '#' . process_wiki_anchor($anchor);
+    return $base . $url . quote_wiki_anchor($anchor);
+}
+
+# Decode and link MediaWiki URL
+sub unquote_wiki_url
+{
+    my ($wikiurl, $linkurl) = @_;
+    my $wikiname = $custom_wiki_proto->{$wikiurl};
+    if ($wikiname)
+    {
+        Encode::_utf8_off($linkurl);
+        my $article = $linkurl;
+        $article =~ s/^\/+//so;
+        my $anchor = '';
+        if ($article =~ s/#(.*)$//so)
+        {
+            $anchor = $1;
+            # decode MediaWiki page section name
+            $anchor =~ tr/./%/;
+            $anchor = url_decode($anchor);
+            $anchor =~ tr/_/ /;
+        }
+        $article =~ s/&.*$//so if $wikiurl =~ /title=$/so;
+        $article = url_decode($article);
+        $article =~ tr/_/ /;
+        Encode::_utf8_on($linkurl);
+        Encode::_utf8_on($article);
+        Encode::_utf8_on($anchor);
+        $linkurl = '<a href="'.html_quote($wikiurl.$linkurl).'">'.$wikiname.':[['.$article.($anchor eq '' ? '' : '#'.$anchor).']]</a>';
+        return $linkurl;
+    }
+    $linkurl = html_quote($wikiurl.$linkurl);
+    return "<a href=\"$linkurl\">$linkurl</a>";
 }
 
 # Creates a link to an attachment, including its title.

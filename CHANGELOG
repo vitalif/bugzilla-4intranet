@@ -61,6 +61,8 @@ Other new features:
 * Allow to use field names in incoming email.
 * Flash comment when going to its anchor link.
 * Detect changes for multi-selects during mid-air collisions.
+* Automatically decode known MediaWiki URLs in comments and show them nicely
+  using <wikiname>:[[Page name#Section]] syntax.
 
 Bugfixes:
 * More correct select field population on bug and query forms.
@@ -305,4 +307,5 @@ Other improvements:
 * Single-click "unsubscribe from bug" page.
 * RSS activity and comment feed for each bug.
 * Russian stemming for MySQL fulltext search.
+* Integration with ViewVC ("Look for bug in CVS/SVN") and MediaWiki.
 * Some other initial Bugzilla4Intranet improvements.
