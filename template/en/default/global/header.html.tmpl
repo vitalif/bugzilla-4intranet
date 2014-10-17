@@ -264,13 +264,9 @@
                  [% ' ' %][% class FILTER css_class_quote %]
                [% END %]">
 
-[%# Migration note: the following file corresponds to the old Param
-  # 'bannerhtml'
-  #%]
-
 <div id="header">
 
-[% INCLUDE global/banner.html.tmpl %]
+[% Param('bannerhtml') %]
 
 <table border="0" cellspacing="0" cellpadding="0" id="titles">
 <tr>

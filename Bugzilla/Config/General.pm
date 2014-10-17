@@ -76,6 +76,12 @@ bug writing guidelines</a>, please look at the list of
   },
 
   {
+   name => 'bannerhtml',
+   type => 'l',
+   default => ''
+  },
+
+  {
    name => 'upgrade_notification',
    type => 's',
    choices => ['development_snapshot', 'latest_stable_release',
