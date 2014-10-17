@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -121,18 +119,6 @@ sub get_param_list {
    type => 't',
    default => q:.*:,
    checker => \&check_regexp
-  },
-
-  {
-   name => 'fof_sudo_server',
-   type => 't',
-   default => ''
-  },
-
-  {
-   name => 'fof_sudo_mynetworks',
-   type => 't',
-   default => ''
   },
 
   {

@@ -320,11 +320,6 @@ sub OPTIONAL_MODULES {
         feature => 'Import of OOXML Excel files (*.xlsx)',
     },
     {
-        package => 'Net-IP-Match-XS',
-        module  => 'Net::IP::Match::XS',
-        feature => 'FOF-Sudo system-to-system authentication',
-    },
-    {
         package => 'HTML-Strip',
         module  => 'HTML::Strip',
         feature => 'Handling inbound HTML email',
