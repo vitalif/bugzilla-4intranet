@@ -391,9 +391,11 @@ sub save_session_data
     my $c = $class->request_cache;
     $class->session_data({ result_messages => $class->result_messages });
     $class->session_data($s) || return undef;
+    my $a = JSON::encode_json($c->{session}->{_session_data_decoded});
+    Encode::_utf8_on($a);
     Bugzilla->dbh->do(
         'UPDATE logincookies SET session_data=? WHERE cookie=?', undef,
-        JSON::encode_json($c->{session}->{_session_data_decoded}), $c->{session}->{cookie}
+        $a, $c->{session}->{cookie}
     );
 }
 
