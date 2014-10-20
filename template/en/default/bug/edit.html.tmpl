@@ -1015,17 +1015,26 @@ document.changeform = document.[% cfname %];
 [% BLOCK commit_button %]
   [% IF user.id %]
     [% w = BLOCK %]
-      Look for [% terms.Bug %] in:
-      <a href="[% Param('viewvc_url') %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
-      /
-      <a href="[% bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url') %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
+      [% look_in_viewvc = Param('viewvc_url') %]
+      [% look_in_wiki = bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url')  %]
+      [% IF look_in_viewvc || look_in_wiki %]
+        Look for [% terms.Bug %] in:
+        [% IF look_in_viewvc %]
+        <a href="[% look_in_viewvc %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
+          [% IF look_in_wiki %]
+          /
+          [% END %]
+        [% END %]
+        [% IF look_in_wiki %]
+          <a href="[% look_in_wiki %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
+        [% END %]
+      [% END %]
     [% END %]
     <div class="knob-buttons">
       [% IF nobr %][% w %][% ELSE %]<input type="button" value="Preview" onclick="showcommentpreview()" tabindex="-1" />[% END %]
-      <input type="submit" value="Save Changes"
-             id="commit[% id FILTER css_class_quote %]">
+      <input type="submit" value="Save Changes" id="commit[% id FILTER css_class_quote %]" />
       [% IF bug.user.canmove %]
-        <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]">
+        <input type="submit" name="action" id="action[% id FILTER css_class_quote %]" value="[% Param("move-button-text") %]" />
       [% END %]
       [% IF NOT nobr %]<p style="margin: 0.5em 0">[% w %]</p>[% END %]
     </div>
