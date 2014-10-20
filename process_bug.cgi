@@ -723,7 +723,7 @@ if (scalar(@bug_objects) == 1 && $action ne 'nothing' && Bugzilla->save_session_
 else
 {
     # End the response page.
-    $vars->{last_bug_list} = [ split /:/, Bugzilla->{cookies}->{BUGLIST} ];
+    $vars->{last_bug_list} = [ split /:/, Bugzilla->cookies->{BUGLIST} ];
     $template->process("global/header.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
     $template->process("bug/navigate.html.tmpl", $vars)

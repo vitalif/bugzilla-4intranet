@@ -129,7 +129,36 @@ sub _get_create_index_ddl
         $index_fields = join(" || ", @$index_fields);
         return "CREATE INDEX $name ON $table USING gin($index_fields)";
     }
-    return $self->SUPER::_get_create_index_ddl(@_);
+    else
+    {
+        $index_fields = [ @$index_fields ];
+        for (@$index_fields)
+        {
+            /^\s*(\w+)(?:\s*\((\d+)\))?\s*$/so;
+            my ($f, $l) = ($1, $2);
+            if ($l)
+            {
+                # Support MySQL-like prefix indexes (used on bugs_activity.{added,removed})
+                $_ = "substr($f, 1, $l)";
+            }
+            # Support *_pattern_ops
+            my $t = $self->get_column_abstract($table, $f);
+            $t = $t && $t->{TYPE};
+            if ($t =~ /varchar/is)
+            {
+                $_ .= ' varchar_pattern_ops';
+            }
+            elsif ($t =~ /text/is)
+            {
+                $_ .= ' text_pattern_ops';
+            }
+            elsif ($t =~ /char/is)
+            {
+                $_ .= ' bpchar_pattern_ops';
+            }
+        }
+    }
+    return $self->SUPER::_get_create_index_ddl($table, $name, $index_fields, $index_type);
 }
 
 sub get_rename_column_ddl {
@@ -187,7 +216,7 @@ sub _get_alter_type_sql {
     $type =~ s/unique//i if $new_def->{PRIMARYKEY};
 
     push(@statements, "ALTER TABLE $table ALTER COLUMN $column
-                              TYPE $type");
+                              TYPE $type USING $column\:\:$type");
 
     if ($new_def->{TYPE} =~ /serial/i && $old_def->{TYPE} !~ /serial/i) {
         push(@statements, "CREATE SEQUENCE ${table}_${column}_seq");

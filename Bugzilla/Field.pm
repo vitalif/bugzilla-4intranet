@@ -1324,7 +1324,7 @@ sub populate_field_definitions
 {
     my $dbh = Bugzilla->dbh;
 
-    my ($has_clone_bug) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE clone_bug AND NOT custom');
+    my ($has_clone_bug) = $dbh->selectrow_array('SELECT 1 FROM fielddefs WHERE clone_bug=1 AND custom=0');
 
     # Add/update field definitions
     my $i = 0;

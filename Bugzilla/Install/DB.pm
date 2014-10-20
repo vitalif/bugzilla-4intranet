@@ -659,22 +659,20 @@ sub update_table_definitions
     # CustIS Bug 139829 - Move per-product 'strict isolation'-like setting into attribute
     if ($dbh->selectrow_array('SELECT id FROM products WHERE description LIKE \'%[CC:%\' LIMIT 1'))
     {
+        my $start = $dbh->sql_position("'[CC:'", "p.description");
+        my $end = $dbh->sql_position("']'", "substr(p.description, $start)");
         $dbh->do('
 UPDATE products p SET
     cc_group = (SELECT g.id FROM groups g WHERE g.name=trim(
-        substr(
-            p.description,
-            locate(\'[CC:\', p.description)+4,
-            locate(\']\', p.description, locate(\'[CC:\', p.description)+4) - locate(\'[CC:\', p.description)-4
-        )
+        substr(p.description, '.$start.'+4, '.$end.'-5)
     )),
     description = trim(
         concat(
-            substr(description, 1, locate(\'[CC:\', description)-1),
-            substr(description, 1 + locate(\']\', description, locate(\'[CC:\', description)+4))
+            substr(description, 1, '.$start.'-1),
+            substr(description, '.$start.' + '.$end.')
         )
     )
-WHERE description LIKE\'%[CC:%\'');
+WHERE description LIKE \'%[CC:%]%\'');
     }
 
     if ($dbh->bz_column_info(bugs_activity => 'added')->{TYPE} ne 'LONGTEXT')
@@ -757,11 +755,11 @@ WHERE description LIKE\'%[CC:%\'');
         my $fid = Bugzilla->get_field('target_milestone')->id;
         $dbh->do(
             "DELETE FROM field_defaults WHERE (field_id, visibility_value_id, default_value) IN".
-            " (SELECT $fid, id, defaultmilestone FROM products WHERE defaultmilestone IS NOT NULL)"
+            " (SELECT $fid, id, concat(defaultmilestone, '') FROM products WHERE defaultmilestone IS NOT NULL)"
         );
         $dbh->do(
             "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
-            " SELECT $fid, id, defaultmilestone FROM products WHERE defaultmilestone IS NOT NULL"
+            " SELECT $fid, id, concat(defaultmilestone, '') FROM products WHERE defaultmilestone IS NOT NULL"
         );
         $dbh->bz_drop_column('products', 'defaultmilestone');
     }
@@ -773,11 +771,11 @@ WHERE description LIKE\'%[CC:%\'');
         my $fid = Bugzilla->get_field('version')->id;
         $dbh->do(
             "DELETE FROM field_defaults WHERE (field_id, visibility_value_id, default_value) IN".
-            " (SELECT $fid, id, default_version FROM components WHERE default_version IS NOT NULL)"
+            " (SELECT $fid, id, concat(default_version, '') FROM components WHERE default_version IS NOT NULL)"
         );
         $dbh->do(
             "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
-            " SELECT $fid, id, default_version FROM components WHERE default_version IS NOT NULL"
+            " SELECT $fid, id, concat(default_version, '') FROM components WHERE default_version IS NOT NULL"
         );
         $dbh->bz_drop_column('components', 'default_version');
     }
@@ -3436,7 +3434,8 @@ sub _populate_bugs_fulltext
         $sph->{PrintError} = 0;
         $nonempty = !$sph->do("INSERT INTO $table (id) VALUES (-1)");
         $sph->{PrintError} = 1;
-        if (my $conn = Bugzilla->localconfig->{sphinxse_port})
+        if ($dbh->isa('Bugzilla::DB::Mysql') &&
+            (my $conn = Bugzilla->localconfig->{sphinxse_port}))
         {
             $conn = "sphinx://".Bugzilla->localconfig->{sphinx_host}.':'.Bugzilla->localconfig->{sphinxse_port}.'/'.$table;
             $dbh->do("DROP TABLE IF EXISTS bugs_fulltext_sphinx");
@@ -4054,13 +4053,13 @@ sub _change_select_fields_to_ids
             $dbh->bz_alter_column($subject, $col, { TYPE => 'varchar(255)' });
             # Change '---', empty and incorrect values to NULL
             $dbh->do(
-                "UPDATE $subject b LEFT JOIN $tab m ON m.value=b.$col".
-                ($depend || '')." SET b.$col=NULL WHERE m.id IS NULL OR b.$col='---' OR b.$col=''"
+                "UPDATE $subject b SET $col=NULL WHERE b.$col='---' OR b.$col=''".
+                " OR (SELECT m.id FROM $tab m WHERE m.value=b.$col".($depend || '').") IS NULL"
             );
             # Change value names to IDs
             $dbh->do(
-                "UPDATE $subject b INNER JOIN $tab m ON m.value=b.$col".
-                ($depend || '')." SET b.$col=m.id"
+                "UPDATE $subject b SET $col=(SELECT m.id FROM $tab m WHERE m.value=b.$col".
+                ($depend || '').") WHERE b.$col IS NOT NULL"
             );
             # Change column to nullable INT4 and add the foreign key
             $dbh->bz_alter_column($subject, $col, { TYPE => 'INT4' });
@@ -4079,11 +4078,15 @@ sub _change_select_fields_to_ids
     {
         print "Replacing 'unspecified' versions with NULL\n";
         my $id = Bugzilla->get_field('version')->id;
-        $dbh->do("UPDATE bugs b, versions v SET b.version=NULL WHERE b.version=v.id AND v.value='unspecified'");
-        $dbh->do("UPDATE components c, versions v SET c.default_version=NULL WHERE c.default_version=v.id AND v.value='unspecified'");
+        $dbh->do("UPDATE bugs b SET version=NULL WHERE b.version IN (SELECT v.id FROM versions v WHERE v.value='unspecified')");
+        $dbh->do("UPDATE components c SET default_version=NULL WHERE c.default_version IN (SELECT v.id FROM versions v WHERE v.value='unspecified')");
         $dbh->do("UPDATE fielddefs SET is_mandatory=0 WHERE name='version'");
         $dbh->do(
-            "REPLACE INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)".
+            "DELETE FROM fieldvaluecontrol WHERE (field_id, value_id, visibility_value_id) IN ".
+            " (SELECT $id, -1, product_id FROM versions WHERE value='unspecified')"
+        );
+        $dbh->do(
+            "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)".
             " SELECT $id, -1, product_id FROM versions WHERE value='unspecified'"
         );
         $dbh->do("DELETE FROM versions WHERE value='unspecified'");

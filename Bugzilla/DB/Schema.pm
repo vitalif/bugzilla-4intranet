@@ -1925,6 +1925,7 @@ sub get_alter_column_ddl {
         # (although nobody would usually specify both a default and 
         # a set_nulls_to.)
         $setdefault = $set_nulls_to if defined $set_nulls_to;
+        $setdefault = exists $specific->{$setdefault} ? $specific->{$setdefault} : $setdefault;
         if (defined $setdefault) {
             push(@statements, "UPDATE $table SET $column = $setdefault"
                             . "  WHERE $column IS NULL");

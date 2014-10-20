@@ -2350,7 +2350,8 @@ sub _content_matches
         $text =~ s/((?<!\\)(?:\\\\)*)([$pattern_part])/$1\\$2/gs;
         $text =~ s/(?<=[\s-])-(?=[\s-])/\\-/gso;
         $text = ($self->{user}->is_insider ? '@(short_desc,comments,comments_private) ' : '@(short_desc,comments) ') . $text;
-        if (Bugzilla->localconfig->{sphinxse_port})
+        if ($dbh->isa('Bugzilla::DB::Mysql') &&
+            Bugzilla->localconfig->{sphinxse_port})
         {
             # Using SphinxSE
             $text =~ s/;/\\;/gso;
