@@ -32,7 +32,7 @@ use Pod::Usage;
 
 use Bugzilla::Constants;
 use Bugzilla::JobQueue;
-use Bugzilla::Util qw(get_text);
+use Bugzilla::Util qw(get_text get_subclasses);
 BEGIN { eval "use base qw(Daemon::Generic)"; }
 
 our $VERSION = BUGZILLA_VERSION;
@@ -217,20 +217,10 @@ sub gd_run
 
     my $jq = Bugzilla->job_queue();
     $jq->set_verbose($self->{debug});
-    my $seen = {};
-    foreach my $path (@INC)
+    foreach my $module (@{ get_subclasses("Bugzilla::Job") })
     {
-        foreach my $file (<$path/Bugzilla/Job/*.pm>)
-        {
-            $file = substr($file, 1 + length $path, -3);
-            $file =~ s!/!::!gs;
-            $seen->{$file} = 1;
-        }
-    }
-    foreach my $module (keys %$seen)
-    {
-        eval "use $module";
-        $jq->can_do($module);
+        eval "use Bugzilla::Job::$module";
+        $jq->can_do("Bugzilla::Job::$module");
     }
     $jq->work;
 }

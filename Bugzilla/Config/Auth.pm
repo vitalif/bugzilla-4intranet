@@ -31,6 +31,7 @@ package Bugzilla::Config::Auth;
 
 use strict;
 
+use Bugzilla::Util;
 use Bugzilla::Config::Common;
 
 our $sortkey = 300;
@@ -96,18 +97,10 @@ sub get_param_list
         default => '',
     },
 
-    # XXX in the future:
-    #
-    # user_verify_class and user_info_class should have choices gathered from
-    # whatever sits in their respective directories
-    #
-    # rather than comma-separated lists, these two should eventually become
-    # arrays, but that requires alterations to editparams first
-
     {
         name => 'user_info_class',
-        type => 's',
-        choices => [ 'CGI', 'Env', 'Env,CGI', 'FOF_Sudo,CGI', 'FOF_Sudo,Env,CGI' ],
+        type => 'o',
+        choices => get_subclasses('Bugzilla::Auth::Login'),
         default => 'CGI',
         checker => \&check_multi
     },
@@ -115,7 +108,7 @@ sub get_param_list
     {
         name => 'user_verify_class',
         type => 'o',
-        choices => [ 'DB', 'RADIUS', 'LDAP' ],
+        choices => get_subclasses('Bugzilla::Auth::Verify'),
         default => 'DB',
         checker => \&check_user_verify_class
     },

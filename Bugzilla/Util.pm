@@ -45,6 +45,7 @@ use base qw(Exporter);
     get_text disable_utf8 bz_encode_json
     xml_element xml_element_quote xml_dump_simple xml_simple
     Dumper http_build_query http_decode_query join_escaped split_escaped
+    get_subclasses
 );
 
 use Bugzilla::Constants;
@@ -1021,6 +1022,23 @@ sub split_escaped
     push @r, $s if length $s;
     s/\\(.)/$1/gso for @r;
     return @r;
+}
+
+sub get_subclasses
+{
+    my ($pkg) = @_;
+    $pkg =~ s/::/\//gso;
+    my $seen = {};
+    foreach my $path (@INC)
+    {
+        foreach my $file (glob("$path/$pkg/*.pm"))
+        {
+            $file = substr($file, 2 + length($pkg) + length($path), -3);
+            $file =~ s!/!::!gs;
+            $seen->{$file} = 1;
+        }
+    }
+    return [ sort keys %$seen ];
 }
 
 1;

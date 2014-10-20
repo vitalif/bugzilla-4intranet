@@ -84,6 +84,8 @@ Refactoring:
 * Merge create/edit templates for milestones, versions, field values, keywords, classifications.
 * Remove JOB_MAP hardcode that didn't allow to add custom job classes without
   modifying the core code.
+* Remove parameter value hardcode that didn't allow to add custom auth modules
+  without modifying the core code.
 * Remove various procedural and/or unused APIs from Bugzilla modules,
   (like is_open_state, BUG_STATE_OPEN, closed_bug_statuses, LookupNamedQuery...)
 * Remove some unused functions and filters from Bugzilla::Template.
