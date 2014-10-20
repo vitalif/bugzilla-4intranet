@@ -35,108 +35,146 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 300;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'auth_env_id',
-   type    => 't',
-   default => '',
-  },
+sub check_user_verify_class
+{
+    # doeditparams traverses the list of params, and for each one it checks,
+    # then updates. This means that if one param checker wants to look at
+    # other params, it must be below that other one. So you can't have two
+    # params mutually dependent on each other.
+    # This means that if someone clears the LDAP config params after setting
+    # the login method as LDAP, we won't notice, but all logins will fail.
+    # So don't do that.
 
-  {
-   name    => 'auth_env_email',
-   type    => 't',
-   default => '',
-  },
+    my $params = Bugzilla->params;
+    my ($list, $entry) = @_;
+    $list || return 'You need to specify at least one authentication mechanism';
+    for my $class (split /,\s*/, $list)
+    {
+        my $res = check_multi($class, $entry);
+        return $res if $res;
+        if ($class eq 'RADIUS')
+        {
+            if (!Bugzilla->feature('auth_radius'))
+            {
+                return "RADIUS support is not available. Run checksetup.pl for more details";
+            }
+            return "RADIUS servername (RADIUS_server) is missing" if !$params->{RADIUS_server};
+            return "RADIUS_secret is empty" if !$params->{RADIUS_secret};
+        }
+        elsif ($class eq 'LDAP')
+        {
+            if (!Bugzilla->feature('auth_ldap'))
+            {
+                return "LDAP support is not available. Run checksetup.pl for more details";
+            }
+            return "LDAP servername (LDAPserver) is missing" if !$params->{LDAPserver};
+            return "LDAPBaseDN is empty" if !$params->{LDAPBaseDN};
+        }
+    }
+    return "";
+}
 
-  {
-   name    => 'auth_env_realname',
-   type    => 't',
-   default => '',
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name => 'auth_env_id',
+        type => 't',
+        default => '',
+    },
 
-  # XXX in the future:
-  #
-  # user_verify_class and user_info_class should have choices gathered from
-  # whatever sits in their respective directories
-  #
-  # rather than comma-separated lists, these two should eventually become
-  # arrays, but that requires alterations to editparams first
+    {
+        name => 'auth_env_email',
+        type => 't',
+        default => '',
+    },
 
-  {
-   name => 'user_info_class',
-   type => 's',
-   choices => [ 'CGI', 'Env', 'Env,CGI', 'FOF_Sudo,CGI', 'FOF_Sudo,Env,CGI' ],
-   default => 'CGI',
-   checker => \&check_multi
-  },
+    {
+        name => 'auth_env_realname',
+        type => 't',
+        default => '',
+    },
 
-  {
-   name => 'user_verify_class',
-   type => 'o',
-   choices => [ 'DB', 'RADIUS', 'LDAP' ],
-   default => 'DB',
-   checker => \&check_user_verify_class
-  },
+    # XXX in the future:
+    #
+    # user_verify_class and user_info_class should have choices gathered from
+    # whatever sits in their respective directories
+    #
+    # rather than comma-separated lists, these two should eventually become
+    # arrays, but that requires alterations to editparams first
 
-  {
-   name => 'rememberlogin',
-   type => 's',
-   choices => ['on', 'defaulton', 'defaultoff', 'off'],
-   default => 'on',
-   checker => \&check_multi
-  },
+    {
+        name => 'user_info_class',
+        type => 's',
+        choices => [ 'CGI', 'Env', 'Env,CGI', 'FOF_Sudo,CGI', 'FOF_Sudo,Env,CGI' ],
+        default => 'CGI',
+        checker => \&check_multi
+    },
 
-  {
-   name => 'requirelogin',
-   type => 'b',
-   default => '0'
-  },
+    {
+        name => 'user_verify_class',
+        type => 'o',
+        choices => [ 'DB', 'RADIUS', 'LDAP' ],
+        default => 'DB',
+        checker => \&check_user_verify_class
+    },
 
-  {
-   name => 'emailregexp',
-   type => 't',
-   default => q:^[\\w\\.\\+\\-=]+@[\\w\\.\\-]+\\.[\\w\\-]+$:,
-   checker => \&check_regexp
-  },
+    {
+        name => 'rememberlogin',
+        type => 's',
+        choices => ['on', 'defaulton', 'defaultoff', 'off'],
+        default => 'on',
+        checker => \&check_multi
+    },
 
-  {
-   name => 'emailregexpdesc',
-   type => 'l',
-   default => 'A legal address must contain exactly one \'@\', and at least ' .
-              'one \'.\' after the @.'
-  },
+    {
+        name => 'requirelogin',
+        type => 'b',
+        default => '0'
+    },
 
-  {
-   name => 'emailsuffix',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'emailregexp',
+        type => 't',
+        default => q:^[\\w\\.\\+\\-=]+@[\\w\\.\\-]+\\.[\\w\\-]+$:,
+        checker => \&check_regexp
+    },
 
-  {
-   name => 'createemailregexp',
-   type => 't',
-   default => q:.*:,
-   checker => \&check_regexp
-  },
+    {
+        name => 'emailregexpdesc',
+        type => 'l',
+        default => 'A legal address must contain exactly one \'@\', and at least one \'.\' after the @.'
+    },
 
-  {
-   name => 'max_login_attempts',
-   type => 't',
-   default => 5,
-   checker => sub { $_[0] =~ /^\d+$/so ? "" : "must be a positive integer value or 0 (means no limit)" },
-  },
+    {
+        name => 'emailsuffix',
+        type => 't',
+        default => ''
+    },
 
-  {
-   name => 'login_lockout_interval',
-   type => 't',
-   default => 30,
-   checker => sub { $_[0] =~ /^[1-9]\d*$/so ? "" : "must be a positive integer value" },
-  },
+    {
+        name => 'createemailregexp',
+        type => 't',
+        default => q:.*:,
+        checker => \&check_regexp
+    },
 
-  );
-  return @param_list;
+    {
+        name => 'max_login_attempts',
+        type => 't',
+        default => 5,
+        checker => sub { $_[0] =~ /^\d+$/so ? "" : "must be a positive integer value or 0 (means no limit)" },
+    },
+
+    {
+        name => 'login_lockout_interval',
+        type => 't',
+        default => 30,
+        checker => sub { $_[0] =~ /^[1-9]\d*$/so ? "" : "must be a positive integer value" },
+    },
+    );
+    return @param_list;
 }
 
 1;

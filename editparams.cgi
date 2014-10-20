@@ -132,7 +132,7 @@ if ($action eq 'save' && $current_module)
         }
         else
         {
-            $changed = ($value eq Bugzilla->params->{$name})? 0 : 1;
+            $changed = ($value eq Bugzilla->params->{$name}) ? 0 : 1;
         }
 
         if ($changed)

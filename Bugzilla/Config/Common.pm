@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -35,280 +33,94 @@ package Bugzilla::Config::Common;
 use strict;
 
 use Email::Address;
-use Socket;
 
 use Bugzilla::Util;
 use Bugzilla::Constants;
 use Bugzilla::Field;
-use Bugzilla::Group;
 use Bugzilla::Status;
 
 use base qw(Exporter);
-@Bugzilla::Config::Common::EXPORT =
-    qw(check_multi check_numeric check_regexp check_url check_group
-       check_sslbase check_shadowdb check_urlbase check_webdotbase
-       check_user_verify_class
-       check_mail_delivery_method check_notification check_utf8
-       check_smtp_auth check_theschwartz_available
-       check_maxattachmentsize check_email
+@Bugzilla::Config::Common::EXPORT = qw(
+    check_multi check_numeric check_regexp check_url
+    check_urlbase check_email
 );
 
 # Checking functions for the various values
 
-sub check_multi {
+sub check_multi
+{
     my ($value, $param) = (@_);
-
-    if ($param->{'type'} eq "s") {
-        unless (scalar(grep {$_ eq $value} (@{$param->{'choices'}}))) {
-            return "Invalid choice '$value' for single-select list param '$param->{'name'}'";
+    if ($param->{type} eq "s")
+    {
+        unless (grep { $_ eq $value } @{$param->{choices}})
+        {
+            return "Invalid choice '$value' for single-select list param '$param->{name}'";
         }
-
         return "";
     }
-    elsif ($param->{'type'} eq 'm' || $param->{'type'} eq 'o') {
-        foreach my $chkParam (split(',', $value)) {
-            unless (scalar(grep {$_ eq $chkParam} (@{$param->{'choices'}}))) {
-                return "Invalid choice '$chkParam' for multi-select list param '$param->{'name'}'";
+    elsif ($param->{type} eq 'm' || $param->{type} eq 'o')
+    {
+        foreach my $chkParam (split ',', $value)
+        {
+            unless (grep { $_ eq $chkParam } @{$param->{choices}})
+            {
+                return "Invalid choice '$chkParam' for multi-select list param '$param->{name}'";
             }
         }
-
         return "";
     }
-    else {
-        return "Invalid param type '$param->{'type'}' for check_multi(); " .
-          "contact your Bugzilla administrator";
+    else
+    {
+        die "BUG: Invalid param type '$param->{type}' for check_multi()";
     }
 }
 
-sub check_numeric {
+sub check_numeric
+{
     my ($value) = (@_);
-    if ($value !~ /^[0-9]+$/) {
+    if ($value !~ /^[0-9]+$/)
+    {
         return "must be a numeric value";
     }
     return "";
 }
 
-sub check_regexp {
+sub check_regexp
+{
     my ($value) = (@_);
     eval { qr/$value/ };
     return $@;
 }
 
-sub check_email {
+sub check_email
+{
     my ($value) = @_;
-    if ($value !~ $Email::Address::mailbox) {
+    if ($value !~ $Email::Address::mailbox)
+    {
         return "must be a valid email address.";
     }
     return "";
 }
 
-sub check_sslbase {
-    my $url = shift;
-    if ($url ne '') {
-        if ($url !~ m#^https://([^/]+).*/$#) {
-            return "must be a legal URL, that starts with https and ends with a slash.";
-        }
-        my $host = $1;
-        # Fall back to port 443 if for some reason getservbyname() fails.
-        my $port = getservbyname('https', 'tcp') || 443;
-        if ($host =~ /^(.+):(\d+)$/) {
-            $host = $1;
-            $port = $2;
-        }
-        local *SOCK;
-        my $proto = getprotobyname('tcp');
-        socket(SOCK, PF_INET, SOCK_STREAM, $proto);
-        my $iaddr = inet_aton($host) || return "The host $host cannot be resolved";
-        my $sin = sockaddr_in($port, $iaddr);
-        if (!connect(SOCK, $sin)) {
-            return "Failed to connect to $host:$port; unable to enable SSL";
-        }
-        close(SOCK);
-    }
-    return "";
-}
-
-sub check_utf8 {
-    my $utf8 = shift;
-    # You cannot turn off the UTF-8 parameter if you've already converted
-    # your tables to utf-8.
-    my $dbh = Bugzilla->dbh;
-    if ($dbh->isa('Bugzilla::DB::Mysql') && $dbh->bz_db_is_utf8 && !$utf8) {
-        return "You cannot disable UTF-8 support, because your MySQL database"
-               . " is encoded in UTF-8";
-    }
-    return "";
-}
-
-sub check_group {
-    my $group_name = shift;
-    return "" unless $group_name;
-    my $group = new Bugzilla::Group({'name' => $group_name});
-    unless (defined $group) {
-        return "Must be an existing group name";
-    }
-    return "";
-}
-
-sub check_shadowdb {
-    my ($value) = (@_);
-    $value = trim($value);
-    if ($value eq "") {
-        return "";
-    }
-
-    if (!Bugzilla->params->{'shadowdbhost'}) {
-        return "You need to specify a host when using a shadow database";
-    }
-
-    # Can't test existence of this because ConnectToDatabase uses the param,
-    # but we can't set this before testing....
-    # This can really only be fixed after we can use the DBI more openly
-    return "";
-}
-
-sub check_urlbase {
+sub check_urlbase
+{
     my ($url) = (@_);
-    if ($url && $url !~ m:^http.*/$:) {
-        return "must be a legal URL, that starts with http and ends with a slash.";
+    if ($url && $url !~ m:^http.*/$:)
+    {
+        return 'must be a legal URL, that starts with http and ends with a slash.';
     }
     return "";
 }
 
-sub check_url {
+sub check_url
+{
     my ($url) = (@_);
     return '' if $url eq ''; # Allow empty URLs
-    if ($url !~ m:/$:) {
+    if ($url !~ m:/$:)
+    {
         return 'must be a legal URL, absolute or relative, ending with a slash.';
     }
     return '';
-}
-
-sub check_webdotbase {
-    my ($value) = (@_);
-    $value = trim($value);
-    if ($value eq "") {
-        return "";
-    }
-    if ($value !~ /^https?:/) {
-        if (!-x $value) {
-            return "The file path \"$value\" is not a valid executable.  Please specify the complete file path to 'dot' if you intend to generate graphs locally.";
-        }
-        # Check .htaccess allows access to generated images
-        my $webdotdir = bz_locations()->{'webdotdir'};
-        if (-e "$webdotdir/.htaccess") {
-            open HTACCESS, "$webdotdir/.htaccess";
-            local $/ = undef;
-            if (!grep /png/,<HTACCESS>) {
-                return "Dependency graph images are not accessible.\nAssuming that you have not modified the file, delete $webdotdir/.htaccess and re-run checksetup.pl to rectify.\n";
-            }
-            close HTACCESS;
-        }
-    }
-    return "";
-}
-
-sub check_user_verify_class {
-    # doeditparams traverses the list of params, and for each one it checks,
-    # then updates. This means that if one param checker wants to look at 
-    # other params, it must be below that other one. So you can't have two 
-    # params mutually dependent on each other.
-    # This means that if someone clears the LDAP config params after setting
-    # the login method as LDAP, we won't notice, but all logins will fail.
-    # So don't do that.
-
-    my $params = Bugzilla->params;
-    my ($list, $entry) = @_;
-    $list || return 'You need to specify at least one authentication mechanism';
-    for my $class (split /,\s*/, $list) {
-        my $res = check_multi($class, $entry);
-        return $res if $res;
-        if ($class eq 'RADIUS') {
-            if (!Bugzilla->feature('auth_radius')) {
-                return "RADIUS support is not available. Run checksetup.pl"
-                       . " for more details";
-            }
-            return "RADIUS servername (RADIUS_server) is missing"
-                if !$params->{"RADIUS_server"};
-            return "RADIUS_secret is empty" if !$params->{"RADIUS_secret"};
-        }
-        elsif ($class eq 'LDAP') {
-            if (!Bugzilla->feature('auth_ldap')) {
-                return "LDAP support is not available. Run checksetup.pl"
-                       . " for more details";
-            }
-            return "LDAP servername (LDAPserver) is missing" 
-                if !$params->{"LDAPserver"};
-            return "LDAPBaseDN is empty" if !$params->{"LDAPBaseDN"};
-        }
-    }
-    return "";
-}
-
-sub check_mail_delivery_method {
-    my $check = check_multi(@_);
-    return $check if $check;
-    my $mailer = shift;
-    if ($mailer eq 'sendmail' and ON_WINDOWS) {
-        # look for sendmail.exe 
-        return "Failed to locate " . SENDMAIL_EXE
-            unless -e SENDMAIL_EXE;
-    }
-    return "";
-}
-
-sub check_maxattachmentsize {
-    my $check = check_numeric(@_);
-    return $check if $check;
-    my $size = shift;
-    my $dbh = Bugzilla->dbh;
-    if ($dbh->isa('Bugzilla::DB::Mysql')) {
-        my (undef, $max_packet) = $dbh->selectrow_array(
-            q{SHOW VARIABLES LIKE 'max\_allowed\_packet'});
-        my $byte_size = $size * 1024;
-        if ($max_packet < $byte_size) {
-            return "You asked for a maxattachmentsize of $byte_size bytes,"
-                   . " but the max_allowed_packet setting in MySQL currently"
-                   . " only allows packets up to $max_packet bytes";
-        }
-    }
-    return "";
-}
-
-sub check_notification {
-    my $option = shift;
-    my @current_version =
-        (BUGZILLA_VERSION =~ m/^(\d+)\.(\d+)(?:(rc|\.)(\d+))?\+?$/);
-    if ($current_version[1] % 2 && $option eq 'stable_branch_release') {
-        return "You are currently running a development snapshot, and so your " .
-               "installation is not based on a branch. If you want to be notified " .
-               "about the next stable release, you should select " .
-               "'latest_stable_release' instead";
-    }
-    if ($option ne 'disabled' && !Bugzilla->feature('updates')) {
-        return "Some Perl modules are missing to get notifications about " .
-               "new releases. See the output of checksetup.pl for more information";
-    }
-    return "";
-}
-
-sub check_smtp_auth {
-    my $username = shift;
-    if ($username and !Bugzilla->feature('smtp_auth')) {
-        return "SMTP Authentication is not available. Run checksetup.pl for"
-               . " more details";
-    }
-    return "";
-}
-
-sub check_theschwartz_available {
-    my $use_queue = shift;
-    if ($use_queue && !Bugzilla->feature('jobqueue')) {
-        return "Using the job queue requires that you have certain Perl"
-               . " modules installed. See the output of checksetup.pl"
-               . " for more information";
-    }
-    return "";
 }
 
 # OK, here are the parameter definitions themselves.
@@ -369,12 +181,13 @@ sub check_theschwartz_available {
 #       }
 #
 #      Here, 'b' is the default option, and 'a' and 'c' are other possible
-#      options, but only one at a time! 
+#      options, but only one at a time!
 #
 #      &check_multi should always be used as the param verification function
 #      for list (single and multiple) parameter types.
 
-sub get_param_list {
+sub get_param_list
+{
     return;
 }
 

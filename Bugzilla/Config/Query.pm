@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -37,49 +35,50 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 1400;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'quip_list_entry_control',
-   type => 's',
-   choices => ['open', 'moderated', 'closed'],
-   default => 'open',
-   checker => \&check_multi
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name => 'quip_list_entry_control',
+        type => 's',
+        choices => ['open', 'moderated', 'closed'],
+        default => 'open',
+        checker => \&check_multi
+    },
 
-  {
-   name => 'mostfreqthreshold',
-   type => 't',
-   default => '2',
-   checker => \&check_numeric
-  },
+    {
+        name => 'mostfreqthreshold',
+        type => 't',
+        default => '2',
+        checker => \&check_numeric
+    },
 
-  {
-   name => 'mybugstemplate',
-   type => 't',
-   default => 'buglist.cgi?bug_status=UNCONFIRMED&amp;bug_status=NEW&amp;bug_status=ASSIGNED&amp;bug_status=REOPENED&amp;emailassigned_to1=1&amp;emailreporter1=1&amp;emailtype1=exact&amp;email1=%userid%&amp;field0-0-0=bug_status&amp;type0-0-0=notequals&amp;value0-0-0=UNCONFIRMED&amp;field0-0-1=reporter&amp;type0-0-1=equals&amp;value0-0-1=%userid%'
-  },
+    {
+        name => 'mybugstemplate',
+        type => 't',
+        default => 'buglist.cgi?bug_status=UNCONFIRMED&amp;bug_status=NEW&amp;bug_status=ASSIGNED&amp;bug_status=REOPENED&amp;emailassigned_to1=1&amp;emailreporter1=1&amp;emailtype1=exact&amp;email1=%userid%&amp;field0-0-0=bug_status&amp;type0-0-0=notequals&amp;value0-0-0=UNCONFIRMED&amp;field0-0-1=reporter&amp;type0-0-1=equals&amp;value0-0-1=%userid%'
+    },
 
-  {
-   name => 'defaultquery',
-   type => 't',
-   default => 'bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&emailassigned_to1=1&emailassigned_to2=1&emailreporter2=1&emailcc2=1&emailqa_contact2=1&order=Importance&long_desc_type=substring'
-  },
+    {
+        name => 'defaultquery',
+        type => 't',
+        default => 'bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&emailassigned_to1=1&emailassigned_to2=1&emailreporter2=1&emailcc2=1&emailqa_contact2=1&order=Importance&long_desc_type=substring'
+    },
 
-  {
-   name => 'specific_search_allow_empty_words',
-   type => 'b',
-   default => 1
-  },
+    {
+        name => 'specific_search_allow_empty_words',
+        type => 'b',
+        default => 1
+    },
 
-  {
-   name => 'stem_language',
-   type => 't',
-   default => 'en',
-  },
-  );
-  return @param_list;
+    {
+        name => 'stem_language',
+        type => 't',
+        default => 'en',
+    },
+    );
+    return @param_list;
 }
 
 1;

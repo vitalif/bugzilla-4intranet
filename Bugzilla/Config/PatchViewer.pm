@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -37,39 +35,41 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 1300;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name    => 'cvsroot',
-   type    => 't',
-   default => '',
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name    => 'cvsroot',
+        type    => 't',
+        default => '',
+    },
 
-  {
-   name    => 'cvsroot_get',
-   type    => 't',
-   default => '',
-  },
+    {
+        name    => 'cvsroot_get',
+        type    => 't',
+        default => '',
+    },
 
-  {
-   name    => 'bonsai_url',
-   type    => 't',
-   default => ''
-  },
+    {
+        name    => 'bonsai_url',
+        type    => 't',
+        default => ''
+    },
 
-  {
-   name    => 'lxr_url',
-   type    => 't',
-   default => ''
-  },
+    {
+        name    => 'lxr_url',
+        type    => 't',
+        default => ''
+    },
 
-  {
-   name    => 'lxr_root',
-   type    => 't',
-   default => '',
-  } );
-  return @param_list;
+    {
+        name    => 'lxr_root',
+        type    => 't',
+        default => '',
+    }
+    );
+    return @param_list;
 }
 
 1;

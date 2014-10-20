@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -37,57 +35,59 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 700;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'move-enabled',
-   type => 'b',
-   default => 0
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name => 'move-enabled',
+        type => 'b',
+        default => 0
+    },
 
-  {
-   name => 'move-button-text',
-   type => 't',
-   default => 'Move To Bugscape'
-  },
+    {
+        name => 'move-button-text',
+        type => 't',
+        default => 'Move To Bugscape'
+    },
 
-  {
-   name => 'move-to-url',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'move-to-url',
+        type => 't',
+        default => ''
+    },
 
-  {
-   name => 'move-to-address',
-   type => 't',
-   default => 'bugzilla-import'
-  },
+    {
+        name => 'move-to-address',
+        type => 't',
+        default => 'bugzilla-import'
+    },
 
-  {
-   name => 'moved-from-address',
-   type => 't',
-   default => 'bugzilla-admin'
-  },
+    {
+        name => 'moved-from-address',
+        type => 't',
+        default => 'bugzilla-admin'
+    },
 
-  {
-   name => 'movers',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'movers',
+        type => 't',
+        default => ''
+    },
 
-  {
-   name => 'moved-default-product',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'moved-default-product',
+        type => 't',
+        default => ''
+    },
 
-  {
-   name => 'moved-default-component',
-   type => 't',
-   default => ''
-  } );
-  return @param_list;
+    {
+        name => 'moved-default-component',
+        type => 't',
+        default => ''
+    },
+    );
+    return @param_list;
 }
 
 1;

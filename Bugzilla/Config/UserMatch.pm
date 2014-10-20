@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -37,42 +35,43 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 1600;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'usemenuforusers',
-   type => 'b',
-   default => '0'
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name    => 'usemenuforusers',
+        type    => 'b',
+        default => '0'
+    },
 
-  {
-   name    => 'maxusermatches',
-   type    => 't',
-   default => '1000',
-   checker => \&check_numeric
-  },
+    {
+        name    => 'maxusermatches',
+        type    => 't',
+        default => '1000',
+        checker => \&check_numeric
+    },
 
-  {
-   name    => 'confirmuniqueusermatch',
-   type    => 'b',
-   default => 1,
-  },
+    {
+        name    => 'confirmuniqueusermatch',
+        type    => 'b',
+        default => 1,
+    },
 
-  {
-   name    => 'emailin_autoregister',
-   type    => 'b',
-   default => 1,
-  },
+    {
+        name    => 'emailin_autoregister',
+        type    => 'b',
+        default => 1,
+    },
 
-  {
-   name    => 'levenshteinusermatch',
-   type    => 't',
-   default => '0',
-   checker => sub { $_[0] =~ /^\d+(\.\d+)?$/so ? "" : "must be a float or integer value" },
-  },
-  );
-  return @param_list;
+    {
+        name    => 'levenshteinusermatch',
+        type    => 't',
+        default => '0',
+        checker => sub { $_[0] =~ /^\d+(\.\d+)?$/so ? "" : "must be a float or integer value" },
+    },
+    );
+    return @param_list;
 }
 
 1;

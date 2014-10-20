@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -37,37 +35,57 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 1500;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'shadowdbhost',
-   type => 't',
-   default => '',
-  },
+sub check_shadowdb
+{
+    my ($value) = (@_);
+    $value = trim($value);
+    if ($value eq "")
+    {
+        return "";
+    }
+    if (!Bugzilla->params->{shadowdbhost})
+    {
+        return "You need to specify a host when using a shadow database";
+    }
+    # Can't test existence of this because ConnectToDatabase uses the param,
+    # but we can't set this before testing....
+    # This can really only be fixed after we can use the DBI more openly
+    return "";
+}
 
-  {
-   name => 'shadowdbport',
-   type => 't',
-   default => '3306',
-   checker => \&check_numeric,
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name => 'shadowdbhost',
+        type => 't',
+        default => '',
+    },
 
-  {
-   name => 'shadowdbsock',
-   type => 't',
-   default => '',
-  },
+    {
+        name => 'shadowdbport',
+        type => 't',
+        default => '3306',
+        checker => \&check_numeric,
+    },
 
-  # This entry must be _after_ the shadowdb{host,port,sock} settings so that
-  # they can be used in the validation here
-  {
-   name => 'shadowdb',
-   type => 't',
-   default => '',
-   checker => \&check_shadowdb
-  } );
-  return @param_list;
+    {
+        name => 'shadowdbsock',
+        type => 't',
+        default => '',
+    },
+
+    # This entry must be _after_ the shadowdb{host,port,sock} settings so that
+    # they can be used in the validation here
+    {
+        name => 'shadowdb',
+        type => 't',
+        default => '',
+        checker => \&check_shadowdb
+    },
+    );
+    return @param_list;
 }
 
 1;

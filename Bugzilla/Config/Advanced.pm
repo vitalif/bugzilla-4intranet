@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -30,28 +28,29 @@
 #                 Max Kanat-Alexander <mkanat@bugzilla.org>
 
 package Bugzilla::Config::Advanced;
+
 use strict;
 
 our $sortkey = 1700;
 
 use constant get_param_list => (
-  {
-   name => 'cookiedomain',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'cookiedomain',
+        type => 't',
+        default => ''
+    },
 
-  {
-   name => 'inbound_proxies',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'inbound_proxies',
+        type => 't',
+        default => ''
+    },
 
-  {
-   name => 'proxy_url',
-   type => 't',
-   default => ''
-  },
+    {
+        name => 'proxy_url',
+        type => 't',
+        default => ''
+    },
 );
 
 1;

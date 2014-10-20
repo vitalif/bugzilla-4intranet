@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -37,50 +35,80 @@ use Bugzilla::Config::Common;
 
 our $sortkey = 800;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'webdotbase',
-   type => 't',
-   default => 'http://www.research.att.com/~north/cgi-bin/webdot.cgi/%urlbase%',
-   checker => \&check_webdotbase
-  },
+sub check_webdotbase
+{
+    my ($value) = (@_);
+    $value = trim($value);
+    if ($value eq "")
+    {
+        return "";
+    }
+    if ($value !~ /^https?:/)
+    {
+        if (!-x $value)
+        {
+            return "The file path \"$value\" is not a valid executable. Please specify the complete file path to 'dot' if you intend to generate graphs locally.";
+        }
+        # Check .htaccess allows access to generated images
+        my $webdotdir = bz_locations()->{webdotdir};
+        if (-e "$webdotdir/.htaccess")
+        {
+            open HTACCESS, "$webdotdir/.htaccess";
+            local $/ = undef;
+            if (!grep /png/, <HTACCESS>)
+            {
+                return "Dependency graph images are not accessible.\nAssuming that you have not modified the file, delete $webdotdir/.htaccess and re-run checksetup.pl to rectify.\n";
+            }
+            close HTACCESS;
+        }
+    }
+    return "";
+}
 
-  {
-   name => 'webtwopibase',
-   type => 't',
-   default => '',
-   checker => \&check_webdotbase
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name => 'webdotbase',
+        type => 't',
+        default => 'http://www.research.att.com/~north/cgi-bin/webdot.cgi/%urlbase%',
+        checker => \&check_webdotbase
+    },
 
-  {
-   name => 'graph_rankdir',
-   type => 's',
-   choices => ['LR', 'RL', 'TB', 'BT'],
-   default => 'LR'
-  },
+    {
+        name => 'webtwopibase',
+        type => 't',
+        default => '',
+        checker => \&check_webdotbase
+    },
 
-  {
-   name => 'localdottimeout',
-   type => 't',
-   default => '5'
-  },
+    {
+        name => 'graph_rankdir',
+        type => 's',
+        choices => ['LR', 'RL', 'TB', 'BT'],
+        default => 'LR'
+    },
 
-  {
-   name => 'graph_font',
-   type => 't',
-   default => '',
-  },
+    {
+        name => 'localdottimeout',
+        type => 't',
+        default => '5'
+    },
 
-  {
-   name => 'graph_font_size',
-   type => 't',
-   default => '8',
-  },
+    {
+        name => 'graph_font',
+        type => 't',
+        default => '',
+    },
 
-  );
-  return @param_list;
+    {
+        name => 'graph_font_size',
+        type => 't',
+        default => '8',
+    },
+    );
+    return @param_list;
 }
 
 1;

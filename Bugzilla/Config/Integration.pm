@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 # Integration with other systems (MediaWiki, ViewVC, etc) config
+# License: Dual-license MPL 1.1+ or GPL 3.0+
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
 
 package Bugzilla::Config::Integration;
 

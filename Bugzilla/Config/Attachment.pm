@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -33,84 +31,109 @@ package Bugzilla::Config::Attachment;
 
 use strict;
 
+use Bugzilla;
 use Bugzilla::Config::Common;
 
 our $sortkey = 400;
 
-sub get_param_list {
-  my $class = shift;
-  my @param_list = (
-  {
-   name => 'allow_attachment_display',
-   type => 'b',
-   default => 0
-  },
+sub check_maxattachmentsize
+{
+    my $check = check_numeric(@_);
+    return $check if $check;
+    my $size = shift;
+    my $dbh = Bugzilla->dbh;
+    if ($dbh->isa('Bugzilla::DB::Mysql'))
+    {
+        my (undef, $max_packet) = $dbh->selectrow_array("SHOW VARIABLES LIKE 'max\\_allowed\\_packet'");
+        my $byte_size = $size * 1024;
+        if ($max_packet < $byte_size)
+        {
+            return "You asked for a maxattachmentsize of $byte_size bytes," .
+                " but the max_allowed_packet setting in MySQL currently" .
+                " only allows packets up to $max_packet bytes";
+        }
+    }
+    return "";
+}
 
-  {
-   name => 'attachment_base',
-   type => 't',
-   default => '',
-   checker => \&check_urlbase
-  },
+sub get_param_list
+{
+    my $class = shift;
+    my @param_list = (
+    {
+        name => 'allow_attachment_display',
+        type => 'b',
+        default => 0
+    },
 
-  {
-  name => 'allow_attachment_deletion',
-  type => 'b',
-  default => 0
-  },
+    {
+        name => 'attachment_base',
+        type => 't',
+        default => '',
+        checker => \&check_urlbase
+    },
 
-  {
-  name => 'use_supa_applet',
-  type => 'b',
-  default => 0,
-  },
+    {
+        name => 'allow_attachment_deletion',
+        type => 'b',
+        default => 0
+    },
 
-  {
-  name => 'supa_jar_url',
-  type => 't',
-  default => '',
-  },
+    {
+        name => 'use_supa_applet',
+        type => 'b',
+        default => 0,
+    },
 
-  # The maximum size (in bytes) for patches and non-patch attachments.
-  # The default limit is 1000KB, which is 24KB less than mysql's default
-  # maximum packet size (which determines how much data can be sent in a
-  # single mysql packet and thus how much data can be inserted into the
-  # database) to provide breathing space for the data in other fields of
-  # the attachment record as well as any mysql packet overhead (I don't
-  # know of any, but I suspect there may be some.)
-  {
-   name => 'maxattachmentsize',
-   type => 't',
-   default => '1000',
-   checker => \&check_maxattachmentsize
-  },
+    {
+        name => 'supa_jar_url',
+        type => 't',
+        default => '',
+    },
 
-  {
-   name    => 'force_attach_bigfile',
-   type    => 'b',
-   default => 1,
-  },
+    # The maximum size (in bytes) for attachments STORED IN THE DATABASE (!!!)
+    # By default Bugzilla4Intranet DOES NOT store ANY attachments in the DB,
+    # because force_attach_bigfile=1 by default.
+    #
+    # The default limit is 1000KB, which is 24KB less than mysql's default
+    # maximum packet size (which determines how much data can be sent in a
+    # single mysql packet and thus how much data can be inserted into the
+    # database) to provide breathing space for the data in other fields of
+    # the attachment record as well as any mysql packet overhead (I don't
+    # know of any, but I suspect there may be some.)
+    {
+        name => 'maxattachmentsize',
+        type => 't',
+        default => '1000',
+        checker => \&check_maxattachmentsize
+    },
 
-  {
-   name    => 'maxlocalattachment',
-   type    => 't',
-   default => '5000',
-   checker => \&check_numeric
-  },
+    {
+        name    => 'force_attach_bigfile',
+        type    => 'b',
+        default => 1,
+    },
 
-  {
-   name    => 'inline_attachment_mime',
-   type    => 't',
-   default => '^text/|^image/',
-  },
+    {
+        name    => 'maxlocalattachment',
+        type    => 't',
+        default => '5000',
+        checker => \&check_numeric
+    },
 
-  {
-   name    => 'mime_types_file',
-   type    => 't',
-   default => '',
-  },
-  );
-  return @param_list;
+    {
+        name    => 'inline_attachment_mime',
+        type    => 't',
+        default => '^text/|^image/',
+    },
+
+    {
+        name    => 'mime_types_file',
+        type    => 't',
+        default => '',
+    },
+    );
+    return @param_list;
 }
 
 1;

@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -38,65 +36,81 @@ use Bugzilla::Group;
 
 our $sortkey = 900;
 
-sub get_param_list {
-  my $class = shift;
-
-  my @param_list = (
-  {
-   name => 'makeproductgroups',
-   type => 'b',
-   default => 1
-  },
-
-  {
-   name => 'chartgroup',
-   type => 's',
-   choices => \&_get_all_group_names,
-   default => 'editbugs',
-   checker => \&check_group
-  },
-
-  {
-   name => 'insidergroup',
-   type => 's',
-   choices => \&_get_all_group_names,
-   default => '',
-   checker => \&check_group
-  },
-
-  {
-   name => 'timetrackinggroup',
-   type => 's',
-   choices => \&_get_all_group_names,
-   default => 'editbugs',
-   checker => \&check_group
-  },
-
-  {
-   name => 'querysharegroup',
-   type => 's',
-   choices => \&_get_all_group_names,
-   default => 'editbugs',
-   checker => \&check_group
-  },
-  
-  {
-   name => 'usevisibilitygroups',
-   type => 'b',
-   default => 0
-  }, 
-  
-  {
-   name => 'strict_isolation',
-   type => 'b',
-   default => 0
-  } );
-  return @param_list;
+sub check_group
+{
+    my $group_name = shift;
+    return "" unless $group_name;
+    my $group = new Bugzilla::Group({ name => $group_name });
+    unless (defined $group)
+    {
+        return "Must be an existing group name";
+    }
+    return "";
 }
 
-sub _get_all_group_names {
-    my @group_names = map {$_->name} Bugzilla::Group->get_all;
-    unshift(@group_names, '');
+sub _get_all_group_names
+{
+    my @group_names = map { $_->name } Bugzilla::Group->get_all;
+    unshift @group_names, '';
     return \@group_names;
 }
+
+sub get_param_list
+{
+    my $class = shift;
+
+    my @param_list = (
+    {
+        name => 'makeproductgroups',
+        type => 'b',
+        default => 1
+    },
+
+    {
+        name => 'chartgroup',
+        type => 's',
+        choices => \&_get_all_group_names,
+        default => 'editbugs',
+        checker => \&check_group
+    },
+
+    {
+        name => 'insidergroup',
+        type => 's',
+        choices => \&_get_all_group_names,
+        default => '',
+        checker => \&check_group
+    },
+
+    {
+        name => 'timetrackinggroup',
+        type => 's',
+        choices => \&_get_all_group_names,
+        default => 'editbugs',
+        checker => \&check_group
+    },
+
+    {
+        name => 'querysharegroup',
+        type => 's',
+        choices => \&_get_all_group_names,
+        default => 'editbugs',
+        checker => \&check_group
+    },
+
+    {
+        name => 'usevisibilitygroups',
+        type => 'b',
+        default => 0
+    },
+
+    {
+        name => 'strict_isolation',
+        type => 'b',
+        default => 0
+    },
+    );
+    return @param_list;
+}
+
 1;
