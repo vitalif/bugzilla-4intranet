@@ -295,17 +295,19 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
      <strong>[% Param('insidergroup') FILTER html %]</strong> group)
    </label>
 [% END %]
-  <input type="checkbox" name="commentsilent" value="1"
-         id="newcommentsilent"/>
-  <label for="newcommentsilent">Silent</label>
-<br>
+  [% IF Param('allow_commentsilent') %]
+    <input type="checkbox" name="commentsilent" value="1" id="newcommentsilent" />
+    <label for="newcommentsilent">Silent</label>
+  [% END %]
+<br />
 [% INCLUDE global/textarea.html.tmpl
   name    = 'comment'
   id      = 'comment'
   minrows = 5
   maxrows = 25
   cols    = constants.COMMENT_COLS
-%]<br>
+%]
+<br />
 
 [% Hook.process('before_groups') %]
 

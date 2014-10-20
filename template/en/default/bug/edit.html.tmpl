@@ -938,11 +938,13 @@ document.changeform = document.[% cfname %];
                onclick="updateCommentTagControl(this, form)" />
         <label for="newcommentprivacy">Private</label>
       [% END %]
+      [% IF Param('allow_commentsilent') %]
         <input type="checkbox" name="commentsilent" value="1" id="commentsilent" />
         <label for="commentsilent">Silent</label>
         <input type="checkbox" name="cmt_worktime" value="1" id="cmt_worktime"
             onclick="if(this.checked)document.getElementById('commentsilent').checked=true" />
         <label for="cmt_worktime">Worktime only</label>
+      [% END %]
 
       <!-- This table keeps the submit button aligned with the box. -->
       <table[% ' width="100%"' IF user.settings.comment_width.value == 'on' %]><tr><td>

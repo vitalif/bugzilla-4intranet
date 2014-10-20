@@ -162,7 +162,10 @@
         [% IF user.id %]
           <div id="smallCommentFrame">
             <label for="comment">Comment (on the [% terms.bug %]):</label>
-            <input type="checkbox" name="commentsilent" value="1" /> <label for="commentsilent">Silent</label></small><br />
+            [% IF Param('allow_commentsilent') %]
+              <input type="checkbox" name="commentsilent" value="1" /> <label for="commentsilent">Silent</label>
+            [% END %]
+            <br />
             [% INCLUDE global/textarea.html.tmpl
               id      = 'comment_textarea'
               name    = 'comment'

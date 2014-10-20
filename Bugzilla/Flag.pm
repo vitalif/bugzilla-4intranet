@@ -1088,7 +1088,6 @@ or deleted.
 
 =cut
 
-# FIXME move this notification out of here!
 sub notify
 {
     my ($class, $flag, $old_flag, $obj, $comment) = @_;
@@ -1099,20 +1098,13 @@ sub notify
         $attachment = $obj;
         $bug = $attachment->bug;
     }
-    elsif (blessed($obj) && $obj->isa('Bugzilla::Bug')) {
+    elsif (blessed($obj) && $obj->isa('Bugzilla::Bug'))
+    {
         $bug = $obj;
     }
     else
     {
         # Not a good time to throw an error.
-        return;
-    }
-
-    # FIXME move "silent" indication out of cgi.commentsilent
-    if (Bugzilla->input_params->{commentsilent} &&
-        Bugzilla->user->settings->{silent_affects_flags}->{value} eq 'do_not_send')
-    {
-        # Your changes are marked as Silent. No mail is sent.
         return;
     }
 

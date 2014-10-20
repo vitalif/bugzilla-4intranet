@@ -149,7 +149,9 @@
       <th><label for="comment">Comment:</label></th>
       <td>
         <em>(optional) Add a comment about this attachment to the [% terms.bug %].</em>
-        <input type="checkbox" id="commentsilent" name="commentsilent" value="1" /> <label for="commentsilent">Silent</label>
+        [% IF Param('allow_commentsilent') %]
+          <input type="checkbox" id="commentsilent" name="commentsilent" value="1" /> <label for="commentsilent">Silent</label>
+        [% END %]
         <br />
         [% INCLUDE global/textarea.html.tmpl
           name    = 'comment'

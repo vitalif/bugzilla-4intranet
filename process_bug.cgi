@@ -269,7 +269,6 @@ else
 ######################################################################
 
 $vars->{title_tag} = "bug_processed";
-$vars->{commentsilent} = $ARGS->{commentsilent};
 
 my $next_bug_id;
 my $action;

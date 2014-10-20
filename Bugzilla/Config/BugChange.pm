@@ -79,6 +79,12 @@ sub get_param_list
 
     my @param_list = (
     {
+        name => 'allow_commentsilent',
+        type => 'b',
+        default => 1,
+    },
+
+    {
         name => 'duplicate_or_move_bug_status',
         type => 's',
         choices => \@closed_bug_statuses,

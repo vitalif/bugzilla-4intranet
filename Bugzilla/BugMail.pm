@@ -72,30 +72,33 @@ sub send_results
     shift if $_[0] eq __PACKAGE__;
     my ($vars) = @_;
     next if $vars->{message} eq 'bugmail' && $vars->{sent_bugmail};
-    # FIXME check if commentsilent is working correctly
+    $vars->{commentsilent} = Bugzilla->input_params->{commentsilent}
+        && Bugzilla->params->{allow_commentsilent};
     if ($vars->{message} eq 'flagmail')
     {
         $vars->{message} = 'bugmail';
         $vars->{type} = 'flag';
-        $vars->{sent_bugmail} = SendFlag($vars->{notify_data});
+        $vars->{commentsilent} &&= Bugzilla->user->settings->{silent_affects_flags}->{value} eq 'do_not_send';
+        if (!$vars->{commentsilent})
+        {
+            $vars->{sent_bugmail} = SendFlag($vars->{notify_data});
+        }
         $vars->{new_flag} = {
             name => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->name : $vars->{notify_data}->{old_flag}->name,
             status => $vars->{notify_data}->{flag} ? $vars->{notify_data}->{flag}->status : 'X',
         };
-        $vars->{commentsilent} = 0; # Custis Bug 132647
         delete $vars->{notify_data}; # erase data, don't store it in session
     }
     elsif ($vars->{message} eq 'votes-removed')
     {
         $vars->{message} = 'bugmail';
         $vars->{sent_bugmail} = SendVotesRemoved($vars);
+        $vars->{commentsilent} = 0;
         delete $vars->{notify_data}; # erase data, don't store it in session
     }
     elsif ($vars->{message} eq 'bugmail')
     {
         $vars->{sent_bugmail} = Send($vars->{bug_id}, $vars->{mailrecipients}, $vars->{commentsilent});
-        # FIXME Do not use input_params from Bugzilla::BugMail
-        $vars->{commentsilent} = Bugzilla->input_params->{commentsilent} ? 1 : 0;
     }
     return $vars;
 }

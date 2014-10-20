@@ -175,7 +175,12 @@ function checkColumns()
 [% END %]
 </tbody>
 </table>
-<p><input type="submit" value="Import selected bugs / updates" /> &nbsp; <input type="checkbox" name="commentsilent" id="commentsilent" value="1" /> <label for="commentsilent">Silent</label></p>
+<p>
+  <input type="submit" value="Import selected bugs / updates" /> &nbsp;
+  [% IF Param('allow_commentsilent') %]
+  <input type="checkbox" name="commentsilent" id="commentsilent" value="1" /> <label for="commentsilent">Silent</label>
+  [% END %]
+</p>
 </form>
 
 <p><a href="javascript:history.back()">Back</a></p>

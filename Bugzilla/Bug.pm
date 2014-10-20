@@ -1488,7 +1488,8 @@ sub save_added_comments
     foreach my $comment (@{$self->{added_comments} || []})
     {
         # FIXME Do not use input_params from Bugzilla::Bug
-        if (Bugzilla->input_params->{commentsilent})
+        if (Bugzilla->input_params->{commentsilent} &&
+            Bugzilla->params->{allow_commentsilent})
         {
             # Log silent comments
             SilentLog($self->id, $comment->{thetext});

@@ -63,6 +63,7 @@ Other new features:
 * Detect changes for multi-selects during mid-air collisions.
 * Automatically decode known MediaWiki URLs in comments and show them nicely
   using <wikiname>:[[Page name#Section]] syntax.
+* Allow to disable Silent and Worktime-Only comments.
 
 Bugfixes:
 * More correct select field population on bug and query forms.
