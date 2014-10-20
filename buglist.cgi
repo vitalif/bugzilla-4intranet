@@ -1073,6 +1073,7 @@ if ($vars->{urlquerypart}->{sharer_id})
     delete $vars->{urlquerypart}->{sharer_id};
 }
 $vars->{urlquerypart} = http_build_query($vars->{urlquerypart});
+$vars->{rssquerypart} = $vars->{urlquerypart};
 $vars->{order} = $order;
 $vars->{order_columns} = [ @orderstrings ];
 $vars->{order_dir} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{order_columns}} ];

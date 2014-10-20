@@ -203,9 +203,9 @@ function showbugcomma()
   </div>
 
   <div class="buglist-navbar">
-    <a href="buglist.cgi?[% urlquerypart | html %]&amp;title=[%- title | html %]&amp;ctype=atom&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Buglist&nbsp;Feed</a>
+    <a href="buglist.cgi?[% rssquerypart | html %]&amp;title=[%- title | html %]&amp;ctype=atom">Buglist&nbsp;Feed</a>
     <br />
-    <a href="rss-comments.cgi?[% urlquerypart | html %]&amp;title=[%- title | html %]&amp;ctype=rss&amp;namedcmd=[% searchname | html %]&amp;fof_sudo=[% Bugzilla.user.login | url_quote | html %]">Activity&nbsp;Feed</a>
+    <a href="rss-comments.cgi?[% rssquerypart | html %]&amp;title=[%- title | html %]&amp;ctype=rss&amp;namedcmd=[% searchname | html %]">Activity&nbsp;Feed</a>
   </div>
 
   <div class="buglist-navbar"><a href="buglist.cgi?[% urlquerypart | html %]&amp;ctype=ics">iCalendar</a></div>
