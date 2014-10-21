@@ -8,6 +8,7 @@ use lib qw(. lib);
 use POSIX qw(floor);
 
 use Bugzilla;
+use Bugzilla::Token;
 use Bugzilla::Error;
 use Bugzilla::Bug;
 use Bugzilla::Product;
@@ -54,6 +55,7 @@ foreach (keys %$ARGS)
 my @lines = split("\n", $ARGS->{worktime});
 if (@idlist || @lines)
 {
+    check_token_data($ARGS->{token}, 'fill-day-worktime');
     my $wtime = { IDS => [] };
     foreach my $id (@idlist)
     {
@@ -62,7 +64,7 @@ if (@idlist || @lines)
     foreach my $line (@lines)
     {
         # New, intuitive format: BUG_ID <space> TIME <space> COMMENT
-        if ($line =~ /^\D*(\d+)\s*(?:(-?\d[\d\.\,]*)|(\d+):(\d{2}))\s*(.*)/iso)
+        if ($line =~ /^\D*(\d+)\s+(?:(-?\d[\d\.\,]*)|(\d+):(\d{2}))(?:\s+(.*))?$/iso)
         {
             my ($id, $time, $comment) = ($1, $3 ? $3+$4/60 : $2, $5);
             add_wt($wtime, $id, $time, $comment);
@@ -110,6 +112,7 @@ if (@idlist || @lines)
         Bugzilla->dbh->bz_commit_transaction();
     }
     Bugzilla::CheckerUtils::show_checker_errors();
+    delete_token($ARGS->{token});
     print Bugzilla->cgi->redirect(-location => "fill-day-worktime.cgi?lastdays=" . $lastdays);
     exit;
 }
@@ -153,6 +156,8 @@ my $bugsquery = "
  GROUP BY b.bug_id, b.priority, b.short_desc, p.name, c.name, b.remaining_time
  ORDER BY today_work_time DESC, priority ASC
  ";
+
+$vars->{token} = issue_session_token('fill-day-worktime');
 
 $vars->{bugs} = $dbh->selectall_arrayref($bugsquery, {Slice=>{}}, $userid, $userid) || [];
 

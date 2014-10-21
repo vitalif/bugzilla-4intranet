@@ -27,7 +27,7 @@
     <td align="left" width="30%">
       My Bugs for last [% lastdays %] days.
     </td>
-    <td width="20%">
+    <td align="center">
       <form name="lastdaysform" action="fill-day-worktime.cgi" method="get">
       <input value="Select last days" type="submit">
       <select name="lastdays">
@@ -41,17 +41,12 @@
       </select>
       </form>
     </td>
-    <td width="60%">
-      &nbsp;
-    </td>
-    <td width="10%">
-      <a href="[% Param('wiki_url') %]Today_Worktime"><b>Help</b></a>
-    </td>
   </tr>
 </table>
 
 <form name="worktimeform" action="fill-day-worktime.cgi" method="post">
-  <input name="lastdays" type="hidden" value=[% lastdays %]>
+  <input name="token" type="hidden" value="[% token | html %]" />
+  <input name="lastdays" type="hidden" value="[% lastdays | html %]" />
   <table class="bz_buglist worktime" cellspacing="2" cellpadding="3" border="1" style="border-style:groove" width="100%">
     <tr bgcolor="lightgrey">
       <th width="30">Bug</th>
@@ -84,14 +79,13 @@
     </td>
     <td[% IF bug.product_notimetracking %] style="background-color: #FFC0C0"[% END %]>
       <input name="wtime_[% bug.bug_id %]" type="text" size="3" align="right" value="0"
-             onchange="javascript: document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %] - bzParseTime(this.value))*100)/100;"
-      >
+        onchange="document.worktimeform.newrtime_[% bug.bug_id %].value=Math.round(Math.max(0,[% bug.remaining_time %]-bzParseTime(this.value))*100)/100;" />
     </td>
     <td><textarea name="comm_[% bug.bug_id %]" rows="1" cols="50"></textarea></td>
     <td align="right">[% bug.all_work_time %]</td>
     <td align="right">
-      <input name="oldrtime_[% bug.bug_id %]" type="hidden" value="[% bug.remaining_time %]">
-      <input name="newrtime_[% bug.bug_id %]" readonly="true" type="text" size="3" align="right" value="[% bug.remaining_time %]">
+      <input name="oldrtime_[% bug.bug_id %]" type="hidden" value="[% bug.remaining_time %]" />
+      <input name="newrtime_[% bug.bug_id %]" readonly="true" type="text" size="3" align="right" value="[% bug.remaining_time %]" />
     </td>
   </tr>
 [% END %]
@@ -126,7 +120,7 @@
   </td></tr>
   <tr></td>
   <td align="center">
-<input value="Commit" type="submit">
+<input value="Commit" type="submit" />
 </td></tr></table>
 </form>
 
