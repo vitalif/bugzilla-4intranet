@@ -289,7 +289,7 @@ sub handle_request
     $script ||= 'index.cgi';
     $ENV{SCRIPT_FILENAME} = $Bugzilla::HTTPServerSimple::DOCROOT.'/'.$script;
     # Check access
-    if ($self->{_config_hash}->{deny_regexp} &&
+    if ($script =~ /\/$/s || $self->{_config_hash}->{deny_regexp} &&
         $script =~ /$self->{_config_hash}->{deny_regexp}/s)
     {
         return $self->print_error('403', 'Access Denied', "You are not allowed to access URL $script on this server.");
