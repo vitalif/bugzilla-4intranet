@@ -1317,6 +1317,8 @@ sub run_create_validators
         $params->{default_value} = undef;
     }
 
+    $params->{has_activity} = 0;
+
     return $params;
 }
 

@@ -57,7 +57,7 @@ elsif ($action eq 'new')
     check_token_data($token, 'add_field');
 
     my $field = $vars->{field} = Bugzilla::Field->create({
-        map { ($_ => $ARGS->{$_}) } Bugzilla::Field->DB_COLUMNS,
+        (map { ($_ => $ARGS->{$_}) } Bugzilla::Field->DB_COLUMNS),
         custom => 1,
         is_mandatory => !$ARGS->{nullable},
     });
