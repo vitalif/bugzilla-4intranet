@@ -335,8 +335,8 @@ sub OPTIONAL_MODULES {
         feature => 'Standalone HTTP server',
     },
     {
-        package => 'IO-SendFile',
-        module  => 'IO::SendFile',
+        package => 'Sys-Sendfile',
+        module  => 'Sys::Sendfile',
         feature => 'Standalone HTTP server',
     },
     );

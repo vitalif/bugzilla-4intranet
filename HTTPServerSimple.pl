@@ -46,7 +46,7 @@ package Bugzilla::HTTPServerSimple;
 use Bugzilla;
 use Bugzilla::Util qw(html_quote);
 use Time::HiRes qw(gettimeofday tv_interval);
-use IO::SendFile qw(sendfile);
+use Sys::Sendfile qw(sendfile);
 use POSIX qw(strftime);
 use LWP::MediaTypes qw(guess_media_type);
 
@@ -304,7 +304,7 @@ sub handle_request
             print $ENV{SERVER_PROTOCOL}." 200 OK\r\n".
                 "Content-Type: ".guess_media_type($script)."\r\n".
                 "Content-Length: ".(-s $script)."\r\n\r\n";
-            sendfile(fileno(STDOUT), fileno($fd), 0, -s $script);
+            sendfile(STDOUT, $fd, -s $script);
             close $fd;
             print STDERR strftime("[%Y-%m-%d %H:%M:%S]", localtime)." Served $script via sendfile()\n";
             return 200;
