@@ -135,7 +135,7 @@
     <tr id="[% field.name %]_cont">
       <th align="right">
         <label for="[% field.name %]"
-               accesskey="[% tf_accesskey.${field.name} %]">[% tf_desc.${field.name} || field.description %]</label>:
+               accesskey="[% tf_accesskey.${field.name} %]">[% tf_desc.${field.name} || field.description | html %]</label>:
       </th>
       <td>
         [% t = field.name _ '_type' %]

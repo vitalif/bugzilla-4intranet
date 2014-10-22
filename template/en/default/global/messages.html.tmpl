@@ -1071,7 +1071,7 @@
     ELSE;
       message = Hook.process('messages');
     END %]
-  [% message %]
+  [% message | none %]
   [%# Give sensible error if a message is unknown. %]
   [% IF !message %]
     Message '[% message_tag | html %]' is unknown.<br />

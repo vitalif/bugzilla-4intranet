@@ -91,14 +91,14 @@ function onchange_bug_status()
   showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
   var s = document.getElementById('bug_status');
   [%# FIXME Remove hardcode bug_status==ASSIGNED => assign to self, bug_status==VERIFIED => qa to self %]
-  if (s.value == "ASSIGNED" && document.changeform.assigned_to.value != "[% user.login %]")
+  if (s.value == "ASSIGNED" && document.changeform.assigned_to.value != "[% user.login | js %]")
   {
-    document.changeform.assigned_to.value = "[% user.login %]";
+    document.changeform.assigned_to.value = "[% user.login | js %]";
     showEditableField("bz_assignee_edit_action", [ 'bz_assignee_edit_container', 'bz_assignee_input' ]);
   }
-  else if (s.value == "VERIFIED" && document.changeform.qa_contact.value != "[% user.login %]")
+  else if (s.value == "VERIFIED" && document.changeform.qa_contact.value != "[% user.login | js %]")
   {
-    document.changeform.qa_contact.value = "[% user.login %]";
+    document.changeform.qa_contact.value = "[% user.login | js %]";
     showEditableField("bz_qa_contact_edit_action", [ 'bz_qa_contact_edit_container', 'bz_qa_contact_input' ]);
   }
 }

@@ -38,7 +38,7 @@
 <table class="choose_product">
 
   <tr class="all">
-    <th><a href="[% target %]?[% query_params | html %]classification=__all">All</a></th>
+    <th><a href="[% target | html %]?[% query_params | html %]classification=__all">All</a></th>
     <td valign="top">Show all products</td>
   </tr>
   <tr class="all"><td colspan="2"><hr /></td></tr>
@@ -46,7 +46,7 @@
   <tbody>
 [% FOREACH class = classifications %]
   <tr>
-    <th><a href="[% target %]?[% query_params | html %]classification=[% class.name | url_quote -%]">[% class.name | html %]</a></th>
+    <th><a href="[% target | html %]?[% query_params | html %]classification=[% class.name | url_quote -%]">[% class.name | html %]</a></th>
     <td>[% class.description | html_light %]</td>
   </tr>
 [% END %]

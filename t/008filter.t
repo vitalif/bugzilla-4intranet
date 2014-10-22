@@ -25,7 +25,7 @@
 
 # This test scans all our templates for every directive. Having eliminated
 # those which cannot possibly cause XSS problems, it then checks the rest
-# against the safe list stored in the filterexceptions.pl file. 
+# against the safe list stored in the filterexceptions.pl file.
 
 # Sample exploit code: '>"><script>alert('Oh dear...')</script>
 
@@ -54,12 +54,12 @@ foreach my $path (@Support::Templates::include_paths) {
     chdir $topdir; # absolute path
     my @testitems = Support::Templates::find_actual_files($path);
     chdir $topdir; # absolute path
-    
+
     next unless @testitems;
-    
+
     # Some people require this, others don't. No-one knows why.
     chdir $path; # relative path
-    
+
     # We load a %safe list of acceptable exceptions.
     if (!-r "filterexceptions.pl") {
         ok(0, "$path has templates but no filterexceptions.pl file. --ERROR");
@@ -68,7 +68,7 @@ foreach my $path (@Support::Templates::include_paths) {
     else {
         do "filterexceptions.pl";
         if (ON_WINDOWS) {
-          # filterexceptions.pl uses / separated paths, while 
+          # filterexceptions.pl uses / separated paths, while
           # find_actual_files returns \ separated ones on Windows.
           # Here, we convert the filter exception hash to use \.
           foreach my $file (keys %safe) {
@@ -81,15 +81,15 @@ foreach my $path (@Support::Templates::include_paths) {
           }
         }
     }
-    
+
     # We preprocess the %safe hash of lists into a hash of hashes. This allows
-    # us to flag which members were not found, and report that as a warning, 
+    # us to flag which members were not found, and report that as a warning,
     # thereby keeping the lists clean.
     foreach my $file (keys %safe) {
         my $list = $safe{$file};
         $safe{$file} = {};
         foreach my $directive (@$list) {
-            $safe{$file}{$directive} = 0;    
+            $safe{$file}{$directive} = 0;
         }
     }
 
@@ -100,9 +100,9 @@ foreach my $path (@Support::Templates::include_paths) {
             ok(1, "($lang/$flavor) $file is filter-safe");
             next;
         }
-        
+
         # Read the entire file into a string
-        open (FILE, "<$file") || die "Can't open $file: $!\n";    
+        open (FILE, "<$file") || die "Can't open $file: $!\n";
         my $slurp = <FILE>;
         close (FILE);
 
@@ -119,29 +119,30 @@ foreach my $path (@Support::Templates::include_paths) {
             if (!directive_ok($file, $directive)) {
 
               # This intentionally makes no effort to eliminate duplicates; to do
-              # so would merely make it more likely that the user would not 
+              # so would merely make it more likely that the user would not
               # escape all instances when attempting to correct an error.
               push(@unfiltered, "$lineno:$directive");
             }
-        }  
+        }
 
         my $fullpath = File::Spec->catfile($path, $file);
-        
+
         if (@unfiltered) {
             my $uflist = join("\n  ", @unfiltered);
-            ok(0, "($lang/$flavor) $fullpath has unfiltered directives:\n  $uflist\n--ERROR");
+            ok(0, "($lang/$flavor) $fullpath has unfiltered directives");
+            diag("  -- ERRORS: --\n  $uflist\n");
         }
         else {
             # Find any members of the exclusion list which were not found
             my @notfound;
             foreach my $directive (keys %{$safe{$file}}) {
-                push(@notfound, $directive) if ($safe{$file}{$directive} == 0);    
+                push(@notfound, $directive) if ($safe{$file}{$directive} == 0);
             }
 
             if (@notfound) {
                 my $nflist = join("\n  ", @notfound);
-                ok(0, "($lang/$flavor) $fullpath - filterexceptions.pl has extra members:\n  $nflist\n" . 
-                                                                  "--WARNING");
+                ok(0, "($lang/$flavor) $fullpath - filterexceptions.pl has extra members");
+                diag("  -- WARNING: --\n  $nflist\n");
             }
             else {
                 # Don't use the full path here - it's too long and unwieldy.
@@ -155,17 +156,17 @@ sub directive_ok {
     my ($file, $directive) = @_;
 
     # Comments
-    return 1 if $directive =~ /^[+-]?#/;        
+    return 1 if $directive =~ /^[+-]?#/s;
 
     # Remove any leading/trailing + or - and whitespace.
-    $directive =~ s/^[+-]?\s*//;
-    $directive =~ s/\s*[+-]?$//;
+    $directive =~ s/^[+-]?\s*//s;
+    $directive =~ s/\s*[+-]?$//s;
 
     # Empty directives are ok; they are usually line break helpers
     return 1 if $directive eq '';
 
     # Make sure we're not looking for ./ in the $safe hash
-    $file =~ s#^\./##;
+    $file =~ s#^\./##s;
 
     # Exclude those on the nofilter list
     if (defined($safe{$file}{$directive})) {
@@ -174,7 +175,7 @@ sub directive_ok {
     };
 
     # Directives
-    return 1 if $directive =~ /^(IF|END|UNLESS|FOREACH|PROCESS|INCLUDE|
+    return 1 if $directive =~ /^(IF|END|UNLESS|FOR|PROCESS|INCLUDE|
                                  BLOCK|USE|ELSE|NEXT|LAST|DEFAULT|FLUSH|
                                  ELSIF|SET|SWITCH|CASE|WHILE|RETURN|STOP|
                                  TRY|CATCH|FINAL|THROW|CLEAR|MACRO|FILTER)/x;
@@ -185,45 +186,47 @@ sub directive_ok {
     }
 
     # + - * /
-    return 1 if $directive =~ /[+\-*\/]/;
+    return 1 if $directive =~ /[+\-*\/]/s;
 
     # Numbers
-    return 1 if $directive =~ /^[0-9]+$/;
+    return 1 if $directive =~ /^[0-9]+$/s;
 
     # Simple assignments
-    return 1 if $directive =~ /^[\w\.\$\{\}]+\s+=\s+/;
+    return 1 if $directive =~ /^[\w\.\$\{\}]+\s*=/s;
 
-    # Conditional literals with either sort of quotes 
+    # Conditional literals with either sort of quotes
     # There must be no $ in the string for it to be a literal
-    return 1 if $directive =~ /^(["'])[^\$]*[^\\]\1/;
-    return 1 if $directive =~ /^(["'])\1/;
+    return 1 if $directive =~ /^(["'])[^\$]*[^\\]\1/s;
+    return 1 if $directive =~ /^(["'])\1/s;
 
     # Special values always used for numbers
-    return 1 if $directive =~ /^[ijkn]$/;
-    return 1 if $directive =~ /^count$/;
-    
-    # Params
-    return 1 if $directive =~ /^Param\(/;
-    
-    # Hooks
-    return 1 if $directive =~ /^Hook.process\(/;
+    return 1 if $directive =~ /^[ijkn]$/s;
+    return 1 if $directive =~ /^count$/s;
+    return 1 if $directive =~ /\.id$/s;
+    return 1 if $directive =~ /(^|\.)bug_id$/s;
 
-    # Other functions guaranteed to return OK output
-    return 1 if $directive =~ /^(time2str|url)\(/;
+    # Params
+    return 1 if $directive =~ /^Param\(.*\)$/s;
+
+    # Hooks
+    return 1 if $directive =~ /^Hook.process\(.*\)$/s;
+
+    # Other functions guaranteed to return safe output
+    return 1 if $directive =~ /^(time2str|url|html_select|json|L)\(.*\)$/s;
 
     # Safe Template Toolkit virtual methods
-    return 1 if $directive =~ /\.(length$|size$|push\(|unshift\(|delete\()/;
+    return 1 if $directive =~ /\.(length$|size$|(push|unshift|delete)\(.*\)$)/s;
 
     # Special Template Toolkit loop variable
-    return 1 if $directive =~ /^loop\.(index|count)$/;
-    
-    # Branding terms
-    return 1 if $directive =~ /^terms\./;
-            
+    return 1 if $directive =~ /^loop\.(index|count)$/s;
+
+    # Branding terms, constants
+    return 1 if $directive =~ /^(terms|constants)\.\w+$/s;
+
     # Things which are already filtered
-    # Note: If a single directive prints two things, and only one is 
+    # Note: If a single directive prints two things, and only one is
     # filtered, we may not catch that case.
-    return 1 if $directive =~ /FILTER\ (html|csv|js|base64|url_quote|css_class_quote|
+    return 1 if $directive =~ /(FILTER|[^\|]\|)\s*(html|csv|js|base64|url_quote|css_class_quote|
                                         ics|quoteUrls|time|uri|xml|lower|html_light|
                                         obsolete|inactive|closed|unitconvert|
                                         txt|none)\b/x;

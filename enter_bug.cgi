@@ -276,7 +276,7 @@ if ($cloned_bug_id)
     # the first comment, if it has one. Either way, make a note
     # that this bug was cloned from another bug.
 
-    my $cloned_comment = $ARGS->{cloned_comment} || 0;
+    my $cloned_comment = int($ARGS->{cloned_comment}) || 0;
     my $bug_desc = $cloned_bug->comments({ order => 'oldest_to_newest' });
     my ($comment_obj) = grep { $_->{count} == $cloned_comment } @$bug_desc;
     $comment_obj ||= $bug_desc->[0];

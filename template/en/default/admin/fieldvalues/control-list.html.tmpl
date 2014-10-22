@@ -7,7 +7,7 @@
 
 [% PROCESS global/header.html.tmpl %]
 
-<h3>[% title %]</h3>
+<h3>[% title | none %]</h3>
 
 <form action="editvisibility.cgi?field=[% field.name | html %]&visibility_value_id=[% visibility_value.id %]" method="POST">
   <input type="hidden" name="token" value="[% token | html %]" />

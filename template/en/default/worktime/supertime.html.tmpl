@@ -106,7 +106,7 @@
   На дату: <input type="text" name="worktime_date" value="[% worktime_date | html %]" /> <span style="color: #aaa">(YYYY-MM-DD HH:MM:SS)</span> &nbsp;
   За пользователя:
   <input type="hidden" name="worktime_user" id="worktime_user_real" value="" />
-  <input type="text" id="worktime_user" value="[% worktime_user || html %]"
+  <input type="text" id="worktime_user" value="[% worktime_user | html %]"
     onfocus="wt_user_focus()" onblur="wt_user_blur()" /> &nbsp;
 [% ELSE %]
   На дату: <b>[% worktime_date | html %]</b> &nbsp;

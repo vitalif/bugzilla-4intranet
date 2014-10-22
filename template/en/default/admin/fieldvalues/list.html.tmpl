@@ -77,7 +77,7 @@ Select value for the '[% field.description | html %]' ([% field.name | html %]) 
 <h3>Values for the '[% field.description | html %]' ([% field.name | html %]) field</h3>
 
 [% IF field.name == "component" || field.name == "version" || field.name == "target_milestone" || field.name == "product" %]
-<p>[% field.description %]s must be edited from a product page. <a href="editproducts.cgi">Select a product</a> first.</p>
+<p>[% field.description | html %]s must be edited from a product page. <a href="editproducts.cgi">Select a product</a> first.</p>
 [% ELSE %]
   [% PROCESS admin/table.html.tmpl
        columns = columns

@@ -23,10 +23,10 @@
 [% FOREACH flag = verify_flags %]
   <tr>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
-      [% flag.setter.login %] ( [% flag.setter.name %] )
+      [% flag.setter.login | html %] ( [% flag.setter.name | html %] )
     </td>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
-      "[% flag.type.description %]"
+      "[% flag.type.description | html %]"
     </td>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
       [% ARGS.${"requestee-$flag.id"}.join(', ') %]

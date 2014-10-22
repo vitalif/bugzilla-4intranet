@@ -248,7 +248,7 @@
   [% title = "Access Denied" %]
   [% admindocslinks = {'groups.html' => 'Group Security'} %]
   You are not authorized to access [% terms.bug %] #[% bug_id FILTER html %]
-  [%- IF product AND Param('unauth_bug_details') %] in the [% product %] product[% END %].
+  [%- IF product AND Param('unauth_bug_details') %] in the [% product | html %] product[% END %].
 [% END %]
 
 [% BLOCK error_bug_access_query %]
@@ -303,7 +303,7 @@
 
 [% BLOCK error_cc_group_restriction %]
   [% title = "CC Group Restriction" %]
-  User [% user %] is restricted to watch this bug.
+  User [% user | html %] is restricted to watch this bug.
 [% END %]
 
 [% BLOCK error_chart_too_large %]

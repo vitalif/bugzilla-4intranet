@@ -1,5 +1,7 @@
-[%# Author: Vitaliy Filippov <vitalif@mail.ru>
-  # License: MPL 1.1 %]
+[%# Attach multiple files to a bug
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+%]
 
 <html><body>
 
@@ -16,8 +18,8 @@
 <td style="width: 1px; display: none" id="del_XXX"><input class="button" type="button" onclick="att_file_clear('data_XXX')" value="clear" /></td>
 [% END %]
 
-[% IF Bugzilla.cgi.param('bug_id') %]
-  <h3>Create Multiple Attachments to [% terms.Bug %] [%+ 0+Bugzilla.cgi.param('bug_id') %]</h3>
+[% IF Bugzilla.input_params.bug_id %]
+  <h3>Create Multiple Attachments to [% terms.Bug %] [%+ 0+Bugzilla.input_params.bug_id %]</h3>
   [% SET s = "Save Changes" %]
 [% ELSE %]
   [% SET s = "Submit Bug" %]

@@ -40,31 +40,19 @@
 
 'whine/schedule.html.tmpl' => [
   'event.key',
-  'query.id',
   'query.sort',
-  'schedule.id',
   'option.0',
   'option.1',
 ],
 
-'whine/mail.html.tmpl' => [
-  'bug.bug_id',
-],
-
 'flag/list.html.tmpl' => [
-  'flag.id',
   'flag.status',
-  'type.id',
 ],
 
 'search/boolean-charts.html.tmpl' => [
-  '"field${chartnum}-${rownum}-${colnum}"',
-  '"value${chartnum}-${rownum}-${colnum}"',
-  'field.name',
-  '"${chartnum}-${rownum}-${newor}"',
-  '"${chartnum}-${newand}-0"',
-  'newchart',
-  'jsmagic',
+  'C',
+  'I',
+  'J',
 ],
 
 'search/form.html.tmpl' => [
@@ -88,7 +76,6 @@
   'column_headers.$group_field',
   'column_headers.$column',
   'request.status',
-  'request.bug_id',
   'request.attach_id',
 ],
 
@@ -155,30 +142,18 @@
   'default.series_id',
 ],
 
-'list/edit-multiple.html.tmpl' => [
-  'group.id',
-  'menuname',
-],
-
 'list/list.rdf.tmpl' => [
   'template_version',
-  'bug.bug_id',
   'column',
 ],
 
 'list/table.html.tmpl' => [
   'tableheader',
-  'bug.bug_id',
   'abbrev.$id.title || field_descs.$id || column.title',
 ],
 
 'list/list.csv.tmpl' => [
-  'bug.bug_id',
   'colsepchar',
-],
-
-'list/list.js.tmpl' => [
-  'bug.bug_id',
 ],
 
 'global/choose-product.html.tmpl' => [
@@ -223,13 +198,7 @@
 ],
 
 'global/site-navigation.html.tmpl' => [
-  'bug.bug_id',
   'bug.votes',
-],
-
-'bug/comments.html.tmpl' => [
-  'comment.id',
-  'bug.bug_id',
 ],
 
 'bug/dependency-graph.html.tmpl' => [
@@ -254,7 +223,6 @@
   'bug.deadline',
   'bug.remaining_time',
   'bug.delta_ts',
-  'bug.bug_id',
   'bug.votes',
   'group.bit',
   'dep.title',
@@ -270,17 +238,10 @@
 ],
 
 'bug/show-multiple.html.tmpl' => [
-  'attachment.id',
   'flag.status',
 ],
 
-'bug/show.html.tmpl' => [
-  'bug.bug_id',
-],
-
 'bug/show.xml.tmpl' => [
-  'constants.BUGZILLA_VERSION',
-  'a.id',
   'field',
 ],
 
@@ -299,8 +260,6 @@
 'bug/time.html.tmpl' => [
   'time_unit FILTER format(\'%.1f\')',
   'time_unit FILTER format(\'%.2f\')',
-  '(act / (act + rem)) * 100
-       FILTER format("%d")',
 ],
 
 'bug/votes/list-for-bug.html.tmpl' => [
@@ -310,7 +269,6 @@
 
 'bug/votes/list-for-user.html.tmpl' => [
   'product.maxperbug',
-  'bug.id',
   'bug.count',
   'product.total',
   'product.maxvotes',
@@ -339,31 +297,18 @@
   'change.attachid',
 ],
 
-'attachment/create.html.tmpl' => [
-  'bug.bug_id',
-  'attachment.id',
-],
-
 'attachment/edit.html.tmpl' => [
-  'attachment.id',
-  'attachment.bug_id',
   'a',
   'editable_or_hide',
 ],
 
 'attachment/list.html.tmpl' => [
-  'attachment.id',
   'flag.status',
   'bugid',
   'obsolete_attachments',
 ],
 
-'attachment/midair.html.tmpl' => [
-  'attachment.id',
-],
-
 'attachment/show-multiple.html.tmpl' => [
-  'a.id',
   'flag.status'
 ],
 
@@ -373,7 +318,6 @@
   'bugid',
   'oldid',
   'newid',
-  'patch.id',
 ],
 
 'attachment/diff-file.html.tmpl' => [
@@ -395,25 +339,12 @@
   'link_uri'
 ],
 
-'admin/custom_fields/cf-js.js.tmpl' => [
-  'constants.FIELD_TYPE_SINGLE_SELECT',
-  'constants.FIELD_TYPE_MULTI_SELECT',
-],
-
 'admin/params/common.html.tmpl' => [
   'sortlist_separator',
 ],
 
 'admin/products/groupcontrol/confirm-edit.html.tmpl' => [
   'group.count',
-],
-
-'admin/products/groupcontrol/edit.html.tmpl' => [
-  'group.id',
-  'constants.CONTROLMAPNA',
-  'constants.CONTROLMAPSHOWN',
-  'constants.CONTROLMAPDEFAULT',
-  'constants.CONTROLMAPMANDATORY',
 ],
 
 'admin/products/list.html.tmpl' => [
@@ -427,21 +358,15 @@
 
 'admin/flag-type/confirm-delete.html.tmpl' => [
   'flag_type.flag_count',
-  'flag_type.id',
 ],
 
 'admin/flag-type/edit.html.tmpl' => [
   'action',
-  'type.id',
   'type.target_type',
   'type.sortkey || 1',
   'typeLabelLowerPlural',
   'typeLabelLowerSingular',
   'selname',
-],
-
-'admin/flag-type/list.html.tmpl' => [
-  'type.id',
 ],
 
 'admin/components/confirm-delete.html.tmpl' => [
@@ -468,26 +393,10 @@
   'watch.watcher',
   'whine_events',
   'whine_schedules',
-  'otheruser.id'
-],
-
-'admin/users/edit.html.tmpl' => [
-  'otheruser.id',
-  'group.id',
 ],
 
 'admin/components/edit.html.tmpl' => [
   'comp.bug_count'
-],
-
-'admin/workflow/edit.html.tmpl' => [
-  'status.id',
-  'new_status.id',
-],
-
-'admin/workflow/comment.html.tmpl' => [
-  'status.id',
-  'new_status.id',
 ],
 
 'account/auth/login-small.html.tmpl' => [
@@ -495,18 +404,12 @@
 ],
 
 'account/prefs/email.html.tmpl' => [
-  'relationship.id',
-  'event.id',
   'prefname',
 ],
 
 'account/prefs/prefs.html.tmpl' => [
   'current_tab.label',
   'current_tab.name',
-],
-
-'account/prefs/saved-searches.html.tmpl' => [
-  'group.id',
 ],
 
 'config.rdf.tmpl' => [

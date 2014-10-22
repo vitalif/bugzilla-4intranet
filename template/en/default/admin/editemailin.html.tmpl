@@ -14,13 +14,13 @@
 [% IF !mode_add %]
 <table class="editemin">
     <tr><th>Field</th><th>Value</th><th></th></tr>
-[% FOR f IN fields %]
+[% FOR f = fields %]
     [% IF la != f.address %]
-    <tr><th colspan="3"><b>[% f.address %]</b> (<a href="?add=1&email=[% f.address FILTER html %]">add a field value for this address</a>)</th></tr>
+    <tr><th colspan="3"><b>[% f.address | html %]</b> (<a href="?add=1&email=[% f.address FILTER html %]">add a field value for this address</a>)</th></tr>
     [% SET la = f.address %]
     [% END %]
     <tr>
-        <td>[% field_descs.${f.field} %]: &nbsp;</td>
+        <td>[% field_descs.${f.field} | html %]: &nbsp;</td>
         <td><input style="width: 250px" type="text" name="f_[% f.address FILTER html %]_[% f.field FILTER html %]" value="[% f.value FILTER html %]" /></td>
         <td><input type="checkbox" name="del_[% f.address FILTER html %]_[% f.field FILTER html %]" value="1" id="del_[% f.address FILTER html %]_[% f.field FILTER html %]" /> <label for="del_[% f.address FILTER html %]_[% f.field FILTER html %]">delete</label></td>
     </tr>

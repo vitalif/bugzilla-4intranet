@@ -1,4 +1,6 @@
-[%# 1.0@bugzilla.org %]
+[%# Activity & comments RSS feed
+  # License: Dual-license MPL 1.1+ or GPL 3.0+
+  # Author(s): Vitaliy Filippov <vitalif@mail.ru> %]
 [% USE date %]
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="[% Param('urlbase') %]skins/standard/feed.xsl"?>
@@ -19,10 +21,10 @@
         <description><![CDATA[
             [% IF buginfo > 0 %]
             <table class="bug-info"><tr>
-                <td>[% evt.bug_id %]</td><td>[% evt.product %]/[% evt.component %]</td><td>[% evt.bug_severity %]</td><td>[% evt.bug_status %]</td>
+                <td>[% evt.bug_id %]</td><td>[% evt.product | html %]/[% evt.component | html %]</td><td>[% evt.bug_severity | html %]</td><td>[% evt.bug_status | html %]</td>
             </tr></table>
             [% END %]
-            <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name %]">[% evt.realname FILTER html %]</a></div>
+            <div class="item-signature"><a href="[% Param("user_mailto") %][% evt.login_name | html %]">[% evt.realname FILTER html %]</a></div>
             [% IF evt.thetext %]
             <pre>
                 [% evt.thetext FILTER quoteUrls FILTER wrap_comment FILTER absolute_uris %]

@@ -61,7 +61,7 @@
 
 [% FOREACH bug = bugs %]
   [% parity = (parity+1) % 3 %]
-  <tr class="row[% bug.priority_obj.name %]">
+  <tr class="row[% bug.priority_obj.name | html %]">
     <td class="first-child" align="right">
       [% bug.bug_id FILTER bug_link(bug.bug_id) %]
     </td>

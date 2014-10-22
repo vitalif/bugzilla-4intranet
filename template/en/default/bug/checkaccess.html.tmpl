@@ -19,7 +19,7 @@
     <tbody>
         [% FOREACH user = user_list %]
         <tr>
-            <td>[% user.1 %]</td><td>[% user.2 %]</td>
+            <td>[% user.1 | html %]</td><td>[% user.2 | html %]</td>
         </tr>
         [% END %]
     </tbody>
