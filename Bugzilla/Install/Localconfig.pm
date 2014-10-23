@@ -192,22 +192,6 @@ EOT
 EOT
     },
     {
-        name    => 'index_html',
-        default => 0,
-        desc    => <<EOT
-# With the introduction of a configurable index page using the
-# template toolkit, Bugzilla's main index page is now index.cgi.
-# Most web servers will allow you to use index.cgi as a directory
-# index, and many come preconfigured that way, but if yours doesn't
-# then you'll need an index.html file that provides redirection
-# to index.cgi. Setting \$index_html to 1 below will allow
-# checksetup.pl to create one for you if it doesn't exist.
-# NOTE: checksetup.pl will not replace an existing file, so if you
-#       wish to have checksetup.pl create one for you, you must
-#       make sure that index.html doesn't already exist
-EOT
-    },
-    {
         name    => 'cvsbin',
         default => \&_get_default_cvsbin,
         desc    => <<EOT

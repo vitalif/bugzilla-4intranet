@@ -114,86 +114,32 @@ sub FILESYSTEM
     my $ws_dir_full_control = $ws_group ? 0770 : 0777;
 
     # Note: When being processed by checksetup, these have their permissions
-    # set in this order: %all_dirs, %recurse_dirs, %all_files.
+    # set in this order: %recurse_dirs, %all_files.
     #
     # Each is processed in alphabetical order of keys, so shorter keys
     # will have their permissions set before longer keys (thus setting
     # the permissions on parent directories before setting permissions
     # on their children).
 
-    # --- FILE PERMISSIONS (Non-created files) --- #
+    # --- FILE PERMISSIONS (Created files) --- #
     my %files = (
-        '*'               => { perms => $ws_readable },
-        '*.cgi'           => { perms => $ws_executable },
-        'whineatnews.pl'  => { perms => $ws_executable },
-        'collectstats.pl' => { perms => $ws_executable },
-        'checksetup.pl'   => { perms => $owner_executable },
-        'importxml.pl'    => { perms => $ws_executable },
-        'runtests.pl'     => { perms => $owner_executable },
-        'testserver.pl'   => { perms => $ws_executable },
-        'whine.pl'        => { perms => $ws_executable },
-        'customfield.pl'  => { perms => $owner_executable },
-        'email_in.pl'     => { perms => $ws_executable },
-        'sanitycheck.pl'  => { perms => $ws_executable },
-        'jobqueue.pl'     => { perms => $owner_executable },
-        'migrate.pl'      => { perms => $owner_executable },
-        'install-module.pl' => { perms => $owner_executable },
-
-        # Set the permissions for localconfig the same across all
-        # PROJECTs.
+        # Set the permissions for localconfig the same across all PROJECTs.
         $localconfig       => { perms => $script_readable },
         "$localconfig.*"   => { perms => $script_readable },
         "$localconfig.old" => { perms => $owner_readable },
-
-        'contrib/README'       => { perms => $owner_readable },
-        'contrib/*/README'     => { perms => $owner_readable },
-        'docs/makedocs.pl'     => { perms => $owner_executable },
-        'docs/style.css'       => { perms => $ws_readable },
-        'docs/*/rel_notes.txt' => { perms => $ws_readable },
-        'docs/*/README.docs'   => { perms => $owner_readable },
-        "$datadir/params" => { perms => $ws_writeable },
-        "$datadir/old-params.txt" => { perms => $owner_readable },
-        "$extensionsdir/create.pl" => { perms => $owner_executable },
+        "$datadir/params"  => { perms => $ws_writeable },
     );
 
-    # Directories that we want to set the perms on, but not
-    # recurse through. These are directories we didn't create
-    # in checkesetup.pl.
-    my %non_recurse_dirs = (
-        '.'  => $ws_dir_readable,
-        docs => $ws_dir_readable,
-    );
-
-    # This sets the permissions for each item inside each of these 
-    # directories, including the directory itself. 
-    # 'CVS' directories are special, though, and are never readable by 
-    # the webserver.
+    # This sets the permissions for each item inside each of these directories, including the directory itself.
     my %recurse_dirs = (
         # Writeable directories
         "$datadir/template" => { files => $ws_readable, dirs => $ws_dir_full_control },
-        $attachdir         => { files => $ws_writeable, dirs => $ws_dir_writeable },
-        $webdotdir         => { files => $ws_writeable, dirs => $ws_dir_writeable },
-        $graphsdir         => { files => $ws_writeable, dirs => $ws_dir_writeable },
+        $attachdir          => { files => $ws_writeable, dirs => $ws_dir_writeable },
+        $webdotdir          => { files => $ws_writeable, dirs => $ws_dir_writeable },
+        $graphsdir          => { files => $ws_writeable, dirs => $ws_dir_writeable },
 
         # Readable directories
-        "$datadir/mining"     => { files => $ws_readable, dirs => $ws_dir_readable },
-        "$libdir/Bugzilla"    => { files => $ws_readable, dirs => $ws_dir_readable },
-        $extlib               => { files => $ws_readable, dirs => $ws_dir_readable },
-        $templatedir          => { files => $ws_readable, dirs => $ws_dir_readable },
-        $extensionsdir        => { files => $ws_readable, dirs => $ws_dir_readable },
-        'images'              => { files => $ws_readable, dirs => $ws_dir_readable },
-        'css'                 => { files => $ws_readable, dirs => $ws_dir_readable },
-        'js'                  => { files => $ws_readable, dirs => $ws_dir_readable },
-        $skinsdir             => { files => $ws_readable, dirs => $ws_dir_readable },
-        't'                   => { files => $owner_readable, dirs => $owner_dir_readable },
-        'docs/*/html'         => { files => $ws_readable, dirs => $ws_dir_readable },
-        'docs/*/pdf'          => { files => $ws_readable, dirs => $ws_dir_readable },
-        'docs/*/txt'          => { files => $ws_readable, dirs => $ws_dir_readable },
-        'docs/*/images'       => { files => $ws_readable, dirs => $ws_dir_readable },
-        'docs/lib'            => { files => $owner_readable, dirs => $owner_dir_readable },
-        'docs/*/xml'          => { files => $owner_readable, dirs => $owner_dir_readable },
-        'contrib'             => { files => $owner_executable, dirs => $owner_dir_readable, },
-        '.bzr'                => { files => $owner_readable, dirs => $owner_dir_readable },
+        "$datadir/mining"   => { files => $ws_readable, dirs => $ws_dir_readable },
     );
 
     # --- FILES TO CREATE --- #
@@ -203,53 +149,31 @@ sub FILESYSTEM
     my %create_dirs = (
         $datadir                => $ws_dir_full_control,
         "$datadir/mining"       => $ws_dir_readable,
-        "$datadir/extensions"   => $ws_dir_readable,
         $attachdir              => $ws_dir_writeable,
-        $extensionsdir          => $ws_dir_readable,
         $graphsdir              => $ws_dir_writeable,
         $webdotdir              => $ws_dir_writeable,
-        "$skinsdir/custom"      => $ws_dir_readable,
-        "$skinsdir/contrib"     => $ws_dir_readable,
     );
 
     # The name of each file, pointing at its default permissions and
     # default contents.
     my %create_files = (
-        "$datadir/extensions/additional" => { perms    => $ws_readable, contents => '' },
         # We create this file so that it always has the right owner
         # and permissions. Otherwise, the webserver creates it as
         # owned by itself, which can cause problems if jobqueue.pl
         # or something else is not running as the webserver or root.
-        "$datadir/mailer.testfile" => { perms    => $ws_writeable, contents => '' },
-    );
-
-    # Because checksetup controls the creation of index.html separately
-    # from all other files, it gets its very own hash.
-    my %index_html = (
-        'index.html' => { perms => $ws_readable, contents => <<EOT
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html>
-<head>
-  <meta http-equiv="Refresh" content="0; URL=index.cgi">
-</head>
-<body>
-  <h1>I think you are looking for <a href="index.cgi">index.cgi</a></h1>
-</body>
-</html>
-EOT
-        }
+        "$datadir/mailer.testfile" => { perms => $ws_writeable, contents => '' },
     );
 
     # Because checksetup controls the .htaccess creation separately
     # by a localconfig variable, these go in a separate variable from
     # %create_files.
     my %htaccess = (
-        "$attachdir/.htaccess"       => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
-        "$libdir/Bugzilla/.htaccess" => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
-        "$extlib/.htaccess"          => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
-        "$templatedir/.htaccess"     => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
-        'contrib/.htaccess'          => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
-        't/.htaccess'                => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$attachdir/.htaccess"       => { perms => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$libdir/Bugzilla/.htaccess" => { perms => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$extlib/.htaccess"          => { perms => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$templatedir/.htaccess"     => { perms => $ws_readable, contents => HT_DEFAULT_DENY },
+        'contrib/.htaccess'          => { perms => $ws_readable, contents => HT_DEFAULT_DENY },
+        't/.htaccess'                => { perms => $ws_readable, contents => HT_DEFAULT_DENY },
 
         '.htaccess' => { perms => $ws_readable, contents => <<EOT
 # Don't allow people to retrieve non-cgi executable files or our private data
@@ -300,17 +224,14 @@ EOT
         },
     );
 
-    my %all_files = (%create_files, %htaccess, %index_html, %files);
-    my %all_dirs  = (%create_dirs, %non_recurse_dirs);
+    my %all_files = (%create_files, %htaccess, %files);
 
     return {
         create_dirs  => \%create_dirs,
         recurse_dirs => \%recurse_dirs,
-        all_dirs     => \%all_dirs,
 
         create_files => \%create_files,
         htaccess     => \%htaccess,
-        index_html   => \%index_html,
         all_files    => \%all_files,
     };
 }
@@ -363,11 +284,7 @@ sub update_filesystem
     }
 
     _create_files(%files);
-    if ($params->{index_html})
-    {
-        _create_files(%{$fs->{index_html}});
-    }
-    elsif (-e 'index.html')
+    if (-e 'index.html')
     {
         my $templatedir = bz_locations()->{templatedir};
         print <<EOT;
@@ -521,7 +438,8 @@ sub _update_old_charts
             FIXED INVALID WONTFIX LATER REMIND DUPLICATE WORKSFORME MOVED
         );
 
-        while (<IN>) {
+        while (<IN>)
+        {
             if (/^# fields?: (.*)\s$/)
             {
                 @declared_fields = map uc, (split /\||\r/, $1);
@@ -598,7 +516,7 @@ sub fix_all_file_permissions
 
     my $fs = FILESYSTEM();
     my %files = %{$fs->{all_files}};
-    my %dirs  = %{$fs->{all_dirs}};
+    my %dirs  = %{$fs->{create_dirs}};
     my %recurse_dirs = %{$fs->{recurse_dirs}};
 
     print get_text('install_file_perms_fix') . "\n" if $output;
@@ -630,8 +548,6 @@ sub fix_all_file_permissions
             _fix_perms($filename, $owner_id, $group_id, $files{$file}->{perms});
         }
     }
-
-    _fix_cvs_dirs($owner_id, '.');
 }
 
 sub _get_owner_and_group
@@ -643,25 +559,6 @@ sub _get_owner_and_group
     my $owner_id = POSIX::getuid();
     $group_id = POSIX::getgid() unless defined $group_id;
     return ($owner_id, $group_id);
-}
-
-# A helper for fix_all_file_permissions
-sub _fix_cvs_dirs
-{
-    my ($owner_id, $dir) = @_;
-    my $owner_gid = POSIX::getgid();
-    find({ no_chdir => 1, wanted => sub {
-        my $name = $File::Find::name;
-        if ($File::Find::dir =~ /\/CVS/ || $_ eq '.cvsignore' || (-d $name && $_ =~ /CVS$/))
-        {
-            my $perms = 0600;
-            if (-d $name)
-            {
-                $perms = 0700;
-            }
-            _fix_perms($name, $owner_id, $owner_gid, $perms);
-        }
-    }}, $dir);
 }
 
 sub _fix_perms
@@ -758,15 +655,12 @@ filesystem during installation, including creating the data/ directory.
 
 =over
 
-=item C<update_filesystem({ index_html => 0 })>
+=item C<update_filesystem()>
 
 Description: Creates all the directories and files that Bugzilla
              needs to function but doesn't ship with. Also does
              any updates to these files as necessary during an
              upgrade.
-
-Params:      C<index_html> - Whether or not we should create
-               the F<index.html> file.
 
 Returns:     nothing
 

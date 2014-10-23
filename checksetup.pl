@@ -155,7 +155,7 @@ $dbh->bz_populate_enum_tables();
 # Check --DATA-- directory
 ###########################################################################
 
-update_filesystem({ index_html => $lc_hash->{'index_html'} });
+update_filesystem();
 create_htaccess() if $lc_hash->{'create_htaccess'};
 
 # Remove parameters from the params file that no longer exist in Bugzilla,
