@@ -743,7 +743,7 @@ WHERE description LIKE \'%[CC:%]%\'');
         $dbh->do(
             "INSERT INTO field_defaults (field_id, visibility_value_id, default_value)".
             " SELECT field_id, visibility_value_id, ".$dbh->sql_group_concat('value_id', "','").
-            " FROM fieldvaluecontrol WHERE is_default=1"
+            " FROM fieldvaluecontrol WHERE is_default=1 GROUP BY field_id, visibility_value_id"
         );
         $dbh->bz_drop_column('fieldvaluecontrol', 'is_default');
     }
