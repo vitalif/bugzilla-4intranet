@@ -1565,7 +1565,6 @@ is undefined.
 # other reasons).
 sub _get_fk_name {
     my ($self, $table, $column, $references) = @_;
-    $table = 'keywords' if $table eq 'bug_keywords';
     my $to_table  = $references->{TABLE}; 
     my $to_column = $references->{COLUMN};
     my $name = "fk_${table}_${column}_${to_table}_${to_column}";
