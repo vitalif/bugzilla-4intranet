@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -57,34 +55,36 @@ EOT
 # This looks like a constant because it effectively is, but
 # it has to call other subroutines and read the current filesystem,
 # so it's defined as a sub. This is not exported, so it doesn't have
-# a perldoc. However, look at the various hashes defined inside this 
+# a perldoc. However, look at the various hashes defined inside this
 # function to understand what it returns. (There are comments throughout.)
 #
 # The rationale for the file permissions is that there is a group the
 # web server executes the scripts as, so the cgi scripts should not be writable
 # by this group. Otherwise someone may find it possible to change the cgis
 # when exploiting some security flaw somewhere (not necessarily in Bugzilla!)
-sub FILESYSTEM {
-    my $datadir       = bz_locations()->{'datadir'};
-    my $attachdir     = bz_locations()->{'attachdir'};
-    my $extensionsdir = bz_locations()->{'extensionsdir'};
-    my $webdotdir     = bz_locations()->{'webdotdir'};
-    my $templatedir   = bz_locations()->{'templatedir'};
-    my $libdir        = bz_locations()->{'libpath'};
-    my $extlib        = bz_locations()->{'ext_libpath'};
-    my $skinsdir      = bz_locations()->{'skinsdir'};
-    my $localconfig   = bz_locations()->{'localconfig'};
-    my $graphsdir     = bz_locations()->{'graphsdir'};
+sub FILESYSTEM
+{
+    my $datadir       = bz_locations()->{datadir};
+    my $attachdir     = bz_locations()->{attachdir};
+    my $extensionsdir = bz_locations()->{extensionsdir};
+    my $webdotdir     = bz_locations()->{webdotdir};
+    my $templatedir   = bz_locations()->{templatedir};
+    my $libdir        = bz_locations()->{libpath};
+    my $extlib        = bz_locations()->{ext_libpath};
+    my $skinsdir      = bz_locations()->{skinsdir};
+    my $localconfig   = bz_locations()->{localconfig};
+    my $graphsdir     = bz_locations()->{graphsdir};
 
     # We want to set the permissions the same for all localconfig files
     # across all PROJECTs, so we do something special with $localconfig,
     # lower down in the permissions section.
-    if ($ENV{PROJECT}) {
+    if ($ENV{PROJECT})
+    {
         $localconfig =~ s/\.\Q$ENV{PROJECT}\E$//;
     }
 
-    my $ws_group      = Bugzilla->localconfig->{'webservergroup'};
-    my $use_suexec    = Bugzilla->localconfig->{'use_suexec'};
+    my $ws_group      = Bugzilla->localconfig->{webservergroup};
+    my $use_suexec    = Bugzilla->localconfig->{use_suexec};
 
     # The set of permissions that we use:
 
@@ -110,8 +110,7 @@ sub FILESYSTEM {
     my $owner_dir_readable = 0700;
     # Writeable by the web server.
     my $ws_dir_writeable = $ws_group ? 0770 : 01777;
-    # The web server can overwrite files owned by other users, 
-    # in this directory.
+    # The web server can overwrite files owned by other users, in this directory.
     my $ws_dir_full_control = $ws_group ? 0770 : 0777;
 
     # Note: When being processed by checksetup, these have their permissions
@@ -171,52 +170,30 @@ sub FILESYSTEM {
     # the webserver.
     my %recurse_dirs = (
         # Writeable directories
-        "$datadir/template" => { files => $ws_readable, 
-                                  dirs => $ws_dir_full_control },
-         $attachdir         => { files => $ws_writeable,
-                                  dirs => $ws_dir_writeable },
-         $webdotdir         => { files => $ws_writeable,
-                                  dirs => $ws_dir_writeable },
-         $graphsdir         => { files => $ws_writeable,
-                                  dirs => $ws_dir_writeable },
+        "$datadir/template" => { files => $ws_readable, dirs => $ws_dir_full_control },
+        $attachdir         => { files => $ws_writeable, dirs => $ws_dir_writeable },
+        $webdotdir         => { files => $ws_writeable, dirs => $ws_dir_writeable },
+        $graphsdir         => { files => $ws_writeable, dirs => $ws_dir_writeable },
 
-         # Readable directories
-         "$datadir/mining"     => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         "$libdir/Bugzilla"    => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         $extlib               => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         $templatedir          => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         $extensionsdir        => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         images                => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         css                   => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         js                    => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         $skinsdir             => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         t                     => { files => $owner_readable,
-                                     dirs => $owner_dir_readable },
-         'docs/*/html'         => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         'docs/*/pdf'          => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         'docs/*/txt'          => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         'docs/*/images'       => { files => $ws_readable,
-                                     dirs => $ws_dir_readable },
-         'docs/lib'            => { files => $owner_readable,
-                                     dirs => $owner_dir_readable },
-         'docs/*/xml'          => { files => $owner_readable,
-                                     dirs => $owner_dir_readable },
-         'contrib'             => { files => $owner_executable,
-                                     dirs => $owner_dir_readable, },
-         '.bzr'                => { files => $owner_readable,
-                                     dirs => $owner_dir_readable },
+        # Readable directories
+        "$datadir/mining"     => { files => $ws_readable, dirs => $ws_dir_readable },
+        "$libdir/Bugzilla"    => { files => $ws_readable, dirs => $ws_dir_readable },
+        $extlib               => { files => $ws_readable, dirs => $ws_dir_readable },
+        $templatedir          => { files => $ws_readable, dirs => $ws_dir_readable },
+        $extensionsdir        => { files => $ws_readable, dirs => $ws_dir_readable },
+        'images'              => { files => $ws_readable, dirs => $ws_dir_readable },
+        'css'                 => { files => $ws_readable, dirs => $ws_dir_readable },
+        'js'                  => { files => $ws_readable, dirs => $ws_dir_readable },
+        $skinsdir             => { files => $ws_readable, dirs => $ws_dir_readable },
+        't'                   => { files => $owner_readable, dirs => $owner_dir_readable },
+        'docs/*/html'         => { files => $ws_readable, dirs => $ws_dir_readable },
+        'docs/*/pdf'          => { files => $ws_readable, dirs => $ws_dir_readable },
+        'docs/*/txt'          => { files => $ws_readable, dirs => $ws_dir_readable },
+        'docs/*/images'       => { files => $ws_readable, dirs => $ws_dir_readable },
+        'docs/lib'            => { files => $owner_readable, dirs => $owner_dir_readable },
+        'docs/*/xml'          => { files => $owner_readable, dirs => $owner_dir_readable },
+        'contrib'             => { files => $owner_executable, dirs => $owner_dir_readable, },
+        '.bzr'                => { files => $owner_readable, dirs => $owner_dir_readable },
     );
 
     # --- FILES TO CREATE --- #
@@ -238,14 +215,12 @@ sub FILESYSTEM {
     # The name of each file, pointing at its default permissions and
     # default contents.
     my %create_files = (
-        "$datadir/extensions/additional" => { perms    => $ws_readable, 
-                                              contents => '' },
+        "$datadir/extensions/additional" => { perms    => $ws_readable, contents => '' },
         # We create this file so that it always has the right owner
         # and permissions. Otherwise, the webserver creates it as
         # owned by itself, which can cause problems if jobqueue.pl
         # or something else is not running as the webserver or root.
-        "$datadir/mailer.testfile" => { perms    => $ws_writeable,
-                                        contents => '' },
+        "$datadir/mailer.testfile" => { perms    => $ws_writeable, contents => '' },
     );
 
     # Because checksetup controls the creation of index.html separately
@@ -269,18 +244,12 @@ EOT
     # by a localconfig variable, these go in a separate variable from
     # %create_files.
     my %htaccess = (
-        "$attachdir/.htaccess"       => { perms    => $ws_readable,
-                                          contents => HT_DEFAULT_DENY },
-        "$libdir/Bugzilla/.htaccess" => { perms    => $ws_readable,
-                                          contents => HT_DEFAULT_DENY },
-        "$extlib/.htaccess"          => { perms    => $ws_readable,
-                                          contents => HT_DEFAULT_DENY },
-        "$templatedir/.htaccess"     => { perms    => $ws_readable,
-                                          contents => HT_DEFAULT_DENY },
-        'contrib/.htaccess'          => { perms    => $ws_readable,
-                                          contents => HT_DEFAULT_DENY },
-        't/.htaccess'                => { perms    => $ws_readable,
-                                          contents => HT_DEFAULT_DENY },
+        "$attachdir/.htaccess"       => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$libdir/Bugzilla/.htaccess" => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$extlib/.htaccess"          => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
+        "$templatedir/.htaccess"     => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
+        'contrib/.htaccess'          => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
+        't/.htaccess'                => { perms    => $ws_readable, contents => HT_DEFAULT_DENY },
 
         '.htaccess' => { perms => $ws_readable, contents => <<EOT
 # Don't allow people to retrieve non-cgi executable files or our private data
@@ -312,7 +281,7 @@ EOT
         # Even though $datadir may not (and should not) be accessible from the 
         # web server, we can't know for sure, so create the .htaccess anyway. 
         # It's harmless if it isn't accessible...
-        "$datadir/.htaccess" => { perms    => $ws_readable, contents => <<EOT
+        "$datadir/.htaccess" => { perms => $ws_readable, contents => <<EOT
 # Nothing in this directory is retrievable unless overridden by an .htaccess
 # in a subdirectory.
 deny from all
@@ -346,26 +315,30 @@ EOT
     };
 }
 
-sub update_filesystem {
+sub update_filesystem
+{
     my ($params) = @_;
     my $fs = FILESYSTEM();
     my %dirs  = %{$fs->{create_dirs}};
     my %files = %{$fs->{create_files}};
 
-    my $datadir = bz_locations->{'datadir'};
-    my $graphsdir = bz_locations->{'graphsdir'};
+    my $datadir = bz_locations->{datadir};
+    my $graphsdir = bz_locations->{graphsdir};
     # If the graphs/ directory doesn't exist, we're upgrading from
-    # a version old enough that we need to update the $datadir/mining 
+    # a version old enough that we need to update the $datadir/mining
     # format.
-    if (-d "$datadir/mining" && !-d $graphsdir) {
+    if (-d "$datadir/mining" && !-d $graphsdir)
+    {
         _update_old_charts($datadir);
     }
 
     # By sorting the dirs, we assure that shorter-named directories
     # (meaning parent directories) are always created before their
     # child directories.
-    foreach my $dir (sort keys %dirs) {
-        unless (-d $dir) {
+    foreach my $dir (sort keys %dirs)
+    {
+        unless (-d $dir)
+        {
             print "Creating $dir directory...\n";
             mkdir $dir or die "mkdir $dir failed: $!";
             # For some reason, passing in the permissions to "mkdir"
@@ -377,22 +350,26 @@ sub update_filesystem {
     # Move the testfile if we can't write to it, so that we can re-create
     # it with the correct permissions below.
     my $testfile = "$datadir/mailer.testfile";
-    if (-e $testfile and !-w $testfile) {
+    if (-e $testfile and !-w $testfile)
+    {
         _rename_file($testfile, "$testfile.old");
     }
 
     # If old-params.txt exists in the root directory, move it to datadir.
     my $oldparamsfile = "old_params.txt";
-    if (-e $oldparamsfile) {
+    if (-e $oldparamsfile)
+    {
         _rename_file($oldparamsfile, "$datadir/$oldparamsfile");
     }
 
     _create_files(%files);
-    if ($params->{index_html}) {
+    if ($params->{index_html})
+    {
         _create_files(%{$fs->{index_html}});
     }
-    elsif (-e 'index.html') {
-        my $templatedir = bz_locations()->{'templatedir'};
+    elsif (-e 'index.html')
+    {
+        my $templatedir = bz_locations()->{templatedir};
         print <<EOT;
 
 *** It appears that you still have an old index.html hanging around.
@@ -407,29 +384,34 @@ EOT
 
     # 2001-04-29 jake@bugzilla.org - Remove oldemailtech
     #   http://bugzilla.mozilla.org/show_bugs.cgi?id=71552
-    if (-d 'shadow') {
+    if (-d 'shadow')
+    {
         print "Removing shadow directory...\n";
         rmtree("shadow");
     }
 
-    if (-e "$datadir/versioncache") {
+    if (-e "$datadir/versioncache")
+    {
         print "Removing versioncache...\n";
         unlink "$datadir/versioncache";
     }
 
-    if (-e "$datadir/duplicates.rdf") {
+    if (-e "$datadir/duplicates.rdf")
+    {
         print "Removing duplicates.rdf...\n";
         unlink "$datadir/duplicates.rdf";
         unlink "$datadir/duplicates-old.rdf";
     }
 
-    if (-e "$datadir/duplicates") {
+    if (-e "$datadir/duplicates")
+    {
         print "Removing duplicates directory...\n";
         rmtree("$datadir/duplicates");
     }
 }
 
-sub create_htaccess {
+sub create_htaccess
+{
     _create_files(%{FILESYSTEM()->{htaccess}});
 
     # Repair old .htaccess files
@@ -439,29 +421,32 @@ sub create_htaccess {
     $htaccess->close;
 
     my $repaired = 0;
-    if ($old_data =~ s/\|localconfig\|/\|.*localconfig.*\|/) {
+    if ($old_data =~ s/\|localconfig\|/\|.*localconfig.*\|/)
+    {
         $repaired = 1;
     }
-    if ($old_data !~ /\(\.\*\\\.pm\|/) {
+    if ($old_data !~ /\(\.\*\\\.pm\|/)
+    {
         $old_data =~ s/\(/(.*\\.pm\|/;
         $repaired = 1;
     }
-    if ($repaired) {
+    if ($repaired)
+    {
         print "Repairing .htaccess...\n";
         $htaccess = new IO::File('.htaccess', 'w') || die $!;
         print $htaccess $old_data;
         $htaccess->close;
     }
 
-
-    my $webdot_dir = bz_locations()->{'webdotdir'};
+    my $webdot_dir = bz_locations()->{webdotdir};
     # The public webdot IP address changed.
     my $webdot = new IO::File("$webdot_dir/.htaccess", 'r')
         || die "$webdot_dir/.htaccess: $!";
     my $webdot_data;
     { local $/; $webdot_data = <$webdot>; }
     $webdot->close;
-    if ($webdot_data =~ /192\.20\.225\.10/) {
+    if ($webdot_data =~ /192\.20\.225\.10/)
+    {
         print "Repairing $webdot_dir/.htaccess...\n";
         $webdot_data =~ s/192\.20\.225\.10/192.20.225.0\/24/g;
         $webdot = new IO::File("$webdot_dir/.htaccess", 'w') || die $!;
@@ -470,25 +455,31 @@ sub create_htaccess {
     }
 }
 
-sub _rename_file {
+sub _rename_file
+{
     my ($from, $to) = @_;
     print "Renaming $from to $to...\n";
-    if (-e $to) {
+    if (-e $to)
+    {
         warn "$to already exists, not moving\n";
     }
-    else {
+    else
+    {
         move($from, $to) or warn $!;
     }
 }
 
 # A helper for the above functions.
-sub _create_files {
+sub _create_files
+{
     my (%files) = @_;
 
     # It's not necessary to sort these, but it does make the
     # output of checksetup.pl look a bit nicer.
-    foreach my $file (sort keys %files) {
-        unless (-e $file) {
+    foreach my $file (sort keys %files)
+    {
+        unless (-e $file)
+        {
             print "Creating $file...\n";
             my $info = $files{$file};
             my $fh = new IO::File($file, O_WRONLY | O_CREAT, $info->{perms})
@@ -501,17 +492,16 @@ sub _create_files {
 
 # If you ran a REALLY old version of Bugzilla, your chart files are in the
 # wrong format. This code is a little messy, because it's very old, and
-# when moving it into this module, I couldn't test it so I left it almost 
+# when moving it into this module, I couldn't test it so I left it almost
 # completely alone.
-sub _update_old_charts {
+sub _update_old_charts
+{
     my ($datadir) = @_;
     print "Updating old chart storage format...\n";
-    foreach my $in_file (glob("$datadir/mining/*")) {
+    foreach my $in_file (glob("$datadir/mining/*"))
+    {
         # Don't try and upgrade image or db files!
-        next if (($in_file =~ /\.gif$/i) ||
-                 ($in_file =~ /\.png$/i) ||
-                 ($in_file =~ /\.db$/i) ||
-                 ($in_file =~ /\.orig$/i));
+        next if $in_file =~ /\.(gif|png|db|orig)$/i;
 
         rename("$in_file", "$in_file.orig") or next;
         open(IN, "$in_file.orig") or next;
@@ -523,61 +513,72 @@ sub _update_old_charts {
         # Fields we changed to half way through by mistake
         # This list comes from an old version of collectstats.pl
         # This part is only for people who ran later versions of 2.11 (devel)
-        my @intermediate_fields = qw(DATE UNCONFIRMED NEW ASSIGNED REOPENED
-                                     RESOLVED VERIFIED CLOSED);
+        my @intermediate_fields = qw(DATE UNCONFIRMED NEW ASSIGNED REOPENED RESOLVED VERIFIED CLOSED);
 
         # Fields we actually want (matches the current collectstats.pl)
-        my @out_fields = qw(DATE NEW ASSIGNED REOPENED UNCONFIRMED RESOLVED
-                            VERIFIED CLOSED FIXED INVALID WONTFIX LATER REMIND
-                            DUPLICATE WORKSFORME MOVED);
+        my @out_fields = qw(
+            DATE NEW ASSIGNED REOPENED UNCONFIRMED RESOLVED VERIFIED CLOSED
+            FIXED INVALID WONTFIX LATER REMIND DUPLICATE WORKSFORME MOVED
+        );
 
-         while (<IN>) {
-            if (/^# fields?: (.*)\s$/) {
+        while (<IN>) {
+            if (/^# fields?: (.*)\s$/)
+            {
                 @declared_fields = map uc, (split /\||\r/, $1);
                 print OUT "# fields: ", join('|', @out_fields), "\n";
             }
-            elsif (/^(\d+\|.*)/) {
+            elsif (/^(\d+\|.*)/)
+            {
                 my @data = split(/\||\r/, $1);
                 my %data;
-                if (@data == @declared_fields) {
+                if (@data == @declared_fields)
+                {
                     # old format
-                    for my $i (0 .. $#declared_fields) {
+                    for my $i (0 .. $#declared_fields)
+                    {
                         $data{$declared_fields[$i]} = $data[$i];
                     }
                 }
-                elsif (@data == @intermediate_fields) {
+                elsif (@data == @intermediate_fields)
+                {
                     # Must have changed over at this point
-                    for my $i (0 .. $#intermediate_fields) {
+                    for my $i (0 .. $#intermediate_fields)
+                    {
                         $data{$intermediate_fields[$i]} = $data[$i];
                     }
                 }
-                elsif (@data == @out_fields) {
+                elsif (@data == @out_fields)
+                {
                     # This line's fine - it has the right number of entries
-                    for my $i (0 .. $#out_fields) {
+                    for my $i (0 .. $#out_fields)
+                    {
                         $data{$out_fields[$i]} = $data[$i];
                     }
                 }
-                else {
+                else
+                {
                     print "Oh dear, input line $. of $in_file had " .
-                          scalar(@data) . " fields\nThis was unexpected.",
-                          " You may want to check your data files.\n";
+                        scalar(@data) . " fields\nThis was unexpected.",
+                        " You may want to check your data files.\n";
                 }
 
-                print OUT join('|', 
+                print OUT join('|',
                     map { defined ($data{$_}) ? ($data{$_}) : "" } @out_fields),
                     "\n";
             }
-            else {
+            else
+            {
                 print OUT;
             }
         }
 
         close(IN);
         close(OUT);
-    } 
+    }
 }
 
-sub fix_file_permissions {
+sub fix_file_permissions
+{
     my ($file) = @_;
     return if ON_WINDOWS;
     my $perms = FILESYSTEM()->{all_files}->{$file}->{perms};
@@ -586,7 +587,8 @@ sub fix_file_permissions {
     _fix_perms($file, $owner_id, $group_id, $perms);
 }
 
-sub fix_all_file_permissions {
+sub fix_all_file_permissions
+{
     my ($output) = @_;
 
     # _get_owner_and_group also checks that the webservergroup is valid.
@@ -601,34 +603,39 @@ sub fix_all_file_permissions {
 
     print get_text('install_file_perms_fix') . "\n" if $output;
 
-    foreach my $dir (sort keys %dirs) {
+    foreach my $dir (sort keys %dirs)
+    {
         next unless -d $dir;
         _fix_perms($dir, $owner_id, $group_id, $dirs{$dir});
     }
 
-    foreach my $pattern (sort keys %recurse_dirs) {
+    foreach my $pattern (sort keys %recurse_dirs)
+    {
         my $perms = $recurse_dirs{$pattern};
         # %recurse_dirs supports globs
-        foreach my $dir (glob $pattern) {
+        foreach my $dir (glob $pattern)
+        {
             next unless -d $dir;
             _fix_perms_recursively($dir, $owner_id, $group_id, $perms);
         }
     }
 
-    foreach my $file (sort keys %files) {
+    foreach my $file (sort keys %files)
+    {
         # %files supports globs
-        foreach my $filename (glob $file) {
+        foreach my $filename (glob $file)
+        {
             # Don't touch directories.
             next if -d $filename || !-e $filename;
-            _fix_perms($filename, $owner_id, $group_id, 
-                       $files{$file}->{perms});
+            _fix_perms($filename, $owner_id, $group_id, $files{$file}->{perms});
         }
     }
 
     _fix_cvs_dirs($owner_id, '.');
 }
 
-sub _get_owner_and_group {
+sub _get_owner_and_group
+{
     my ($output) = @_;
     my $group_id = _check_web_server_group($output);
     return () if ON_WINDOWS;
@@ -639,16 +646,17 @@ sub _get_owner_and_group {
 }
 
 # A helper for fix_all_file_permissions
-sub _fix_cvs_dirs {
+sub _fix_cvs_dirs
+{
     my ($owner_id, $dir) = @_;
     my $owner_gid = POSIX::getgid();
     find({ no_chdir => 1, wanted => sub {
         my $name = $File::Find::name;
-        if ($File::Find::dir =~ /\/CVS/ || $_ eq '.cvsignore'
-            || (-d $name && $_ =~ /CVS$/)) 
+        if ($File::Find::dir =~ /\/CVS/ || $_ eq '.cvsignore' || (-d $name && $_ =~ /CVS$/))
         {
             my $perms = 0600;
-            if (-d $name) {
+            if (-d $name)
+            {
                 $perms = 0700;
             }
             _fix_perms($name, $owner_id, $owner_gid, $perms);
@@ -656,66 +664,75 @@ sub _fix_cvs_dirs {
     }}, $dir);
 }
 
-sub _fix_perms {
+sub _fix_perms
+{
     my ($name, $owner, $group, $perms) = @_;
     #printf ("Changing $name to %o\n", $perms);
 
     # The webserver should never try to chown files.
-    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE) {
+    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE)
+    {
         chown $owner, $group, $name
-            or warn install_string('chown_failed', { path => $name, 
-                                                     error => $! }) . "\n";
+            or warn install_string('chown_failed', { path => $name, error => $! }) . "\n";
     }
     chmod $perms, $name
-        or warn install_string('chmod_failed', { path => $name, 
-                                                 error => $! }) . "\n";
+        or warn install_string('chmod_failed', { path => $name, error => $! }) . "\n";
 }
 
-sub _fix_perms_recursively {
+sub _fix_perms_recursively
+{
     my ($dir, $owner_id, $group_id, $perms) = @_;
     # Set permissions on the directory itself.
     _fix_perms($dir, $owner_id, $group_id, $perms->{dirs});
     # Now recurse through the directory and set the correct permissions
     # on subdirectories and files.
-    find({ no_chdir => 1, wanted => sub {
+    find({ no_chdir => 1, wanted => sub
+    {
         my $name = $File::Find::name;
-        if (-d $name) {
+        if (-d $name)
+        {
             _fix_perms($name, $owner_id, $group_id, $perms->{dirs});
         }
-        else {
+        else
+        {
             _fix_perms($name, $owner_id, $group_id, $perms->{files});
         }
     }}, $dir);
 }
 
-sub _check_web_server_group {
+sub _check_web_server_group
+{
     my ($output) = @_;
 
-    my $group    = Bugzilla->localconfig->{'webservergroup'};
-    my $filename = bz_locations()->{'localconfig'};
+    my $group    = Bugzilla->localconfig->{webservergroup};
+    my $filename = bz_locations()->{localconfig};
     my $group_id;
 
     # If we are on Windows, webservergroup does nothing
-    if (ON_WINDOWS && $group && $output) {
+    if (ON_WINDOWS && $group && $output)
+    {
         print "\n\n" . get_text('install_webservergroup_windows') . "\n\n";
     }
 
     # If we're not on Windows, make sure that webservergroup isn't
     # empty.
-    elsif (!ON_WINDOWS && !$group && $output) {
+    elsif (!ON_WINDOWS && !$group && $output)
+    {
         print "\n\n" . get_text('install_webservergroup_empty') . "\n\n";
     }
 
     # If we're not on Windows, make sure we are actually a member of
     # the webservergroup.
-    elsif (!ON_WINDOWS && $group) {
+    elsif (!ON_WINDOWS && $group)
+    {
         $group_id = getgrnam($group);
-        ThrowCodeError('invalid_webservergroup', { group => $group }) 
+        ThrowCodeError('invalid_webservergroup', { group => $group })
             unless defined $group_id;
 
         # If on unix, see if we need to print a warning about a webservergroup
         # that we can't chgrp to
-        if ($output && $< != 0 && !grep($_ eq $group_id, split(" ", $)))) {
+        if ($output && $< != 0 && !grep($_ eq $group_id, split(" ", $))))
+        {
             print "\n\n" . get_text('install_webservergroup_not_in') . "\n\n";
         }
     }
