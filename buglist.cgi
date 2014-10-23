@@ -68,13 +68,11 @@ my $query_format = $ARGS->{query_format} || 'advanced';
 # is turned 'on'.
 Bugzilla->login();
 
-# CustIS Bug 68921 - "Супер-TodayWorktime", или массовая фиксация трудозатрат
-# по нескольким багам, за нескольких сотрудников, за различные периоды.
-# Для фиксации времени задним числом / другим юзером требует группу worktimeadmin.
-
-# FIXME сейчас оно встроено сюда, ибо большАя часть логики, отвечающей за
-#   создание и выполнение запроса поиска, находится не в Bugzilla::Search, а именно здесь :-(
-#   кусочки логики находятся здесь по слову superworktime.
+# CustIS Bug 68921 - "Super-TodayWorktime": mass entering of working time
+# for several bugs at once, and if you're in the 'worktimeadmin' group,
+# also for different people and for the past dates.
+# FIXME SuperWorkTime is built-in here (search for 'superworktime' word),
+# because a lot of the query execution logic is here and not in Bugzilla::Search :-(.
 my $superworktime;
 if (($ARGS->{format}||'') eq 'superworktime')
 {
@@ -878,8 +876,7 @@ if ($serverpush)
     # will result in a blank page being shown to the user instead of the error.
 }
 
-# Connect to the shadow database if this installation is using one to improve
-# query performance.
+# Connect to the shadow database if this installation is using one to improve query performance.
 $dbh = Bugzilla->switch_to_shadow_db();
 
 # Normally, we ignore SIGTERM and SIGPIPE, but we need to
@@ -899,10 +896,8 @@ $buglist_sth->execute();
 # Results Retrieval
 ################################################################################
 
-# Retrieve the query results one row at a time and write the data into a list
-# of Perl records.
+# Retrieve the query results one row at a time and write the data into a list of Perl records.
 
-# TODO перенести на общий механизм и чтобы в него вкручивалось interval_time
 # If we're doing time tracking, then keep totals for all bugs.
 my $percentage_complete = 1 && grep { $_ eq 'percentage_complete' } @displaycolumns;
 my $estimated_time      = 1 && grep { $_ eq 'estimated_time' } @displaycolumns;
@@ -927,7 +922,8 @@ my @bugidlist;
 
 my @bugs; # the list of records
 
-while (my @row = $buglist_sth->fetchrow_array()) {
+while (my @row = $buglist_sth->fetchrow_array())
+{
     my $bug = {}; # a record
 
     # Slurp the row of data into the record.
@@ -1360,12 +1356,11 @@ if (($ARGS->{ctype}||'') eq 'csv' &&
     Bugzilla->user->settings->{csv_charset} &&
     Bugzilla->user->settings->{csv_charset}->{value} ne 'utf-8')
 {
-    # Пара хаков:
-    # во-первых, _utf8_off не работает на бывшем когда-то tainted скаляре,
-    #   а from_to не работает на скаляре с включённым utf8 флагом, поэтому мы
-    #   его копируем и работаем с копией.
-    # во-вторых, заголовки выводятся с включённым utf8 флагом, а мы не хотим,
-    #   чтобы perl сам что-то перекодировал - поэтому в конце идёт _utf8_on.
+    # A couple of hacks:
+    # 1) _utf8_off doesn't work on a scalar that was tainted sometime in the past,
+    #    so we trick_taint it, copy it and do _utf8_off on the copy.
+    # 2) header strings are printed with utf8 flag turned on, but we don't want
+    #    Perl to auto-recode our CSV, so we print non-utf8 data with utf8 flag on.
     trick_taint($output);
     my $untaint = $output;
     Encode::_utf8_off($untaint);
