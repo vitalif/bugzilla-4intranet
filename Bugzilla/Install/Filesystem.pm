@@ -556,7 +556,7 @@ sub _get_owner_and_group
     my $group_id = _check_web_server_group($output);
     return () if ON_WINDOWS;
 
-    my $owner_id = POSIX::getuid();
+    my $owner_id = -1; # do not change owner of files
     $group_id = POSIX::getgid() unless defined $group_id;
     return ($owner_id, $group_id);
 }
