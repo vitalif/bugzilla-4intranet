@@ -118,22 +118,6 @@ sub REQUIRED_MODULES {
         version => '1.861'
     },
     {
-        package => 'Email-MIME-Encodings',
-        module  => 'Email::MIME::Encodings',
-        # Fixes bug 486206
-        version => '1.313',
-    },
-    {
-        package => 'Email-MIME-Modifier',
-        module  => 'Email::MIME::Modifier',
-        version => '1.442'
-    },
-    {
-        package => 'URI',
-        module  => 'URI',
-        version => 0
-    },
-    {
         package => 'Lingua-Translit',
         module  => 'Lingua::Translit',
         version => '0.18'
@@ -272,6 +256,11 @@ sub OPTIONAL_MODULES {
         version => 0,
         feature => ['inbound_email'],
     },
+    {
+        package => 'HTML-Strip',
+        module  => 'HTML::Strip',
+        feature => ['inbound_email'],
+    },
 
     # Mail Queueing
     {
@@ -318,11 +307,6 @@ sub OPTIONAL_MODULES {
         module  => 'Spreadsheet::XLSX',
         version => '0.1',
         feature => 'Import of OOXML Excel files (*.xlsx)',
-    },
-    {
-        package => 'HTML-Strip',
-        module  => 'HTML::Strip',
-        feature => 'Handling inbound HTML email',
     },
     {
         package => 'HTTP-Server-Simple',

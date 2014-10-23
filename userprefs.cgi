@@ -23,7 +23,6 @@
 use strict;
 
 use lib qw(. lib);
-use URI;
 
 use Bugzilla;
 use Bugzilla::Constants;
@@ -390,8 +389,6 @@ sub DoSavedSearches
     {
         trick_taint($name);
         trick_taint($url);
-        eval { $url = URI->new($url)->canonical->as_string; };
-        ThrowCodeError("invalid_url", { url => $url }) if $@;
         $dbh->do(
             'INSERT INTO namedqueries (userid, name, query) VALUES (?, ?, ?)',
             undef, $user->id, $name, $url

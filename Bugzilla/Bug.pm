@@ -54,8 +54,6 @@ use Bugzilla::Diff;
 use Bugzilla::CheckerUtils;
 
 use List::Util qw(min);
-use URI;
-use URI::QueryParam;
 use Date::Format qw(time2str);
 use POSIX qw(floor);
 use Scalar::Util qw(blessed);
