@@ -355,6 +355,7 @@ my $STATS;
 sub reload
 {
     my ($file, $mtime);
+    my @reload;
     for my $key (keys %INC)
     {
         $file = $INC{$key} or next;
@@ -367,14 +368,19 @@ sub reload
         # Modified
         if ($mtime > $STATS->{$file})
         {
-            print STDERR __PACKAGE__ . ": $key -> $file modified, reloading\n";
+            print STDERR __PACKAGE__ . ": $key -> $file modified, unloading\n";
             unload($key) or next;
-            eval { require $key };
-            if ($@)
-            {
-                warn $@;
-            }
+            push @reload, $key;
             $STATS->{$file} = $mtime;
+        }
+    }
+    for (@reload)
+    {
+        print STDERR __PACKAGE__ . ": Reloading $_\n";
+        eval { require $_ };
+        if ($@)
+        {
+            warn $@;
         }
     }
 }
