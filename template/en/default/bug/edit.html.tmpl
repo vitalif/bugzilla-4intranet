@@ -792,11 +792,13 @@ document.changeform = document.[% cfname %];
 
 [% BLOCK section_customfields %]
   [% c = Bugzilla.active_custom_fields %]
-  [% FOREACH field = c.slice(c.size * (part - 1) / 4, c.size * part / 4 - 1) %]
-    [% INCLUDE bug/field.html.tmpl
-      value = bug.${field.name}
-      editable = bug.check_can_change_field(field.name, 0, 1)
-      value_span = 2 %]
+  [% IF c && c.size >= part %]
+    [% FOREACH field = c.slice((c.size * (part - 1)) div 4, (c.size * part) div 4 - 1) %]
+      [% INCLUDE bug/field.html.tmpl
+        value = bug.${field.name}
+        editable = bug.check_can_change_field(field.name, 0, 1)
+        value_span = 2 %]
+    [% END %]
   [% END %]
 [% END %]
 
