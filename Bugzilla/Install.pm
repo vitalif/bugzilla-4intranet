@@ -256,7 +256,9 @@ sub create_admin {
         print get_text('install_admin_get_email') . ' ';
         $login = <STDIN>;
         chomp $login;
+        $Bugzilla::Error::IN_EVAL++;
         eval { Bugzilla::User->check_login_name_for_creation($login); };
+        $Bugzilla::Error::IN_EVAL--;
         if ($@)
         {
             print $@ . "\n";
@@ -339,7 +341,9 @@ sub _prompt_for_password {
         print "\n", get_text('install_confirm_password'), ' ';
         my $pass2 = <STDIN>;
         chomp $pass2;
-        eval { validate_password($password, $pass2); };
+        $Bugzilla::Error::IN_EVAL++;
+        eval { Bugzilla::User::validate_password($password, $pass2); };
+        $Bugzilla::Error::IN_EVAL--;
         if ($@) {
             print "\n$@\n";
             undef $password;

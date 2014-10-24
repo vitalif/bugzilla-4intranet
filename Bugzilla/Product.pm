@@ -67,7 +67,6 @@ use constant DB_COLUMNS => qw(
 use constant REQUIRED_CREATE_FIELDS => qw(
     name
     description
-    version
 );
 
 # Allow to update every valid DB column
