@@ -1001,8 +1001,8 @@ sub update_visibility_values
     {
         my $type = $vis_field->value_type;
         $visibility_value_ids = [
-            (grep { $_ == 0 } @$visibility_value_ids ? (0) : ()),
-            map { $_->id } @{ $type->new_from_list($visibility_value_ids) }
+            (grep($_ == 0, @$visibility_value_ids) ? (0) : ()),
+            (map { $_->id } @{ $type->new_from_list($visibility_value_ids) })
         ];
     }
     my $h = Bugzilla->fieldvaluecontrol->{$vis_field->id};
@@ -1042,7 +1042,7 @@ sub add_visibility_values
     }
     for (@$visibility_value_ids)
     {
-        ($_ = int($_)) > 0 or return 0;
+        $_ = int($_);
     }
     # Ignore duplicate row errors
     eval
