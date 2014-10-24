@@ -2704,7 +2704,7 @@ sub _owner_idle_time_less
         $unitinterval = 'YEAR';
     }
 
-    my $cutoff = "NOW() - " . $dbh->sql_interval($quantity, $unitinterval);
+    my $cutoff = $dbh->sql_date_math('NOW()', '-', $quantity, $unitinterval);
     my $g = $self->{type} eq 'lessthaneq' ? ">=" : ">";
     $self->{term} = [
         'OR',

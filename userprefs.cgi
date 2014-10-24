@@ -56,7 +56,7 @@ sub DoAccount
         # First delete old tokens.
         Bugzilla::Token::CleanTokenTable();
         my @token = $dbh->selectrow_array(
-            "SELECT tokentype, issuedate + " . $dbh->sql_interval(MAX_TOKEN_AGE, 'DAY') . ", eventdata".
+            "SELECT tokentype, " . $dbh->sql_date_math('issuedate', '+', MAX_TOKEN_AGE, 'DAY') . ", eventdata".
             " FROM tokens WHERE userid = ? AND tokentype LIKE 'email%'".
             " ORDER BY tokentype ASC " . $dbh->sql_limit(1), undef, $user->id
         );

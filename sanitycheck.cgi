@@ -258,11 +258,11 @@ if ($ARGS->{rescanallBugMail})
     require Bugzilla::BugMail;
 
     Status('send_bugmail_start');
-    my $time = $dbh->sql_interval(30, 'MINUTE');
+    my $time = $dbh->sql_date_math('NOW()', '-', 30, 'MINUTE');
 
     my $list = $dbh->selectcol_arrayref(
         "SELECT bug_id FROM bugs WHERE (lastdiffed IS NULL OR lastdiffed < delta_ts)".
-        " AND delta_ts < now() - $time ORDER BY bug_id"
+        " AND delta_ts < $time ORDER BY bug_id"
     );
 
     Status('send_bugmail_status', { bug_count => scalar @$list });
@@ -759,10 +759,10 @@ BugCheck(
 
 Status('unsent_bugmail_check');
 
-my $time = $dbh->sql_interval(30, 'MINUTE');
+my $time = $dbh->sql_date_math('NOW()', '-', 30, 'MINUTE');
 my $badbugs = $dbh->selectcol_arrayref(
     "SELECT bug_id FROM bugs WHERE (lastdiffed IS NULL OR lastdiffed < delta_ts)".
-    " AND delta_ts < now() - $time ORDER BY bug_id"
+    " AND delta_ts < $time ORDER BY bug_id"
 );
 if (@$badbugs)
 {

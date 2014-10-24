@@ -171,10 +171,9 @@ sub sql_date_format {
     return "TO_CHAR($date, " . $self->quote($format) . ")";
 }
 
-sub sql_interval {
-    my ($self, $interval, $units) = @_;
-
-    return "$interval * INTERVAL '1 $units'";
+sub sql_date_math {
+    my ($self, $date, $operator, $interval, $units) = @_;
+    return "$date $operator $interval * INTERVAL '1 $units'";
 }
 
 sub sql_string_concat {
