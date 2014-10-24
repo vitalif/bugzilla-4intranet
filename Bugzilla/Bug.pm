@@ -1641,7 +1641,7 @@ sub _sync_fulltext
     $nopriv = join "\n", @$nopriv;
     $priv = join "\n", @$priv;
     my $row = [ $short_desc, $nopriv, $priv ];
-    # Determine if we are using Sphinx or MySQL fulltext search
+    # Determine if we are using Sphinx or MySQL/PostgreSQL/SQLite fulltext search
     my ($sph, $id_field);
     my $index = Bugzilla->localconfig->{sphinx_index};
     my $table = $index;
@@ -1656,7 +1656,7 @@ sub _sync_fulltext
     {
         $table = 'bugs_fulltext';
         $sph = $dbh;
-        $id_field = 'bug_id';
+        $id_field = $dbh->FULLTEXT_ID_FIELD;
         $_ = $dbh->quote_fulltext($_) for @$row;
     }
     my $sql;
@@ -1683,7 +1683,7 @@ sub remove_from_db
     $dbh->do("DELETE FROM bugs WHERE bug_id = ?", undef, $self->id);
 
     # The only table that requires manual delete cascading is bugs_fulltext (MyISAM)
-    $dbh->do("DELETE FROM bugs_fulltext WHERE bug_id = ?", undef, $self->id);
+    $dbh->do("DELETE FROM bugs_fulltext WHERE ".$dbh->FULLTEXT_ID_FIELD." = ?", undef, $self->id);
 
     # Now this bug no longer exists
     $self->DESTROY;
@@ -3530,11 +3530,11 @@ sub GetBugActivity
         " WHERE a.bug_id = ? $datepart $attachpart $suppwhere";
     if (!$attach_id)
     {
-        $query = "($query) UNION ALL (SELECT 'longdesc' field_name, 0 field_desc, null, " . $dbh->sql_date_format('a.bug_when') .
+        $query = "$query UNION ALL SELECT 'longdesc' field_name, 0 field_desc, null, " . $dbh->sql_date_format('a.bug_when') .
             " bug_when, a.oldthetext removed, a.thetext added, profile1.login_name, a.comment_id, a.comment_count".
             " FROM longdescs_history a".
             " INNER JOIN profiles profile1 ON profile1.userid = a.who".
-            " WHERE a.bug_id = ? $datepart)";
+            " WHERE a.bug_id = ? $datepart";
     }
     $query .= " ORDER BY bug_when, field_desc";
 

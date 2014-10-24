@@ -187,7 +187,7 @@ sub sql_fulltext_search
 {
     my $self = shift;
     my ($column, $text) = @_;
-    $text = $self->quote($text);
+    $text = $self->quote(lc $text);
     my $lang = lc(Bugzilla->params->{stem_language} || 'en');
     $lang = LANG_ISO_FULL->{$lang} || 'english' if !LANG_FULL_ISO->{$lang};
     # Try to_tsquery, and use plainto_tsquery if the syntax is incorrect
@@ -207,7 +207,7 @@ sub quote_fulltext
     my ($a) = @_;
     my $lang = lc(Bugzilla->params->{stem_language}||'en');
     $lang = LANG_ISO_FULL->{$lang} || 'english' if !LANG_FULL_ISO->{$lang};
-    return "to_tsvector('$lang',".$self->quote($a).")";
+    return "to_tsvector('$lang',".$self->quote(lc $a).")";
 }
 
 sub real_table_list

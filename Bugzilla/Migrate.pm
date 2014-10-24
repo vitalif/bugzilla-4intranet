@@ -774,7 +774,7 @@ sub insert_bugs {
         # bugs_fulltext isn't transactional, so if we're in a dry-run we
         # need to delete anything that we put in there.
         if ($self->dry_run) {
-            $dbh->do('DELETE FROM bugs_fulltext WHERE bug_id = ?',
+            $dbh->do('DELETE FROM bugs_fulltext WHERE '.$dbh->FULLTEXT_ID_FIELD.' = ?',
                      undef, $created->id);
         }
 

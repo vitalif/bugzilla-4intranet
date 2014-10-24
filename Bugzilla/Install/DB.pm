@@ -3425,7 +3425,7 @@ sub _populate_bugs_fulltext
     $bug_ids = undef if $bug_ids && !@$bug_ids;
     my $dbh = Bugzilla->dbh;
     # These vary between different fulltext search engines (MySQL, Sphinx)
-    my ($table, $id_field, $quote, $sph) = ('bugs_fulltext', 'bug_id', 'quote_fulltext', $dbh);
+    my ($table, $id_field, $quote, $sph) = ('bugs_fulltext', $dbh->FULLTEXT_ID_FIELD, 'quote_fulltext', $dbh);
     my $nonempty;
     if (Bugzilla->localconfig->{sphinx_index})
     {

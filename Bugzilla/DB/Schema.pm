@@ -1781,12 +1781,19 @@ sub _get_create_index_ddl {
 
     my ($self, $table_name, $index_name, $index_fields, $index_type) = @_;
 
-    my $sql = "CREATE ";
-    $sql .= "$index_type " if ($index_type && $index_type eq 'UNIQUE');
-    $sql .= "INDEX $index_name ON $table_name \(" .
-      join(", ", @$index_fields) . "\)";
+    my $fields = join(", ", @$index_fields);
+    $fields =~ s/\(\d+\)//gso;
 
-    return($sql);
+    if (lc $index_name eq 'primary')
+    {
+        return "ALTER TABLE $table_name ADD PRIMARY KEY ($fields)";
+    }
+
+    my $sql = "CREATE ";
+    $sql .= "$index_type " if $index_type && $index_type eq 'UNIQUE';
+    $sql .= "INDEX $index_name ON $table_name ($fields)";
+
+    return $sql;
 
 } #eosub--_get_create_index_ddl
 #--------------------------------------------------------------------------
@@ -1853,10 +1860,6 @@ sub get_add_index_ddl {
     } else {
         $index_fields = $definition;
         $index_type = '';
-    }
-
-    if (lc($name) eq 'primary') {
-        return "ALTER TABLE $table ADD PRIMARY KEY (".join(", ", @$index_fields).")";
     }
 
     return $self->_get_create_index_ddl($table, $name, $index_fields,

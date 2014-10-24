@@ -118,7 +118,7 @@ sub _init
     $sql = "SELECT $columns FROM $table WHERE $sql";
     if (ref $param eq 'HASH' && $param->{for_update})
     {
-        $sql .= " FOR UPDATE";
+        $sql .= $dbh->FOR_UPDATE;
     }
 
     $object = $dbh->selectrow_hashref($sql, undef, @values);

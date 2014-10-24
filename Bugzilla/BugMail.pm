@@ -269,7 +269,7 @@ sub Send
     my @dep_args = ($id, $start || $creation_ts, $end);
     my $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
     my $diffs = $dbh->selectall_arrayref(
-           "(SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
+           "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
                    fielddefs.sortkey fieldsortkey,
                    bugs_activity.bug_when, bugs_activity.removed,
                    bugs_activity.added, bugs_activity.attach_id, fielddefs.name fieldname, null as comment_id, null as comment_count
@@ -279,8 +279,8 @@ sub Send
         INNER JOIN profiles
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
-                   $when_restriction)
- UNION ALL (SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
+                   $when_restriction
+  UNION ALL SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
                    fielddefs1.sortkey fieldsortkey,
                    lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname, lh.comment_id, lh.comment_count
               FROM longdescs_history lh
@@ -289,7 +289,7 @@ sub Send
         INNER JOIN fielddefs fielddefs1
                 ON fielddefs1.name = 'longdesc'
              WHERE lh.bug_id = ?
-                   $when_restriction)
+                   $when_restriction
           ORDER BY bug_when, fieldsortkey", {Slice=>{}}, @args, @args);
 
     my @new_depbugs;

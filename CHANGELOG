@@ -22,6 +22,12 @@ Backports from original Bugzilla 4.4:
   to Bugzilla4Intranet.
 * Allow to disable old versions/milestones.
 * Saved reports.
+* SQLite support, in fact improved over original 4.4:
+ ** It's possible to use built-in SQLite full-text search (FTS4)
+ ** Query plans are shown when &debug=1 parameter is passed to buglist.cgi
+ ** It's possible to use contrib/bzdbcopy.pl script with SQLite
+ ** Bugfix: indexes are not deleted anymore when altering tables
+ ** ANALYZE is run in the end of checksetup.pl
 * Add user "last seen date".
 
 Bug field improvements:

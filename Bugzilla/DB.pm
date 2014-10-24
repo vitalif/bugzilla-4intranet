@@ -52,6 +52,8 @@ use Storable qw(dclone);
 
 use constant BLOB_TYPE => DBI::SQL_BLOB;
 use constant ISOLATION_LEVEL => 'REPEATABLE READ';
+use constant FOR_UPDATE => ' FOR UPDATE';
+use constant FULLTEXT_ID_FIELD => 'bug_id';
 
 # Set default values for what used to be the enum types.  These values
 # are no longer stored in localconfig.  If we are upgrading from a
@@ -447,13 +449,21 @@ sub sql_fulltext_search
     return ($term, $term);
 }
 
+sub sql_fulltext_relevance_sum
+{
+    my $self = shift;
+    my ($bits) = @_;
+    return "(SELECT ".join("+", @$bits)." FROM bugs_fulltext".
+        " WHERE bugs_fulltext.".$self->FULLTEXT_ID_FIELD."=bugs.bug_id)";
+}
+
 # Prepare string for inserting into full-text table and return the SQL expression
 # Individual DB implementations should override this if they have built-in stemmer
 sub quote_fulltext
 {
     my $self = shift;
     my ($a) = @_;
-    return $self->quote(stem_text($a, lc(Bugzilla->params->{stem_language}||'')));
+    return $self->quote(stem_text(lc $a, lc(Bugzilla->params->{stem_language}||'')));
 }
 
 #####################################################################
@@ -1161,7 +1171,7 @@ sub bz_start_transaction {
         # what we need in Bugzilla to be safe, for what we do.
         # Different DBs have different defaults for their isolation
         # level, so we just set it here manually.
-        $self->do('SET TRANSACTION ISOLATION LEVEL ' . $self->ISOLATION_LEVEL);
+        $self->do('SET TRANSACTION ISOLATION LEVEL ' . $self->ISOLATION_LEVEL) if $self->ISOLATION_LEVEL;
         $self->{private_bz_transaction_count} = 1;
     }
 }

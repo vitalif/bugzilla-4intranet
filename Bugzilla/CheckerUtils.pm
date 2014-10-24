@@ -63,7 +63,7 @@ sub check
         }
     }
     @$sql || return [];
-    $sql = "(" . join(") UNION ALL (", @$sql) . ")";
+    $sql = join(" UNION ALL ", @$sql);
     $sql = Bugzilla->dbh->prepare_cached($sql);
     $sql->execute(@bind);
     my $checked = [];
@@ -103,19 +103,20 @@ sub alert
     }
     else
     {
+        my $dbh = Bugzilla->dbh;
         # Some checks failed. Roll changes back.
         $bug->{passed_checkers} = 0;
         # bugs_fulltext is non-transactional...
         if ($is_new)
         {
-            Bugzilla->dbh->do('DELETE FROM bugs_fulltext WHERE bug_id=?', undef, $bug->bug_id);
+            $dbh->do('DELETE FROM bugs_fulltext WHERE '.$dbh->FULLTEXT_ID_FIELD.'=?', undef, $bug->bug_id);
         }
         else
         {
             $bug->_sync_fulltext;
         }
         # Rollback changes of a SINGLE bug (see process_bug.cgi)
-        Bugzilla->dbh->bz_rollback_to_savepoint;
+        $dbh->bz_rollback_to_savepoint;
         if (!Bugzilla->request_cache->{checkers_hide_error})
         {
             show_checker_errors([ $bug ]);

@@ -137,6 +137,7 @@ sub FILESYSTEM
         $attachdir          => { files => $ws_writeable, dirs => $ws_dir_writeable },
         $webdotdir          => { files => $ws_writeable, dirs => $ws_dir_writeable },
         $graphsdir          => { files => $ws_writeable, dirs => $ws_dir_writeable },
+        "$datadir/db"       => { files => $ws_writeable, dirs => $ws_dir_writeable },
 
         # Readable directories
         "$datadir/mining"   => { files => $ws_readable, dirs => $ws_dir_readable },

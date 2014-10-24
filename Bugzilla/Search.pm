@@ -2396,7 +2396,9 @@ sub _content_matches
     # MATCH(...) OR MATCH(...) is very slow in MySQL (and probably in other DBs):
     # -- it does no fulltext index merge optimization. So use JOIN to UNION.
     $self->{term} = {
-        table => "(".join(" UNION ", map { "SELECT bug_id FROM bugs_fulltext WHERE $terms[$_]" } grep { !($_&1) } 0..$#terms).") $table",
+        table => "(".join(" UNION ", map {
+            "SELECT ".$dbh->FULLTEXT_ID_FIELD." bug_id FROM bugs_fulltext WHERE $terms[$_]"
+        } grep { !($_&1) } 0..$#terms).") $table",
         bugid_field => "$table.bug_id",
     };
 
@@ -2409,8 +2411,7 @@ sub _content_matches
     if (!$self->{negated})
     {
         push @{COLUMNS->{relevance}->{bits}}, @terms[grep { $_&1 } 0..$#terms];
-        COLUMNS->{relevance}->{name} = "(SELECT ".join("+", @{COLUMNS->{relevance}->{bits}}).
-            " FROM bugs_fulltext WHERE bugs_fulltext.bug_id=bugs.bug_id)";
+        COLUMNS->{relevance}->{name} = $dbh->sql_fulltext_relevance_sum(COLUMNS->{relevance}->{bits});
     }
 }
 
@@ -3476,7 +3477,7 @@ sub expression_sql_or
         $q[$i] = $self->expression_sql_and(ref $q[$i] eq 'ARRAY' ? $q[$i] : [ 'AND', $q[$i] ]);
     }
     my $r = {
-        table => "((".join(")\nUNION (", @q).")) u".$self->{sequence},
+        table => "(".join("\nUNION\n", @q).") u".$self->{sequence},
         bugid_field => "u$self->{sequence}.bug_id",
     };
     $self->{sequence}++;

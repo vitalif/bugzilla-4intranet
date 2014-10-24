@@ -499,6 +499,18 @@ use constant DB_MODULE => {
         },
         name => 'Oracle',
     },
+    # SQLite 3.6.22 fixes a WHERE clause problem that may affect us.
+    sqlite => {
+        db => 'Bugzilla::DB::Sqlite',
+        db_version => '3.6.22',
+        dbd => {
+            package => 'DBD-SQLite',
+            module  => 'DBD::SQLite',
+            # 1.29 is the version that contains 3.6.22.
+            version => '1.29',
+        },
+        name => 'SQLite',
+    },
 };
 
 # True if we're on Win32.

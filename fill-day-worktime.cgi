@@ -129,7 +129,7 @@ if ($query)
     $sqlquery = $search->bugid_query;
 }
 
-$sqlquery = " UNION ($sqlquery)" if $sqlquery;
+$sqlquery = " UNION $sqlquery" if $sqlquery;
 
 my $tm = $dbh->sql_date_math('CURRENT_DATE', '-', $lastdays-1, 'DAY');
 my $join = $dbh->isa('Bugzilla::DB::Mysql') ? 'STRAIGHT_JOIN' : 'JOIN';

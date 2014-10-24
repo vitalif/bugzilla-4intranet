@@ -594,6 +594,10 @@ sub have_vers {
     if ($module eq 'CPAN' and $vnum =~ /^(\d\.\d{2})\d{2}$/) {
         $vnum = $1;
     }
+    # Debian has Image::Magick without version
+    if ($module eq 'Image::Magick' && (my ($isa) = @Image::Magick::ISA) && $vnum == -1) {
+        $vnum = $isa->VERSION || -1;
+    }
 
     my $vstr;
     if ($vnum eq "-1") { # string compare just in case it's non-numeric

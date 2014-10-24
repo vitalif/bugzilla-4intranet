@@ -821,15 +821,16 @@ sub get_selectable_products
         else
         {
             my $query =
-                "(SELECT id, name AS pname FROM products" .
+                "SELECT id, name AS pname FROM products" .
                 " LEFT JOIN group_control_map g ON g.product_id = products.id " .
                 " AND g.membercontrol=" . CONTROLMAPMANDATORY .
                 " AND g.group_id NOT IN (" . $self->groups_as_string . ")" .
-                " WHERE group_id IS NULL)" .
-                " UNION (SELECT id, name AS pname FROM products" .
+                " WHERE group_id IS NULL" .
+                " UNION ".
+                " SELECT id, name AS pname FROM products" .
                 " LEFT JOIN group_control_map g ON g.product_id=products.id" .
                 " AND g.entry != 0 AND g.group_id NOT IN (".$self->groups_as_string.")" .
-                " WHERE g.group_id IS NULL)" .
+                " WHERE g.group_id IS NULL" .
                 " ORDER BY pname";
             $prod_ids = Bugzilla->dbh->selectcol_arrayref($query);
         }
