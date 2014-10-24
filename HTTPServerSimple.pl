@@ -52,6 +52,25 @@ use LWP::MediaTypes qw(guess_media_type);
 
 use base qw(HTTP::Server::Simple::CGI);
 
+use constant DEFAULT_CONFIG => (
+    class               => 'Net::Server::PreFork',
+    port                => '0.0.0.0:8157',
+    min_servers         => 4,
+    max_servers         => 20,
+    min_spare_servers   => 4,
+    max_spare_servers   => 8,
+    max_requests        => 1000,
+    user                => POSIX::geteuid(),
+    group               => POSIX::getegid(),
+    log_file            => '/var/log/bugzilla.log',
+    log_level           => 2,
+    pid_file            => '/var/run/bugzilla.pid',
+    background          => 1,
+    deny_regexp         => '^(localconfig|data/(?!webdot/)|.*\.(pm|pl|sh)($|\?)|(/|^)(CVS|\.(ht|svn|hg|bzr|git)).*)',
+    preload             => '*.cgi',
+    reload              => 1,
+);
+
 # Code cache
 my %subs = ();
 my %mtime = ();
@@ -72,18 +91,22 @@ sub new
             $self->{_config} = Bugzilla::NetServerConfigParser->_read_conf($_);
         }
     }
-    push @{$self->{_config} ||= []}, @cfg;
-    $self->{_config_hash} = {};
+    $self->{_config} ||= [];
     for (my $i = 0; $i < @{$self->{_config}}; $i += 2)
     {
-        $self->{_config_hash}->{$self->{_config}->[$i]} ||= $self->{_config}->[$i+1];
         if ($self->{_config}->[$i] eq 'port')
         {
             # Remove first 'port' option (workaround hardcode from HTTP::Server::Simple)
             splice @{$self->{_config}}, $i, 2;
-            $i -= 2;
+            last;
         }
-        elsif ($self->{_config}->[$i] eq 'preload')
+    }
+    $self->{_config} = [ DEFAULT_CONFIG(), @{$self->{_config}}, @cfg ];
+    $self->{_config_hash} = {};
+    for (my $i = 0; $i < @{$self->{_config}}; $i += 2)
+    {
+        $self->{_config_hash}->{$self->{_config}->[$i]} = $self->{_config}->[$i+1];
+        if ($self->{_config}->[$i] eq 'preload')
         {
             # Preload a script
             my $script = $self->{_config}->[$i+1];
