@@ -956,6 +956,7 @@ use constant ABSTRACT_SCHEMA => {
     # if GRANT_REGEXP - record was created by evaluating a regexp
     user_group_map => {
         FIELDS => [
+            user_id    => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE'}},
             group_id   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'CASCADE'}},
             isbless    => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             grant_type => {TYPE => 'INT1', NOTNULL => 1, DEFAULT => GRANT_DIRECT},
