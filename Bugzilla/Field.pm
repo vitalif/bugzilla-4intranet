@@ -310,7 +310,8 @@ sub _check_type
     {
         ThrowCodeError('invalid_customfield_type', { type => $saved_type });
     }
-    elsif ($type == FIELD_TYPE_BUG_URLS || $type == FIELD_TYPE_KEYWORDS)
+    elsif ($type == FIELD_TYPE_KEYWORDS ||
+        $type == FIELD_TYPE_BUG_URLS && ref $invocant && $invocant->name ne 'see_also')
     {
         ThrowUserError('useless_customfield_type', { type => $type });
     }
@@ -1240,6 +1241,10 @@ sub create
     $params->{delta_ts} = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime);
     $class->check_required_create_fields($params);
     my $field_values = $class->run_create_validators($params);
+    if (($field_values->{type}||0) == FIELD_TYPE_BUG_URLS && $params->{name} ne 'see_also')
+    {
+        ThrowUserError('useless_customfield_type', { type => $field_values->{type} });
+    }
     my $obj = bless $field_values, ref($class)||$class;
 
     my $dbh = Bugzilla->dbh;
@@ -1357,7 +1362,12 @@ sub populate_field_definitions
         }
         else
         {
-            Bugzilla::Field->create($def);
+            my $copy = { %$def };
+            for (qw(value_field null_field default_field))
+            {
+                $copy->{$_.'_id'} = $dbh->selectrow_array('SELECT id FROM fielddefs WHERE name=?', undef, delete $copy->{$_});
+            }
+            Bugzilla::Field->create($copy);
         }
     }
 
