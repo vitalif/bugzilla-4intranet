@@ -1,5 +1,3 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -312,18 +310,18 @@ use constant CMT_BACKDATED_WORKTIME => 33;
 use constant THROW_ERROR => 1;
 use constant RETURN_ERROR => 1;
 
-use constant REL_ASSIGNEE           => 0;
-use constant REL_QA                 => 1;
-use constant REL_REPORTER           => 2;
-use constant REL_CC                 => 3;
-use constant REL_VOTER              => 4;
-use constant REL_GLOBAL_WATCHER     => 5;
+use constant REL_ASSIGNEE       => 0;
+use constant REL_QA             => 1;
+use constant REL_REPORTER       => 2;
+use constant REL_CC             => 3;
+use constant REL_VOTER          => 4;
+use constant REL_GLOBAL_WATCHER => 5;
 
 use constant RELATIONSHIPS => REL_ASSIGNEE, REL_QA, REL_REPORTER, REL_CC,
                               REL_VOTER, REL_GLOBAL_WATCHER;
 
 # Used for global events like EVT_FLAG_REQUESTED
-use constant REL_ANY                => 100;
+use constant REL_ANY => 100;
 
 # There are two sorts of event - positive and negative. Positive events are
 # those for which the user says "I want mail if this happens." Negative events
@@ -331,34 +329,35 @@ use constant REL_ANY                => 100;
 #
 # Exactly when each event fires is defined in wants_bug_mail() in User.pm; I'm
 # not commenting them here in case the comments and the code get out of sync.
-use constant EVT_OTHER              => 0;
-use constant EVT_ADDED_REMOVED      => 1;
-use constant EVT_COMMENT            => 2;
-use constant EVT_ATTACHMENT         => 3;
-use constant EVT_ATTACHMENT_DATA    => 4;
-use constant EVT_PROJ_MANAGEMENT    => 5;
-use constant EVT_OPENED_CLOSED      => 6;
-use constant EVT_KEYWORD            => 7;
-use constant EVT_CC                 => 8;
-use constant EVT_DEPEND_BLOCK       => 9;
-use constant EVT_BUG_CREATED        => 10;
-use constant EVT_DEPEND_REOPEN      => 11;
+use constant EVT_OTHER           => 0;
+use constant EVT_ADDED_REMOVED   => 1;
+use constant EVT_COMMENT         => 2;
+use constant EVT_ATTACHMENT      => 3;
+use constant EVT_ATTACHMENT_DATA => 4;
+use constant EVT_PROJ_MANAGEMENT => 5;
+use constant EVT_OPENED_CLOSED   => 6;
+use constant EVT_KEYWORD         => 7;
+use constant EVT_CC              => 8;
+use constant EVT_DEPEND_BLOCK    => 9;
+use constant EVT_BUG_CREATED     => 10;
+use constant EVT_DEPEND_REOPEN   => 11;
 
-use constant POS_EVENTS => EVT_OTHER, EVT_ADDED_REMOVED, EVT_COMMENT,
-                           EVT_ATTACHMENT, EVT_ATTACHMENT_DATA,
-                           EVT_PROJ_MANAGEMENT, EVT_OPENED_CLOSED, EVT_KEYWORD,
-                           EVT_CC, EVT_DEPEND_BLOCK, EVT_BUG_CREATED,
-                           EVT_DEPEND_REOPEN;
+use constant POS_EVENTS => (
+    EVT_OTHER, EVT_ADDED_REMOVED, EVT_COMMENT,
+    EVT_ATTACHMENT, EVT_ATTACHMENT_DATA,
+    EVT_PROJ_MANAGEMENT, EVT_OPENED_CLOSED, EVT_KEYWORD,
+    EVT_CC, EVT_DEPEND_BLOCK, EVT_BUG_CREATED, EVT_DEPEND_REOPEN
+);
 
-use constant EVT_UNCONFIRMED        => 50;
-use constant EVT_CHANGED_BY_ME      => 51;
+use constant EVT_UNCONFIRMED   => 50;
+use constant EVT_CHANGED_BY_ME => 51;
 
 use constant NEG_EVENTS => EVT_UNCONFIRMED, EVT_CHANGED_BY_ME;
 
 # These are the "global" flags, which aren't tied to a particular relationship.
 # and so use REL_ANY.
-use constant EVT_FLAG_REQUESTED     => 100; # Flag has been requested of me
-use constant EVT_REQUESTED_FLAG     => 101; # I have requested a flag
+use constant EVT_FLAG_REQUESTED => 100; # Flag has been requested of me
+use constant EVT_REQUESTED_FLAG => 101; # I have requested a flag
 
 use constant GLOBAL_EVENTS => EVT_FLAG_REQUESTED, EVT_REQUESTED_FLAG;
 
@@ -421,26 +420,29 @@ use constant MAX_LOGINCOOKIE_AGE => 30;
 use constant MAX_SUDO_TOKEN_AGE => 21600;
 
 # Protocols which are considered as safe.
-use constant SAFE_PROTOCOLS => ('afs', 'cid', 'ftp', 'gopher', 'http', 'https',
-                                'irc', 'mid', 'news', 'nntp', 'prospero', 'telnet',
-                                'view-source', 'wais');
+use constant SAFE_PROTOCOLS => (
+    'afs', 'cid', 'ftp', 'gopher', 'http', 'https',
+    'irc', 'mid', 'news', 'nntp', 'prospero', 'telnet',
+    'view-source', 'wais'
+);
 
 # Valid MIME types for attachments.
-use constant LEGAL_CONTENT_TYPES => ('application', 'audio', 'image', 'message',
-                                     'model', 'multipart', 'text', 'video');
+use constant LEGAL_CONTENT_TYPES => (
+    'application', 'audio', 'image', 'message',
+    'model', 'multipart', 'text', 'video'
+);
 
-use constant contenttypes =>
-  {
-   "html"=> "text/html" ,
-   "rdf" => "application/rdf+xml" ,
-   "atom"=> "application/atom+xml" ,
-   "xml" => "application/xml" ,
-   "js"  => "application/x-javascript" ,
-   "json"=> "application/json" ,
-   "csv" => "text/csv" ,
-   "png" => "image/png" ,
-   "ics" => "text/calendar" ,
-  };
+use constant contenttypes => {
+    html => "text/html",
+    rdf  => "application/rdf+xml",
+    atom => "application/atom+xml",
+    xml  => "application/xml",
+    js   => "application/x-javascript",
+    json => "application/json",
+    csv  => "text/csv",
+    png  => "image/png",
+    ics  => "text/calendar",
+};
 
 # Usage modes. Default USAGE_MODE_BROWSER. Use with Bugzilla->usage_mode.
 use constant USAGE_MODE_BROWSER    => 0;
@@ -464,30 +466,39 @@ use constant INSTALLATION_MODE_NON_INTERACTIVE => 1;
 
 # Data about what we require for different databases.
 use constant DB_MODULE => {
-    'mysql' => {db => 'Bugzilla::DB::Mysql', db_version => '4.1.2',
-                dbd => {
-                    package => 'DBD-mysql',
-                    module  => 'DBD::mysql',
-                    # Disallow development versions
-                    blacklist => ['_'],
-                    # For UTF-8 support
-                    version => '4.00',
-                },
-                name => 'MySQL'},
-    'pg'    => {db => 'Bugzilla::DB::Pg', db_version => '8.00.0000',
-                dbd => {
-                    package => 'DBD-Pg',
-                    module  => 'DBD::Pg',
-                    version => '1.45',
-                },
-                name => 'PostgreSQL'},
-     'oracle'=> {db => 'Bugzilla::DB::Oracle', db_version => '10.02.0',
-                dbd => {
-                     package => 'DBD-Oracle',
-                     module  => 'DBD::Oracle',
-                     version => '1.19',
-                },
-                name => 'Oracle'},
+    mysql => {
+        db => 'Bugzilla::DB::Mysql',
+        db_version => '4.1.2',
+        dbd => {
+            package => 'DBD-mysql',
+            module  => 'DBD::mysql',
+            # Disallow development versions
+            blacklist => ['_'],
+            # For UTF-8 support
+            version => '4.00',
+        },
+        name => 'MySQL',
+    },
+    pg => {
+        db => 'Bugzilla::DB::Pg',
+        db_version => '8.00.0000',
+        dbd => {
+            package => 'DBD-Pg',
+            module  => 'DBD::Pg',
+            version => '1.45',
+        },
+        name => 'PostgreSQL',
+    },
+    oracle => {
+        db => 'Bugzilla::DB::Oracle',
+        db_version => '10.02.0',
+        dbd => {
+            package => 'DBD-Oracle',
+            module  => 'DBD::Oracle',
+            version => '1.19',
+        },
+        name => 'Oracle',
+    },
 };
 
 # True if we're on Win32.
@@ -550,7 +561,8 @@ use constant LANG_ISO_FULL => {
 # The reverse of LANG_ISO_FULL
 use constant LANG_FULL_ISO => { reverse %{LANG_ISO_FULL()} };
 
-sub bz_locations {
+sub bz_locations
+{
     # We know that Bugzilla/Constants.pm must be in %INC at this point.
     # So the only question is, what's the name of the directory
     # above it? This is the most reliable way to get our current working
@@ -569,11 +581,14 @@ sub bz_locations {
     $libpath = $1;
 
     my ($project, $localconfig, $datadir);
-    if ($ENV{'PROJECT'} && $ENV{'PROJECT'} =~ /^(\w+)$/) {
+    if ($ENV{PROJECT} && $ENV{PROJECT} =~ /^(\w+)$/)
+    {
         $project = $1;
         $localconfig = "localconfig.$project";
         $datadir = "data/$project";
-    } else {
+    }
+    else
+    {
         $localconfig = "localconfig";
         $datadir = "data";
     }
@@ -581,26 +596,26 @@ sub bz_locations {
     # We have to return absolute paths for mod_perl.
     # That means that if you modify these paths, they must be absolute paths.
     return {
-        'libpath'     => $libpath,
-        'ext_libpath' => "$libpath/lib",
+        libpath     => $libpath,
+        ext_libpath => "$libpath/lib",
         # If you put the libraries in a different location than the CGIs,
         # make sure this still points to the CGIs.
-        'cgi_path'    => $libpath,
-        'templatedir' => "$libpath/template",
-        'project'     => $project,
-        'localconfig' => "$libpath/$localconfig",
-        'datadir'     => "$libpath/$datadir",
-        'attachdir'   => "$libpath/$datadir/attachments",
-        'skinsdir'    => "$libpath/skins",
-        'graphsdir'   => "$libpath/graphs",
+        cgi_path    => $libpath,
+        templatedir => "$libpath/template",
+        project     => $project,
+        localconfig => "$libpath/$localconfig",
+        datadir     => "$libpath/$datadir",
+        attachdir   => "$libpath/$datadir/attachments",
+        skinsdir    => "$libpath/skins",
+        graphsdir   => "$libpath/graphs",
         # $webdotdir must be in the web server's tree somewhere. Even if you use a
         # local dot, we output images to there. Also, if $webdotdir is
         # not relative to the bugzilla root directory, you'll need to
         # change showdependencygraph.cgi to set image_url to the correct
         # location.
         # The script should really generate these graphs directly...
-        'webdotdir'   => "$libpath/$datadir/webdot",
-        'extensionsdir' => "$libpath/extensions",
+        webdotdir   => "$libpath/$datadir/webdot",
+        extensionsdir => "$libpath/extensions",
     };
 }
 
