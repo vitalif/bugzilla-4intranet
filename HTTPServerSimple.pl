@@ -403,7 +403,7 @@ sub reload
     for (@reload)
     {
         print STDERR __PACKAGE__ . ": Reloading $_\n";
-        eval { require $_ };
+        eval { no warnings 'redefine'; require $_ };
         if ($@)
         {
             warn $@;
