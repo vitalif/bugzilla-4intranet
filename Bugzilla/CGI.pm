@@ -441,7 +441,7 @@ sub get_cookies
     my ($self, @p) = CGI::self_or_default(@_);
     unless ($self->{'.cookies'})
     {
-        $self->{'.cookies'} = CGI::Cookie->fetch;
+        $self->{'.cookies'} = CGI::Cookie->fetch || {};
         if (Bugzilla->params->{utf8})
         {
             my $v;
