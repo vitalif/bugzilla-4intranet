@@ -57,7 +57,7 @@ sub _initialize
 sub _sqlite_create_table
 {
     my ($self, $table) = @_;
-    return scalar Bugzilla->dbh->selectrow_array(
+    return scalar $self->{dbh}->selectrow_array(
         "SELECT sql FROM sqlite_master WHERE name = ? AND type = 'table'",
         undef, $table
     );
@@ -93,7 +93,7 @@ sub _sqlite_alter_schema
         $create_table = join(',', @$create_table) . "\n)";
     }
 
-    my $dbh = Bugzilla->dbh;
+    my $dbh = $self->{dbh};
 
     my $random = generate_random_password(5);
     my $rename_to = "${table}_$random";
@@ -236,7 +236,6 @@ sub get_alter_column_ddl
 {
     my $self = shift;
     my ($table, $column, $new_def, $set_nulls_to) = @_;
-    my $dbh = Bugzilla->dbh;
     my $table_sql = $self->_sqlite_create_table($table);
     my $new_ddl = $self->get_type_ddl($new_def);
     # When we do ADD COLUMN, columns can show up all on one line separated

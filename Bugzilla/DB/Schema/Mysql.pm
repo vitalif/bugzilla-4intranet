@@ -133,7 +133,7 @@ sub _get_create_table_ddl {
 
     my($self, $table) = @_;
 
-    my $charset = Bugzilla->dbh->bz_db_is_utf8 ? "CHARACTER SET utf8" : '';
+    my $charset = $self->{dbh}->bz_db_is_utf8 ? "CHARACTER SET utf8" : '';
     my $type    = grep($_ eq $table, MYISAM_TABLES) ? 'MYISAM' : 'InnoDB';
     return($self->SUPER::_get_create_table_ddl($table) 
            . " ENGINE = $type $charset");
@@ -219,12 +219,11 @@ sub get_drop_fk_sql {
     my ($self, $table, $column, $references) = @_;
     my $fk_name = $self->_get_fk_name($table, $column, $references);
     my @sql = ("ALTER TABLE $table DROP FOREIGN KEY $fk_name");
-    my $dbh = Bugzilla->dbh;
 
     # MySQL requires, and will create, an index on any column with
     # an FK. It will name it after the fk, which we never do.
     # So if there's an index named after the fk, we also have to delete it. 
-    if ($dbh->bz_index_info_real($table, $fk_name)) {
+    if ($self->{dbh}->bz_index_info_real($table, $fk_name)) {
         push(@sql, $self->get_drop_index_ddl($table, $fk_name));
     }
 
@@ -275,10 +274,6 @@ sub get_set_serial_sql {
 sub column_info_to_column {
     my ($self, $column_info) = @_;
 
-    # Unfortunately, we have to break Schema's normal "no database"
-    # barrier a few times in this function.
-    my $dbh = Bugzilla->dbh;
-
     my $table = $column_info->{TABLE_NAME};
     my $col_name = $column_info->{COLUMN_NAME};
 
@@ -293,7 +288,7 @@ sub column_info_to_column {
         # Unfortunately, the only way to definitely solve this is
         # to break Schema's standard of not touching the live database
         # and check if the index called PRIMARY is on that field.
-        my $pri_index = $dbh->bz_index_info_real($table, 'PRIMARY');
+        my $pri_index = $self->{dbh}->bz_index_info_real($table, 'PRIMARY');
         if ( $pri_index && grep($_ eq $col_name, @{$pri_index->{FIELDS}}) ) {
             $column->{PRIMARYKEY} = 1;
         }
@@ -324,9 +319,8 @@ sub column_info_to_column {
             my $default = $column_info->{COLUMN_DEF};
             # Schema uses '0' for the defaults for decimal fields. 
             $default = 0 if $default =~ /^0\.0+$/;
-            # If we're not a number, we're a string and need to be
-            # quoted.
-            $default = $dbh->quote($default) if !($default =~ /^(-)?(\d+)(.\d+)?$/);
+            # If we're not a number, we're a string and need to be quoted.
+            $default = $self->{dbh}->quote($default) if !($default =~ /^(-)?(\d+)(.\d+)?$/);
             $column->{DEFAULT} = $default;
         }
     }
@@ -354,7 +348,7 @@ sub column_info_to_column {
         # Unfortunately, the only way to do this in DBI is to query the
         # database, so we have to break the rule here that Schema normally
         # doesn't touch the live DB.
-        my $ref_sth = $dbh->prepare(
+        my $ref_sth = $self->{dbh}->prepare(
             "SELECT $col_name FROM $table LIMIT 1");
         $ref_sth->execute;
         if ($ref_sth->{mysql_is_auto_increment}->[0]) {

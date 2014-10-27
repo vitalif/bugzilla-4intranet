@@ -1057,7 +1057,7 @@ sub _bz_schema {
     return $self->{private_bz_schema} if exists $self->{private_bz_schema};
     my @module_parts = split('::', ref $self);
     my $module_name  = pop @module_parts;
-    $self->{private_bz_schema} = Bugzilla::DB::Schema->new($module_name);
+    $self->{private_bz_schema} = Bugzilla::DB::Schema->new($self);
     return $self->{private_bz_schema};
 }
 

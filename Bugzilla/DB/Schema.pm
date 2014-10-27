@@ -41,6 +41,7 @@ use Bugzilla::Constants;
 
 use Carp qw(confess);
 use Digest::MD5 qw(md5_hex);
+use Scalar::Util;
 use Safe;
 # Historical, needed for SCHEMA_VERSION = '1.00'
 use Storable qw(dclone freeze thaw);
@@ -1340,15 +1341,15 @@ sub new {
 
 =over
 
-=item C<new>
+=item C<new($dbh, $driver, $schema)>
 
  Description: Public constructor method used to instantiate objects of this
               class. However, it also can be used as a factory method to
               instantiate database-specific subclasses when an optional
               driver argument is supplied.
- Parameters:  $driver (optional) - Used to specify the type of database.
-              This routine C<die>s if no subclass is found for the specified
-              driver.
+ Parameters:  $dbh - Database handle this schema object is used for.
+                  The Schema subclass is also determined from the type of this object.
+                  Stored as a weak reference inside $self to prevent memory leaks.
               $schema (optional) - A reference to a hash. Callers external
                   to this package should never use this parameter.
  Returns:     new instance of the Schema class or a database-specific subclass
@@ -1356,24 +1357,20 @@ sub new {
 =cut
 
     my $this = shift;
-    my $class = ref($this) || $this;
-    my $driver = shift;
+    my $dbh = shift;
+    my ($driver) = ref($dbh) =~ /^Bugzilla::DB::(.*)$/so;
+    die "$dbh is not an instance of Bugzilla::DB subclass" unless $driver;
 
-    if ($driver) {
-        (my $subclass = $driver) =~ s/^(\S)/\U$1/;
-        $class .= '::' . $subclass;
-        eval "require $class;";
-        die "The $class class could not be found ($subclass " .
-            "not supported?): $@" if ($@);
-    }
-    die "$class is an abstract base class. Instantiate a subclass instead."
-      if ($class eq __PACKAGE__);
+    my $class = 'Bugzilla::DB::Schema::'.$driver;
+    eval "require $class;";
+    die "The $class class could not be found ($driver not supported?): $@" if $@;
 
-    my $self = {};
+    my $self = { dbh => $dbh };
+    Scalar::Util::weaken($self->{dbh});
     bless $self, $class;
     $self = $self->_initialize(@_);
 
-    return($self);
+    return $self;
 
 } #eosub--new
 #--------------------------------------------------------------------------
@@ -2452,7 +2449,7 @@ sub serialize_abstract {
 =cut
 
 sub deserialize_abstract {
-    my ($class, $serialized, $version) = @_;
+    my ($self, $serialized, $version) = @_;
 
     my $thawed_hash;
     if (int($version) < 2) {
@@ -2465,7 +2462,7 @@ sub deserialize_abstract {
         $thawed_hash = ${$cpt->varglob('VAR1')};
     }
 
-    return $class->new(undef, $thawed_hash);
+    return $self->new($self->{dbh}, $thawed_hash);
 }
 
 #####################################################################

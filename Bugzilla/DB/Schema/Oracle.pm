@@ -169,8 +169,7 @@ sub get_fk_ddl
             . "        SET $column = :NEW.$to_column"
             . "      WHERE $column = :OLD.$to_column;"
             . " END ${fk_name}_UC;";
-        my $dbh = Bugzilla->dbh;
-        $dbh->do($tr_str);
+        $self->{dbh}->do($tr_str);
     }
 
     return $fk_string;
@@ -295,8 +294,7 @@ sub _get_alter_type_sql
     {
         # LONG to VARCHAR or VARCHAR to LONG is not allowed in Oracle, just a way to work around.
         # Determine whether column_temp is already exist.
-        my $dbh = Bugzilla->dbh;
-        my $column_exist = $dbh->selectcol_arrayref(
+        my $column_exist = $self->{dbh}->selectcol_arrayref(
             "SELECT CNAME FROM COL WHERE TNAME = UPPER(?) AND CNAME = UPPER(?)",
             undef, $table, $column . "_temp"
         );
@@ -432,9 +430,8 @@ sub get_drop_column_ddl
     my ($table, $column) = @_;
     my @sql;
     push @sql, $self->SUPER::get_drop_column_ddl(@_);
-    my $dbh = Bugzilla->dbh;
     my $trigger_name = uc($table . "_" . $column);
-    my $exist_trigger = $dbh->selectcol_arrayref(
+    my $exist_trigger = $self->{dbh}->selectcol_arrayref(
         "SELECT OBJECT_NAME FROM USER_OBJECTS".
         " WHERE OBJECT_NAME = ?", undef, $trigger_name
     );
