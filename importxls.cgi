@@ -147,7 +147,10 @@ unless ($ARGS->{commit})
         else
         {
             my $i = 0;
-            my $sth = $dbh->prepare("SELECT COUNT(*) FROM `bugs` WHERE `short_desc`=? AND `delta_ts`>=DATE_SUB(CURDATE(),INTERVAL ? DAY)");
+            my $sth = $dbh->prepare(
+                "SELECT COUNT(*) FROM bugs WHERE short_desc=? AND delta_ts >= ".
+                $dbh->sql_date_math('CURRENT_DATE', '-', '?', 'DAY')
+            );
             for my $bug (@{$table->{data}})
             {
                 # Check if this bug is already added

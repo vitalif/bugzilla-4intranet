@@ -487,7 +487,10 @@ sub input_params
     {
         if ($utf8)
         {
-            utf8::decode($_) for @{$params->{$_}};
+            for (@{$params->{$_}})
+            {
+                utf8::decode($_) unless ref $_;
+            }
         }
         ($params->{$_}) = @{$params->{$_}} if @{$params->{$_}} <= 1;
     }
