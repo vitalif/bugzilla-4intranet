@@ -4026,10 +4026,14 @@ sub create_or_update
     my ($fields_in) = @_;
     my $bug = $fields_in->{bug_id} && Bugzilla::Bug->new(delete $fields_in->{bug_id}) || Bugzilla::Bug->new;
     # We still rely on product and component being set first
-    my @set_fields = ('product', 'component', grep {
-        $_ ne 'product' && $_ ne 'component' && $_ ne 'comment' && $_ ne 'work_time' &&
-        $_ ne 'blocked' && $_ ne 'dependson'
-    } keys %$fields_in);
+    my @set_fields = (
+        (exists $fields_in->{product} || !$bug->id ? 'product' : ()),
+        (exists $fields_in->{component} || !$bug->id ? 'component' : ()),
+        (grep {
+            $_ ne 'product' && $_ ne 'component' && $_ ne 'comment' && $_ ne 'work_time' &&
+            $_ ne 'blocked' && $_ ne 'dependson'
+        } keys %$fields_in)
+    );
     # Allow comma-separated values for multi-selects
     for my $f (Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT, obsolete => 0 }))
     {
