@@ -331,9 +331,8 @@ sub bz_setup_database {
     # hard to fix later. We do this up here because none of the code below
     # works if InnoDB is off. (Particularly if we've already converted the
     # tables to InnoDB.)
-    my ($innodb_on) = @{$self->selectcol_arrayref(
-        q{SHOW VARIABLES LIKE '%have_innodb%'}, {Columns=>[2]})};
-    if ($innodb_on ne 'YES') {
+    my ($innodb_on) = grep { lc($_) eq 'innodb' } @{$self->selectcol_arrayref("SHOW ENGINES")};
+    if (!$innodb_on) {
         print <<EOT;
 InnoDB is disabled in your MySQL installation. 
 Bugzilla requires InnoDB to be enabled. 
