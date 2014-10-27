@@ -718,8 +718,8 @@ if ($order)
         {
             $fragment = trim($fragment);
             next unless $fragment;
-            my ($column_name, $direction) = split_order_term($fragment);
-            $column_name = translate_old_column($column_name);
+            my ($column_name, $direction) = Bugzilla::Search::split_order_term($fragment);
+            $column_name = Bugzilla::Search::translate_old_column($column_name);
 
             # Special handlings for certain columns
             next if $column_name eq 'relevance' && !$fulltext;

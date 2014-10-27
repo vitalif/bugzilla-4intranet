@@ -352,12 +352,6 @@ use warnings;
 
 package Bugzilla::Search;
 use base qw(Exporter);
-@Bugzilla::Search::EXPORT = qw(
-    EMPTY_COLUMN
-
-    split_order_term
-    translate_old_column
-);
 
 use Bugzilla::Error;
 use Bugzilla::Util;
