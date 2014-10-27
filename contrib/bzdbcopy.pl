@@ -12,10 +12,11 @@
 # The Original Code is the Bugzilla Bug Tracking System.
 #
 # The Initial Developer of the Original Code is Everything Solved.
-# Portions created by Everything Solved are Copyright (C) 2006 
+# Portions created by Everything Solved are Copyright (C) 2006
 # Everything Solved. All Rights Reserved.
 #
 # Contributor(s): Max Kanat-Alexander <mkanat@bugzilla.org>
+#                 Vitaliy Filippov <vitalif@mail.ru>
 
 use strict;
 use lib qw(. lib);
@@ -25,35 +26,55 @@ use Bugzilla::DB;
 use Bugzilla::Install::Util qw(indicate_progress);
 use Bugzilla::Util;
 
-#####################################################################
-# User-Configurable Settings
-#####################################################################
+my $db = {
+    source => {
+        type => '',
+        name => 'bugs',
+        user => 'bugs',
+        password => '',
+        host => 'localhost',
+    },
+    target => {
+        type => '',
+        name => 'bugs',
+        user => 'bugs',
+        password => '',
+        host => 'localhost',
+    },
+};
 
-# Settings for the 'Source' DB that you are copying from.
-use constant SOURCE_DB_TYPE => 'Mysql';
-use constant SOURCE_DB_NAME => 'bugs';
-use constant SOURCE_DB_USER => 'bugs';
-use constant SOURCE_DB_PASSWORD => '';
-use constant SOURCE_DB_HOST => 'localhost';
+# Read parameters
+while (@ARGV)
+{
+    my $a = shift @ARGV;
+    if ($a =~ /--(\w+)-(\w+)/)
+    {
+        $db->{lc $1}->{lc $2} = shift @ARGV;
+    }
+}
 
-# Settings for the 'Target' DB that you are copying to.
-use constant TARGET_DB_TYPE => 'Pg';
-use constant TARGET_DB_NAME => 'bugs';
-use constant TARGET_DB_USER => 'bugs';
-use constant TARGET_DB_PASSWORD => '';
-use constant TARGET_DB_HOST => 'localhost';
+if (!$db->{source}->{type} || !$db->{target}->{type})
+{
+    print STDERR "Bugzilla database copy script
 
-#####################################################################
-# MAIN SCRIPT
-#####################################################################
+USAGE: perl contrib/bzdbcopy.pl --source-type mysql --source-host localhost \\
+  --source-name bugs --source-user bugs --source-password bugs \\
+  --target-type pg --target-host localhost \\
+  --target-name bugs --target-user bugs --target-password bugs
 
-print "Connecting to the '" . SOURCE_DB_NAME . "' source database on " . SOURCE_DB_TYPE . "...\n";
+Here, --source-* are the type, host, database name, user and password
+for the source database, and --target-* are the same for the target one.
+";
+    exit;
+}
+
+print "Connecting to the '" . $db->{source}->{name} . "' source database on " . $db->{source}->{type} . "...\n";
 my $source_db = Bugzilla::DB::_connect(
-    SOURCE_DB_TYPE, SOURCE_DB_HOST, SOURCE_DB_NAME,
-    undef, undef, SOURCE_DB_USER, SOURCE_DB_PASSWORD
+    $db->{source}->{type}, $db->{source}->{host}, $db->{source}->{name},
+    undef, undef, $db->{source}->{user}, $db->{source}->{password}
 );
 # Don't read entire tables into memory.
-if (SOURCE_DB_TYPE eq 'Mysql')
+if (lc($db->{source}->{type}) eq 'mysql')
 {
     $source_db->{mysql_use_result} = 1;
     # MySQL cannot have two queries running at the same time. Ensure the schema
@@ -61,10 +82,10 @@ if (SOURCE_DB_TYPE eq 'Mysql')
     $source_db->_bz_real_schema;
 }
 
-print "Connecting to the '" . TARGET_DB_NAME . "' target database on " . TARGET_DB_TYPE . "...\n";
+print "Connecting to the '" . $db->{target}->{name} . "' target database on " . $db->{target}->{type} . "...\n";
 my $target_db = Bugzilla::DB::_connect(
-    TARGET_DB_TYPE, TARGET_DB_HOST, TARGET_DB_NAME,
-    undef, undef, TARGET_DB_USER, TARGET_DB_PASSWORD
+    $db->{target}->{type}, $db->{target}->{host}, $db->{target}->{name},
+    undef, undef, $db->{target}->{user}, $db->{target}->{password}
 );
 my $ident_char = $target_db->get_info(29); # SQL_IDENTIFIER_QUOTE_CHAR
 
@@ -87,7 +108,7 @@ $target_db->bz_start_transaction();
 foreach my $table (@table_list)
 {
     my @serial_cols;
-    print "Reading data from the source '$table' table on " . SOURCE_DB_TYPE . "...\n";
+    print "Reading data from the source '$table' table on " . $db->{source}->{type} . "...\n";
     my @table_columns = $target_db->bz_table_columns_real($table);
     # The column names could be quoted using the quote identifier char
     # Remove these chars as different databases use different quote chars
@@ -105,7 +126,7 @@ foreach my $table (@table_list)
     $insert_query .= ")";
     my $insert_sth = $target_db->prepare($insert_query);
 
-    print "Clearing out the target '$table' table on " . TARGET_DB_TYPE . "...\n";
+    print "Clearing out the target '$table' table on " . $db->{target}->{type} . "...\n";
     $target_db->do("DELETE FROM $table");
 
     # Oracle doesn't like us manually inserting into tables that have
@@ -125,7 +146,7 @@ foreach my $table (@table_list)
         }
     }
 
-    print "Writing data to the target '$table' table on " . TARGET_DB_TYPE . "...\n";
+    print "Writing data to the target '$table' table on " . $db->{target}->{type} . "...\n";
     my $count = 0;
     while (my $row = $select_sth->fetchrow_arrayref)
     {
@@ -232,7 +253,18 @@ __END__
 
 =head1 NAME
 
-bzdbcopy.pl - Copies data from one Bugzilla database to another. 
+bzdbcopy.pl - Copies data from one Bugzilla database to another.
+
+=head1 USAGE
+
+ cd <bugzilla_installation_dir>
+ perl contrib/bzdbcopy.pl --source-type mysql --source-host localhost \
+   --source-name bugs --source-user bugs --source-password bugs \
+   --target-type pg --target-host localhost \
+   --target-name bugs --target-user bugs --target-password bugs
+
+Here, --source-* are the type, host, database name, user and password
+for the source database, and --target-* are the same for the target one.
 
 =head1 DESCRIPTION
 
@@ -240,22 +272,12 @@ The intended use of this script is to copy data from an installation
 running on one DB platform to an installation running on another
 DB platform.
 
-It must be run from the directory containing your Bugzilla installation.
-That means if this script is in the contrib/ directory, you should
-be running it as: C<./contrib/bzdbcopy.pl>
-
-Note: Both schemas must already exist and be B<IDENTICAL>. (That is, 
-they must have both been created/updated by the same version of 
-checksetup.pl.) This script will B<DESTROY ALL CURRENT DATA> in the 
+Note: Both schemas must already exist and be B<IDENTICAL>. (That is,
+they must have both been created/updated by the same version of
+checksetup.pl.) This script will B<DESTROY ALL CURRENT DATA> in the
 target database.
 
 Both Schemas must be at least from Bugzilla 2.19.3, but if you're
 running a Bugzilla from before 2.20rc2, you'll need the patch at:
 L<http://bugzilla.mozilla.org/show_bug.cgi?id=300311> in order to
 be able to run this script.
-
-Before you using it, you have to correctly set all the variables
-in the "User-Configurable Settings" section at the top of the script. 
-The C<SOURCE> settings are for the database you're copying from, and 
-the C<TARGET> settings are for the database you're copying to. The 
-C<DB_TYPE> is the name of a DB driver from the F<Bugzilla/DB/> directory.
