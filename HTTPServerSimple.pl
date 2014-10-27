@@ -79,55 +79,58 @@ sub new
 {
     my ($class, @args) = @_;
     my $self = HTTP::Server::Simple::new($class);
-    my @cfg;
+    my $cmdline = [];
+    my $series = [];
     for (@args)
     {
         if (/^--([^=]+)(?:=(.*))?/s)
         {
-            push @cfg, $1, $2||1;
+            push @$cmdline, $1, $2||1;
         }
-        elsif (!$self->{_config})
+        else
         {
-            $self->{_config} = Bugzilla::NetServerConfigParser->_read_conf($_);
-        }
-    }
-    $self->{_config} ||= [];
-    for (my $i = 0; $i < @{$self->{_config}}; $i += 2)
-    {
-        if ($self->{_config}->[$i] eq 'port')
-        {
-            # Remove first 'port' option (workaround hardcode from HTTP::Server::Simple)
-            splice @{$self->{_config}}, $i, 2;
-            last;
+            push @$series, Bugzilla::NetServerConfigParser->_read_conf($_);
         }
     }
-    $self->{_config} = [ DEFAULT_CONFIG(), @{$self->{_config}}, @cfg ];
-    $self->{_config_hash} = {};
-    for (my $i = 0; $i < @{$self->{_config}}; $i += 2)
+    push @$series, $cmdline;
+    unshift @$series, [ DEFAULT_CONFIG() ];
+    my $r = {};
+    for my $array (@$series)
     {
-        $self->{_config_hash}->{$self->{_config}->[$i]} = $self->{_config}->[$i+1];
-        if ($self->{_config}->[$i] eq 'preload')
+        my $cfg = {};
+        for (my $i = 0; $i < @$array; $i += 2)
         {
-            # Preload a script
-            my $script = $self->{_config}->[$i+1];
-            for (glob $script)
+            push @{$cfg->{$array->[$i]}}, $array->[$i+1];
+        }
+        $r = { %$r, %$cfg };
+    }
+    # Preload scripts (before transforming $r)
+    for my $script (@{$r->{preload} || []})
+    {
+        for (glob $script)
+        {
+            eval
             {
-                eval
-                {
-                    $self->load_script($_);
-                };
-                if ($@ && ref $@ eq 'Bugzilla::HTTPServerSimple::FakeExit')
-                {
-                    print STDERR "Preloading $_ failed: $@->{error}->[2]\n";
-                }
+                $self->load_script($_);
+            };
+            if ($@ && ref $@ eq 'Bugzilla::HTTPServerSimple::FakeExit')
+            {
+                print STDERR "Preloading $_ failed: $@->{error}->[2]\n";
             }
         }
     }
-    if ($self->{_config_hash}->{reload})
+    $self->{_config} = [];
+    for my $k (keys %$r)
+    {
+        push @{$self->{_config}}, map { $k => $_ } @{$r->{$k}};
+        ($r->{$k}) = @{$r->{$k}} if @{$r->{$k}} < 2;
+    }
+    if ($r->{reload})
     {
         # Enable reload support
         $^P |= 0x10;
     }
+    $self->{_config_hash} = $r;
     return $self;
 }
 
