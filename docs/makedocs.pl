@@ -1,6 +1,4 @@
 #!/usr/bin/perl -w
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -42,93 +40,67 @@ use lib qw(.. ../lib lib);
 # makedocs doesn't just silently fail, but instead actually tells us there's
 # a compile error.
 my $pod_simple;
-if (eval { require Pod::Simple }) {
+if (eval { require Pod::Simple })
+{
     require Pod::Simple::HTMLBatch::Bugzilla;
     require Pod::Simple::HTML::Bugzilla;
     $pod_simple = 1;
 };
 
-use Bugzilla::Install::Requirements 
-    qw(REQUIRED_MODULES OPTIONAL_MODULES);
+use Bugzilla::Install::Util qw(install_string);
+use Bugzilla::Install::Requirements qw(REQUIRED_MODULES OPTIONAL_MODULES);
 use Bugzilla::Constants qw(DB_MODULE BUGZILLA_VERSION);
 
 ###############################################################################
 # Generate minimum version list
 ###############################################################################
 
-my $modules = REQUIRED_MODULES;
-my $opt_modules = OPTIONAL_MODULES;
-
-open(ENTITIES, '>', 'bugzilla.ent') or die('Could not open bugzilla.ent: ' . $!);
-print ENTITIES '<?xml version="1.0"?>' ."\n\n";
-print ENTITIES '<!-- Module Versions -->' . "\n";
-foreach my $module (@$modules, @$opt_modules)
-{
-    my $name = $module->{'module'};
-    $name =~ s/::/-/g;
-    $name = lc($name);
-    #This needs to be a string comparison, due to the modules having
-    #version numbers like 0.9.4
-    my $version = $module->{'version'} eq 0 ? 'any' : $module->{'version'};
-    print ENTITIES '<!ENTITY min-' . $name . '-ver "'.$version.'">' . "\n";
-}
-
-print ENTITIES "\n <!-- Database Versions --> \n";
-
+my $fd;
+open($fd, '>', 'required-modules.asciidoc') or die('Could not open required-modules.asciidoc: ' . $!);
+print_versions($fd, REQUIRED_MODULES);
 my $db_modules = DB_MODULE;
-foreach my $db (keys %$db_modules) {
-    my $dbd  = $db_modules->{$db}->{dbd};
-    my $name = $dbd->{module};
-    $name =~ s/::/-/g;
-    $name = lc($name);
-    my $version    = $dbd->{version} || 'any';
-    my $db_version = $db_modules->{$db}->{'db_version'};
-    print ENTITIES '<!ENTITY min-' . $name . '-ver "'.$version.'">' . "\n";
-    print ENTITIES '<!ENTITY min-' . lc($db) . '-ver "'.$db_version.'">' . "\n";
+foreach my $db (keys %$db_modules)
+{
+    my $dbd = $db_modules->{$db}->{dbd};
+    my $version = $dbd->{version} || 'any';
+    my $db_version = $db_modules->{$db}->{db_version};
+    print $fd ". $dbd->{module} ($version): $db_modules->{$db}->{name} ($db_version)\n";
 }
-close(ENTITIES);
+close $fd;
+open($fd, '>', 'optional-modules.asciidoc') or die('Could not open optional-modules.asciidoc: ' . $!);
+print_versions($fd, OPTIONAL_MODULES);
+close $fd;
 
-###############################################################################
-# Environment Variable Checking
-###############################################################################
-
-my ($JADE_PUB, $LDP_HOME, $build_docs);
-$build_docs = 1;
-if (defined $ENV{JADE_PUB} && $ENV{JADE_PUB} ne '') {
-    $JADE_PUB = $ENV{JADE_PUB};
-}
-else {
-    print "To build 'The Bugzilla Guide', you need to set the ";
-    print "JADE_PUB environment variable first.\n";
-    $build_docs = 0;
-}
-
-if (defined $ENV{LDP_HOME} && $ENV{LDP_HOME} ne '') {
-    $LDP_HOME = $ENV{LDP_HOME};
-}
-else {
-    print "To build 'The Bugzilla Guide', you need to set the ";
-    print "LDP_HOME environment variable first.\n";
-    $build_docs = 0;
+sub print_versions
+{
+    my ($fd, $modules) = @_;
+    foreach my $module (@$modules)
+    {
+        my $name = $module->{module};
+        # This needs to be a string comparison, due to the modules having
+        # version numbers like 0.9.4
+        my $version = ($module->{version} || 0) eq 0 ? 'any' : $module->{version};
+        my $feature = '';
+        for ($module->{feature})
+        {
+            $_ = $_->[0] ? install_string("feature_".$_->[0]) : '' if ref $_;
+            $feature = ': '.$_ if $_;
+        }
+        print $fd ". $name ($version)$feature\n";
+    }
 }
 
-###############################################################################
-# Subs
-###############################################################################
-
-sub MakeDocs {
-
+sub make_docs
+{
     my ($name, $cmdline) = @_;
-
     print "Creating $name documentation ...\n" if defined $name;
-    print "$cmdline\n\n";
+    print "$cmdline\n";
     system $cmdline;
     print "\n";
-
 }
 
-sub make_pod {
-
+sub make_pod
+{
     print "Creating API documentation...\n";
 
     my $converter = Pod::Simple::HTMLBatch::Bugzilla->new;
@@ -162,67 +134,29 @@ END_HTML
 }
 
 ###############################################################################
-# Make the docs ...
+# Make the docs
 ###############################################################################
 
-my @langs;
-# search for sub directories which have a 'xml' sub-directory
-opendir(LANGS, './');
-foreach my $dir (readdir(LANGS)) {
-    next if (($dir eq '.') || ($dir eq '..') || (! -d $dir));
-    if (-d "$dir/xml") {
-        push(@langs, $dir);
+my @langs = glob(getcwd().'/*/asciidoc');
+foreach my $lang (@langs)
+{
+    chdir "$lang/..";
+    for (qw(txt pdf html html/api))
+    {
+        if (!-d $_)
+        {
+            unlink $_;
+            mkdir $_, 0755;
+        }
     }
-}
-closedir(LANGS);
-
-my $docparent = getcwd();
-foreach my $lang (@langs) {
-    chdir "$docparent/$lang";
-    MakeDocs(undef, 'cp ../bugzilla.ent ./xml/');
-
-    if (!-d 'txt') {
-        unlink 'txt';
-        mkdir 'txt', 0755;
-    }
-    if (!-d 'pdf') {
-        unlink 'pdf';
-        mkdir 'pdf', 0755;
-    }
-    if (!-d 'html') {
-        unlink 'html';
-        mkdir 'html', 0755;
-    }
-    if (!-d 'html/api') {
-        unlink 'html/api';
-        mkdir 'html/api', 0755;
-    }
-
     make_pod() if $pod_simple;
-    next unless $build_docs;
+    -l 'asciidoc/images' or system('ln -s ../images asciidoc/images');
 
-    chdir 'html';
+    make_docs('big HTML', "asciidoc -a data-uri -a icons -a toc -a toclevels=5 -o html/Bugzilla-Guide.html asciidoc/Bugzilla-Guide.asciidoc");
+    make_docs('big text', "lynx -dump -justify=off -nolist html/Bugzilla-Guide.html > txt/Bugzilla-Guide.txt");
+    make_docs('chunked HTML', "a2x -a toc -a toclevels=5 -f chunked -D html/ asciidoc/Bugzilla-Guide.asciidoc");
 
-    MakeDocs('separate HTML', "jade -t sgml -i html -d $LDP_HOME/ldp.dsl\#html " .
-	 "$JADE_PUB/xml.dcl ../xml/Bugzilla-Guide.xml");
-    MakeDocs('big HTML', "jade -V nochunks -t sgml -i html -d " .
-         "$LDP_HOME/ldp.dsl\#html $JADE_PUB/xml.dcl " .
-	 "../xml/Bugzilla-Guide.xml > Bugzilla-Guide.html");
-    MakeDocs('big text', "lynx -dump -justify=off -nolist Bugzilla-Guide.html " .
-	 "> ../txt/Bugzilla-Guide.txt");
+    next unless grep($_ eq "--with-pdf", @ARGV);
 
-    if (! grep($_ eq "--with-pdf", @ARGV)) {
-        next;
-    }
-
-    MakeDocs('PDF', "jade -t tex -d $LDP_HOME/ldp.dsl\#print $JADE_PUB/xml.dcl " .
-         '../xml/Bugzilla-Guide.xml');
-    chdir '../pdf';
-    MakeDocs(undef, 'mv ../xml/Bugzilla-Guide.tex .');
-    MakeDocs(undef, 'pdfjadetex Bugzilla-Guide.tex');
-    MakeDocs(undef, 'pdfjadetex Bugzilla-Guide.tex');
-    MakeDocs(undef, 'pdfjadetex Bugzilla-Guide.tex');
-    MakeDocs(undef, 'rm Bugzilla-Guide.tex Bugzilla-Guide.log Bugzilla-Guide.aux Bugzilla-Guide.out');
-
+    make_docs('PDF', "a2x -a toc -a toclevels=5 -f pdf -D pdf/ asciidoc/Bugzilla-Guide.asciidoc");
 }
-
