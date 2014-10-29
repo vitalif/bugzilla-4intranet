@@ -61,15 +61,13 @@ BEGIN
 
 sub _die_error
 {
-    # We are either in application heat-up phase or in some eval()
-    if (!$ENV{GATEWAY_INTERFACE} || Bugzilla::Error::_in_eval())
-    {
-        die @_;
-    }
-    if (ref $_[0] eq 'Bugzilla::Error' || ref $_[0] eq 'Bugzilla::HTTPServerSimple::FakeExit')
+    # We are in some eval(), or we are passed the exception object
+    if (Bugzilla::Error::_in_eval() ||
+        ref $_[0] eq 'Bugzilla::Error' ||
+        ref $_[0] eq 'Bugzilla::HTTPServerSimple::FakeExit')
     {
         # Bugzilla::Error has overloaded conversion to string
-        # Bugzilla::HTTPServerSimple::FakeExit should only terminate the request
+        # Bugzilla::HTTPServerSimple::FakeExit only terminates the request
         die @_;
     }
     else
