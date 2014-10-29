@@ -89,15 +89,53 @@ my $target_db = Bugzilla::DB::_connect(
 );
 my $ident_char = $target_db->get_info(29); # SQL_IDENTIFIER_QUOTE_CHAR
 
-# We use the table list from the target DB, because if somebody
-# has customized their source DB, we still want the script to work,
-# and it may otherwise fail in that situation (that is, the tables
-# may not exist in the target DB).
-my @table_list = $target_db->bz_table_list_real();
+my @src_tables = $source_db->_bz_real_schema->get_table_list;
 
-# We don't want to copy over the bz_schema table's contents.
-my $bz_schema_location = lsearch(\@table_list, 'bz_schema');
-splice @table_list, $bz_schema_location, 1 if $bz_schema_location > 0;
+# We don't want to touch the schema storage and the full-text index
+@src_tables = grep { $_ ne 'bz_schema' && $_ ne 'bugs_fulltext' } @src_tables;
+
+foreach my $table (@src_tables)
+{
+    my $st = $source_db->bz_table_info($table);
+    my $tt = $target_db->bz_table_info($table);
+    if (!$tt)
+    {
+        # Create tables that do not exist in the target DB (usually custom field tables)
+        $target_db->_bz_schema->{schema}->{$table} = $st;
+        $target_db->_bz_schema->{abstract_schema}->{$table} = $st;
+        $target_db->bz_add_table($table);
+    }
+    else
+    {
+        # Create fields that do not exist in the target DB (usually custom fields in 'bugs')
+        my %tf = @{$tt->{FIELDS}};
+        my %sf = @{$st->{FIELDS}};
+        for (keys %sf)
+        {
+            if (!$tf{$_})
+            {
+                push @{$target_db->_bz_schema->{schema}->{$table}->{FIELDS}}, $_, $sf{$_};
+                push @{$target_db->_bz_schema->{abstract_schema}->{$table}->{FIELDS}}, $_, $sf{$_};
+                $target_db->bz_add_column($table, $_);
+            }
+        }
+        %tf = @{$tt->{INDEXES} || []};
+        %sf = @{$st->{INDEXES} || []};
+        for (keys %sf)
+        {
+            my $n = $_;
+            $n = 'PRIMARY' if lc($n) eq $table.'_primary_idx';
+            if (!$tf{$n})
+            {
+                $target_db->bz_add_index($table, $n, $sf{$_});
+            }
+        }
+    }
+}
+
+# Intersect source and target table sets
+my %st = map { $_ => 1 } @src_tables;
+my @table_list = grep { $st{$_} } $target_db->_bz_real_schema->get_table_list;
 
 # Instead of figuring out some fancy algorithm to insert data in the right
 # order and not break FK integrity, we just drop them all.
@@ -257,6 +295,15 @@ bzdbcopy.pl - Copies data from one Bugzilla database to another.
 
 =head1 USAGE
 
+=over
+
+=item 1. Setup the 'localconfig' for the target database
+
+=item 2. Run ./checksetup.pl inside your Bugzilla installation directory
+         on the target database to populate it with empty tables
+
+=item 3. Run contrib/bzdbcopy.pl
+
  cd <bugzilla_installation_dir>
  perl contrib/bzdbcopy.pl --source-type mysql --source-host localhost \
    --source-name bugs --source-user bugs --source-password bugs \
@@ -266,18 +313,15 @@ bzdbcopy.pl - Copies data from one Bugzilla database to another.
 Here, --source-* are the type, host, database name, user and password
 for the source database, and --target-* are the same for the target one.
 
+=back
+
 =head1 DESCRIPTION
 
 The intended use of this script is to copy data from an installation
 running on one DB platform to an installation running on another
 DB platform.
 
-Note: Both schemas must already exist and be B<IDENTICAL>. (That is,
-they must have both been created/updated by the same version of
-checksetup.pl.) This script will B<DESTROY ALL CURRENT DATA> in the
-target database.
-
-Both Schemas must be at least from Bugzilla 2.19.3, but if you're
-running a Bugzilla from before 2.20rc2, you'll need the patch at:
-L<http://bugzilla.mozilla.org/show_bug.cgi?id=300311> in order to
-be able to run this script.
+Note: Both schemas must already exist and both must be created/updated
+by the B<SAME> version of checksetup.pl. B<No custom fields> must exist
+in the target database. This script will B<DESTROY ALL CURRENT DATA> in
+the target database.
