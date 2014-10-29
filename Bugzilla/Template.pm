@@ -906,22 +906,7 @@ sub create
             # Note that using this filter is even more dangerous than
             # using "none," and you should only use it when you're SURE
             # the output won't be displayed directly to a web browser.
-            txt => sub
-            {
-                my ($var) = @_;
-                # Trivial HTML tag remover
-                $var =~ s/<[^>]*>//g;
-                # And this basically reverses the html filter.
-                $var =~ s/\&#64;/@/g;
-                $var =~ s/\&lt;/</g;
-                $var =~ s/\&gt;/>/g;
-                $var =~ s/\&quot;/\"/g;
-                $var =~ s/\&amp;/\&/g;
-                # Now remove extra whitespace...
-                my $collapse_filter = $Template::Filters::FILTERS->{collapse};
-                $var = $collapse_filter->($var);
-                return $var;
-            },
+            txt => \&html_strip,
 
             # Wrap a displayed comment to the appropriate length
             wrap_comment => [

@@ -738,7 +738,7 @@ sub error_mode
     {
         $class->request_cache->{error_mode} = $newval;
     }
-    return $class->request_cache->{error_mode} || (i_am_cgi() ? ERROR_MODE_WEBPAGE : ERROR_MODE_DIE);
+    return $class->request_cache->{error_mode} || (i_am_cgi() ? ERROR_MODE_WEBPAGE : ERROR_MODE_CONSOLE);
 }
 
 # This is used only by Bugzilla::Error to throw errors.

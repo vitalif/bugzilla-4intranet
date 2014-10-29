@@ -264,7 +264,7 @@ sub _throw_error
     }
     elsif ($mode == ERROR_MODE_CONSOLE)
     {
-        die bless { message => html_strip($message), type => $type, error => $error, vars => $vars };
+        die bless { message => $message."\n", type => $type, error => $error, vars => $vars };
     }
     else
     {
