@@ -815,12 +815,18 @@ WHERE description LIKE \'%[CC:%]%\'');
         $dbh->bz_drop_fk('keywords', 'bug_id');
         $dbh->bz_drop_fk('keywords', 'keywordid');
         $dbh->bz_rename_table('keywords', 'bug_keywords');
+        $dbh->bz_drop_index('keyworddefs', 'keyworddefs_name_idx');
         $dbh->bz_rename_table('keyworddefs', 'keywords');
         $dbh->bz_rename_column('keywords', 'name', 'value');
         $dbh->bz_add_column('keywords', 'sortkey');
         $dbh->bz_add_column('keywords', 'isactive');
+        $dbh->bz_add_index('keywords', keywords_value_idx => {FIELDS => ['value'], TYPE => 'UNIQUE'});
         $dbh->bz_add_index('keywords', keywords_sortkey_idx => ['sortkey', 'value']);
+        $dbh->bz_drop_index('bug_keywords', 'keywords_bug_id_idx');
+        $dbh->bz_drop_index('bug_keywords', 'keywords_keywordid_idx');
         $dbh->bz_rename_column('bug_keywords', 'keywordid', 'value_id');
+        $dbh->bz_add_index('bug_keywords', bug_keywords_bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'});
+        $dbh->bz_add_index('bug_keywords', bug_keywords_value_id_idx => ['value_id']);
         $dbh->bz_alter_column('keywords', 'description');
     }
 
@@ -3878,6 +3884,10 @@ sub _make_fieldvaluecontrol
         FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT, @standard_fields);
     foreach my $field (@$custom_fields)
     {
+        if ($dbh->bz_index_info($field->{name}, $field->{name}.'_visibility_value_id_idx'))
+        {
+            $dbh->bz_drop_index($field->{name}, $field->{name}.'_visibility_value_id_idx');
+        }
         if ($dbh->bz_column_info($field->{name}, 'visibility_value_id'))
         {
             print "Migrating $field->{name}'s visibility_value_id into fieldvaluecontrol\n";

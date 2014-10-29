@@ -467,7 +467,8 @@ use constant ABSTRACT_SCHEMA => {
             value_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'keywords', COLUMN => 'id', DELETE => 'CASCADE'}},
         ],
         INDEXES => [
-            bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'},
+            bug_keywords_bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'},
+            bug_keywords_value_id_idx => ['value_id'],
         ],
     },
 
