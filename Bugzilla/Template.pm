@@ -624,6 +624,7 @@ $Template::Stash::SCALAR_OPS->{truncate} = sub
 };
 
 # Install Template Toolkit error handler with stack traces
+no warnings 'redefine';
 *Template::Exception::new = sub
 {
     my ($class, $type, $info, $textref) = @_;
