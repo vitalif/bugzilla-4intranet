@@ -1,12 +1,12 @@
 What is Bugzilla?
-=================
+-----------------
 
 Bugzilla is a free bug-tracking system that is developed by an active
 community of volunteers in the Mozilla community. You can install and
 use it without having to pay any license fee.
 
 What is Bugzilla4Intranet?
-==========================
+--------------------------
 
 Bugzilla4Intranet is a highly improved fork of Bugzilla version 3.6.4,
 targeted at being a Fast and Customisable bug-tracker, and at cleaning
@@ -18,7 +18,7 @@ Of course that's an ideal goal :-)
 See also http://wiki.4intra.net/Bugzilla4Intranet (russian)
 
 Minimum requirements
-====================
+--------------------
 
 Bugzilla4Intranet definitely works on GNU/Linux systems and should also work
 on *BSD, other UNIX flavors and even Windows and Mac OS X.
@@ -30,8 +30,8 @@ You will also need a database server. Supported ones are MySQL and PostgreSQL;
 there is also support for Oracle, though it is untested for long time and may be broken.
 
 Bugzilla4Intranet Quick Start Guide
-===================================
-(or, how to get Bugzilla up and running in 10 steps)
+-----------------------------------
+(or, how to get Bugzilla up and running in 10 steps) +
 Vitaliy Filippov <vitalif@mail.ru>
 
 This express installation guide is for "normal" Bugzilla installations,
@@ -45,8 +45,9 @@ see the "Installing Bugzilla" section of the Bugzilla Guide in the docs/ directo
 
 3. Install Perl modules, better globally by running CPAN shell, which is
    'cpan' or 'perl -MCPAN -eshell' if you have no 'cpan' executable in PATH.
-
-   Minimal requirements are:
++
+--
+Minimal requirements are:
 
    sudo cpan Date::Parse DBI CGI DateTime Email::Address \
      Template JSON Email::MIME Test::Taint \
@@ -54,10 +55,9 @@ see the "Installing Bugzilla" section of the Bugzilla Guide in the docs/ directo
      Lingua::Translit Archive::Zip \
      DBD::mysql Image::Magick
 
-   For the full installation, you also need the following modules:
+For the full installation, you also need the following modules:
 
-   sudo cpan -f GD
-   sudo cpan Template::Plugin::GD GD::Graph GD::Graph3d \
+   sudo cpan GD Template::Plugin::GD GD::Graph GD::Graph3d \
      MIME::Parser Mail::RFC822::Address Email::Reply \
      Devel::StackTrace Email::MIME::Attachment::Stripper \
      SOAP::Lite JSON::RPC JSON::XS Text::CSV HTML::Strip \
@@ -65,27 +65,26 @@ see the "Installing Bugzilla" section of the Bugzilla Guide in the docs/ directo
      Lingua::Stem::Snowball Math::Random::Secure TheSchwartz \
      Daemon::Generic HTTP::Server::Simple Net::Server Sys::Sendfile
 
-   If you want to use PostgreSQL, you need DBD::pg instead of DBD::mysql.
+If you want to use PostgreSQL, you need DBD::pg instead of DBD::mysql.
 
-   Some of these contain C code and require a working compiler toolchain and appropriate
-   system libraries and their 'development' packages (-devel or -dev) for installation:
-   for example, DBD::mysql needs libmysqlclient, GD needs libgd2 and etc.
-   Install these with your Linux distro's package manager.
+Some of these contain C code and require a working compiler toolchain and appropriate
+system libraries and their "development" packages ('-devel' or '-dev') for installation:
+for example, DBD::mysql needs 'libmysqlclient-dev', GD needs 'libgd2-dev' and etc.
+Install these with your Linux distro's package manager.
 
-   Your Linux distribution may have some of required perl modules available pre-built;
-   you may install them with package manager if they're sufficiently up to date.
-   For example, it's usually simpler to install Image::Magick with 'apt-get install perlmagick'
-   on Debian/Ubuntu systems.
-
-   GD module still has an unfixed bug in one of its tests that is harmless, but prevents GD from
-   installing, so install it with 'cpan -f GD' ('-f' means 'force').
+Your Linux distribution may have some of required perl modules available pre-built;
+you may install them with package manager if they're sufficiently up to date.
+For example, it's usually simpler to install Image::Magick with 'apt-get install perlmagick'
+on Debian/Ubuntu systems.
+--
 
 4. Run ./checksetup.pl. It will first check for installed Perl modules and a MTA,
    and then complain that localconfig needs to be edited.
-
-   NOTE: You can run checksetup as many times as necessary at any moment to check
-   that everything required has been installed, DB is set up and etc.
-
++
+--
+NOTE: You can run checksetup as many times as necessary at any moment to check
+that everything required has been installed, DB is set up and etc.
+--
 5. Create MySQL/PostgreSQL database and user with full access to it.
 
 6. Edit the localconfig file, in particular the $webservergroup and $db_* variables
@@ -93,33 +92,37 @@ see the "Installing Bugzilla" section of the Bugzilla Guide in the docs/ directo
 
 7. Run checksetup.pl once more; if all goes well, it should set up the
    Bugzilla database for you.
-
-   checksetup.pl should ask you, this time, for the administrator's
-   email address and password. These will be used for the initial
-   Bugzilla administrator account.
-
++
+--
+checksetup.pl should ask you, this time, for the administrator's
+email address and password. These will be used for the initial
+Bugzilla administrator account.
+--
 8. Recommended way is to use standalone pure-perl HTTP server - HTTPServerSimple.pl;
    placing it behind a fast frontend server like nginx (http://nginx.org) is probably
    more secure, but it's possible to use it even without any frontend. In this case
    the simplest way to start Bugzilla is to run
-
++
+--
    sudo ./HTTPServerSimple.pl --port [HOST:]PORT --user USER --group GROUP
 
-   Where HOST and PORT are the desired host and port which Bugzilla should listen on,
-   and USER and GROUP are the system user/group for running the web server process.
+Where HOST and PORT are the desired host and port which Bugzilla should listen on,
+and USER and GROUP are the system user/group for running the web server process.
 
-   For example, to listen port 8157 on all network interfaces under Debian Linux:
+For example, to listen port 8157 on all network interfaces under Debian Linux:
 
    sudo ./HTTPServerSimple.pl --port 0.0.0.0:8157 --user www-data --group www-data
 
-   For more advanced configuration see the end of HTTPServerSimple.pl file - there
-   are all the configuration options that you can override. You may specify these
-   options on the commandline like above, or put them in a configuration file and
-   use it with sudo ./HTTPServerSimple.pl /path/to/config.file
+For more advanced configuration see the end of HTTPServerSimple.pl file - there
+are all the configuration options that you can override. You may specify these
+options on the commandline like above, or put them in a configuration file and
+use it with
 
-   To install a service, just put the above command into /etc/rc.local or copy
-   contrib/init.d/bugzilla script (for Debian) to /etc/init.d.
+   sudo ./HTTPServerSimple.pl /path/to/config.file
 
+To install a service, just put the above command into '/etc/rc.local' or copy
+'contrib/init.d/bugzilla' script (for Debian) to '/etc/init.d'.
+--
 9. Another way is to use Apache and mod_perl. In this case create a virtual host
    with document root pointing to bugzilla installation directory and add the
    following into its configuration:
@@ -149,11 +152,14 @@ Note that Bugzilla4Intranet differs from the original Bugzilla, so bug reports
 should be filed at our GitHub page (at the above URL), not in the Mozilla bugtracker.
 
 Documentation
-=============
+-------------
 
-Documentation for Bugzilla4Intranet is a work-in-progress.
+Documentation for Bugzilla4Intranet is based on the original Bugzilla 3.6.4
+documentation, translated to asciidoc (http://www.methods.co.nz/asciidoc) format.
 
-Documentation for the ORIGINAL Bugzilla 3.6.4 is available under docs/en/
-subdirectory or from the official site http://www.bugzilla.org/docs/.
+It's still a work in progress - some parts are up-to-date for Bugzilla4Intranet and some are not.
 
-Some parts of it are up-to-date for Bugzilla4Intranet; some aren't.
+See link:$$docs/en/html/Bugzilla-Guide.html$$[] and link:$$docs/en/asciidoc/Bugzilla-Guide.asciidoc$$[] (source).
+
+You can also read the documentation for the *original* Bugzilla on its official site:
+http://www.bugzilla.org/docs/.
