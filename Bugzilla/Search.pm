@@ -1930,6 +1930,8 @@ sub run_chart
     local $self->{fieldsql};
     local $self->{term} = undef;
     local $self->{negated};
+    # If allow_null is left at false, LEFT joins are replaced with INNER in supptables
+    local $self->{allow_null} = 0;
     my $func;
     if (!OPERATORS->{$self->{type}} && (my $t = NEGATE_OPERATORS->{$self->{type}}))
     {
@@ -1999,6 +2001,7 @@ sub run_chart
             $self->{term} = {
                 term => $self->{term},
                 supp => [ @{$self->{supptables}} ],
+                allow_null => $self->{allow_null},
             };
         }
         if (ref $self->{term} eq 'HASH')
@@ -2817,6 +2820,7 @@ sub _equals
     {
         # FIXME Run UNION instead of OR?
         $self->{term} = "($self->{fieldsql} = $self->{quoted} OR $self->{fieldsql} IS NULL)";
+        $self->{allow_null} = 1;
     }
     else
     {
@@ -2833,6 +2837,7 @@ sub _notequals
     }
     else
     {
+        $self->{allow_null} = 1;
         $self->{term} = "$self->{fieldsql} != $self->{quoted}";
     }
 }
@@ -2852,12 +2857,14 @@ sub _substring
 sub _regexp
 {
     my $self = shift;
+    $self->{allow_null} = 2;
     $self->{term} = Bugzilla->dbh->sql_regexp($self->{fieldsql}, $self->{quoted});
 }
 
 sub _notregexp
 {
     my $self = shift;
+    $self->{allow_null} = 2;
     $self->{term} = Bugzilla->dbh->sql_not_regexp($self->{fieldsql}, $self->{quoted});
 }
 
@@ -2913,6 +2920,7 @@ sub _anyexact
     if (@list || $null && $nullable)
     {
         # FIXME Run UNION instead of OR?
+        $self->{allow_null} = 1 if $null && $nullable;
         $self->{term} = '('.join(' OR ',
             (@list ? $self->{fieldsql} . ' IN (' . join(',', @list) . ')' : ()),
             ($null && $nullable ? $self->{fieldsql} . ' IS NULL' : ()),
@@ -2946,6 +2954,7 @@ sub _nowordssubstr
     my @list = @{GetByWordListSubstr($self->{fieldsql}, $self->{value})};
     if (@list)
     {
+        $self->{allow_null} = 1;
         $self->{term} = "NOT (" . join(" OR ", @list) . ")";
     }
 }
@@ -2976,6 +2985,7 @@ sub _nowords
     my @list = @{GetByWordList($self->{fieldsql}, $self->{value})};
     if (@list)
     {
+        $self->{allow_null} = 1;
         $self->{term} = "NOT (" . join(" OR ", @list) . ")";
     }
 }
@@ -3116,6 +3126,7 @@ sub negate_expression
     if (ref $q eq 'HASH')
     {
         $q->{neg} = !$q->{neg};
+        $q->{allow_null} = $q->{allow_null} == 1 ? 0 : $q->{allow_null};
         $q->{description}->[1] = NEGATE_ALL_OPERATORS->{$q->{description}->[1]} || $q->{description}->[1];
     }
     elsif (!ref $q)
@@ -3401,18 +3412,21 @@ sub expression_sql_and
         $tables = "bugs bugs$seq";
     }
     # Append other terms
-    my %suppseen;
+    my $supplist = [];
+    my $suppseen = {};
+    for my $t (@q)
+    {
+        for (@{$t->{supp}||[]})
+        {
+            push @$supplist, $_ if !exists $suppseen->{$_};
+            $suppseen->{$_} ||= $t->{allow_null};
+        }
+    }
+    $supplist = [ map { $suppseen->{$_} || s/^(\s*)LEFT/$1INNER/is; $_ } @$supplist ];
+    $tables .= ' '.replace_lit(join(' ', @$supplist), 'bugs.', "bugs$seq.");
     for my $i (0..$#q)
     {
         my $t = $q[$i];
-        for (@{$t->{supp}||[]})
-        {
-            if (!$suppseen{$_})
-            {
-                $suppseen{$_} = 1;
-                $tables .= ' '.replace_lit($_, 'bugs.', "bugs$seq.");
-            }
-        }
         if ($t->{term})
         {
             my $k = replace_lit($t->{term}, 'bugs.', "bugs$seq.");
@@ -3489,7 +3503,7 @@ sub expression_sql_or
 sub expression_sql_many
 {
     my $self = shift;
-    my ($query, $is_and) = @_;
+    my ($query, $is_and, $nested) = @_;
     my @q = @$query;
     shift @q;
     my $term = [];
@@ -3497,15 +3511,23 @@ sub expression_sql_many
     for my $i (0..$#q)
     {
         my $t = $q[$i];
-        $t = $self->expression_sql_many($t, !$is_and) if ref $t eq 'ARRAY';
+        $t = $self->expression_sql_many($t, !$is_and, 1) if ref $t eq 'ARRAY';
         if ($t->{term})
         {
             push @$term, $t->{neg} ? "NOT($t->{term})" : $t->{term};
-            push @$supp, @{$t->{supp} || []};
+            if (!$t->{allow_null})
+            {
+                push @$supp, map { s/^(\s*)LEFT/$1INNER/is; $_ } @{$t->{supp} || []};
+            }
+            else
+            {
+                push @$supp, @{$t->{supp} || []};
+            }
         }
         else
         {
-            my $tab = "\nLEFT JOIN $t->{table}";
+            # Even AND expressions must always use LEFT JOIN when nested into OR
+            my $tab = ($t->{neg} || !$is_and || $nested ? "\nLEFT" : "\nINNER")." JOIN $t->{table}";
             if ($t->{where} || $t->{bugid_field})
             {
                 $tab .= ' ON ' . ($t->{where}||'');
@@ -3523,6 +3545,7 @@ sub expression_sql_many
     my $r = {
         term => '('.join(($is_and ? ' AND ' : ' OR '), @$term).')',
         supp => $supp,
+        allow_null => 1,
     };
     return $r;
 }
