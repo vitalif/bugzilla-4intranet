@@ -2756,7 +2756,7 @@ sub _multiselect_nonchanged
         $self->{value} = $v[0];
         $self->call_op;
         $self->{term} = {
-            table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$t.value_id)",
+            table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$ta.value_id)",
             where => $self->{term},
             bugid_field => "$ta.bug_id",
         };
