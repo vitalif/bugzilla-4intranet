@@ -96,6 +96,12 @@ use constant get_param_list => (
     },
 
     {
+        name => 'query_log',
+        type => 't',
+        default => '',
+    },
+
+    {
         name => 'docs_urlbase',
         type => 't',
         default => 'docs/%lang%/html/',

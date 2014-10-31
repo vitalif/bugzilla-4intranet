@@ -778,7 +778,8 @@ sub bz_setup_database {
 }
 
 package Bugzilla::DB::Oracle::st;
-use base qw(DBI::st);
+
+use base qw(Bugzilla::DB::st);
 
 sub fetchrow_arrayref
 {

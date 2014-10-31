@@ -44,6 +44,7 @@ use Bugzilla::Error;
 use Bugzilla::DB::Schema;
 
 use List::Util qw(max);
+use POSIX qw(strftime);
 use Storable qw(dclone);
 
 #####################################################################
@@ -1472,6 +1473,134 @@ sub _check_references {
             exit 3
         }
     }
+}
+
+sub interpolate_params
+{
+    my $self = shift;
+    my ($sql, $bind) = @_;
+    my $r = '';
+    # match unquoted part + any number of quoted strings/identifiers
+    while ($sql =~ s!^([^"`']*)((?:`(?:[^`]+|``)*`|"(?:[^"\\]+|\\.|"")*"|'(?:[^'\\]+|\\.|'')*)*)!!so)
+    {
+        my ($c, $q) = ($1, $2);
+        last if $c eq '' && $q eq '';
+        $c =~ s/\?/$self->quote(shift @$bind)/geso;
+        $r .= $c.$q;
+    }
+    return $r;
+}
+
+sub write_query_log
+{
+    my $self = shift;
+    if (my $logfile = Bugzilla->params->{query_log})
+    {
+        # Log queries
+        $logfile = bz_locations()->{datadir} . '/' . $logfile if substr($logfile, 0, 1) ne '/';
+        trick_taint($logfile);
+        my $fd;
+        my @q = @{ tied(%$self)->{_logged_queries} || [] };
+        if (@q && open $fd, ">>", $logfile)
+        {
+            print $fd strftime("[%Y-%m-%d %H:%M:%S] ", localtime) .
+                "[pid=$$] $ENV{REQUEST_URI} DB queries:\n" . join("\n", map { $self->interpolate_params(@$_).';' } @q) . "\n\n";
+            close $fd;
+        }
+        tied(%$self)->{_logged_queries} = [];
+    }
+}
+
+sub log_query
+{
+    my $self = shift;
+    push @{tied(%$self)->{_logged_queries}}, [ @_ ] if Bugzilla->params->{query_log};
+}
+
+sub get_logged_queries
+{
+    my $self = shift;
+    return tied(%$self)->{_logged_queries} || [];
+}
+
+sub do
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    $self->SUPER::do(@_);
+}
+
+sub selectrow_array
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    return $self->SUPER::selectrow_array(@_);
+}
+
+sub selectrow_arrayref
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    return $self->SUPER::selectrow_array(@_);
+}
+
+sub selectrow_hashref
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    return $self->SUPER::selectrow_hashref(@_);
+}
+
+sub selectall_hashref
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    return $self->SUPER::selectall_hashref(@_);
+}
+
+sub selectall_arrayref
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    return $self->SUPER::selectall_arrayref(@_);
+}
+
+sub selectcol_arrayref
+{
+    my $self = shift;
+    my ($sql, undef, @bind) = @_;
+    $self->log_query($sql, \@bind);
+    return $self->SUPER::selectcol_arrayref(@_);
+}
+
+sub prepare
+{
+    my $self = shift;
+    return bless $self->SUPER::prepare(@_), 'Bugzilla::DB::st';
+}
+
+sub prepare_cached
+{
+    my $self = shift;
+    return bless $self->SUPER::prepare_cached(@_), 'Bugzilla::DB::st';
+}
+
+package Bugzilla::DB::st;
+
+use base qw(DBI::st);
+
+sub execute
+{
+    my $self = shift;
+    my $dbh = tied(%$self)->{Database}->{Driver}->{ChildHandles};
+    $dbh->[$#$dbh]->log_query(tied(%$self)->{Statement}, [ @_ ]);
+    return $self->SUPER::execute(@_);
 }
 
 1;

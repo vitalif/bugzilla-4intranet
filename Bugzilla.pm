@@ -200,8 +200,6 @@ sub _tt_provider_load_compiled
 # Global Code
 #####################################################################
 
-# $::SIG{__DIE__} = i_am_cgi() ? \&CGI::Carp::confess : \&Carp::confess;
-
 # Note that this is a raw subroutine, not a method, so $class isn't available.
 sub init_page
 {
@@ -1083,6 +1081,7 @@ sub _cleanup
     {
         next if !$dbh;
         $dbh->bz_rollback_transaction() if $dbh->bz_in_transaction;
+        $dbh->write_query_log;
         $dbh->disconnect;
     }
     undef $_request_cache;
