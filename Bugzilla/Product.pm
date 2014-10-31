@@ -1125,7 +1125,7 @@ sub choose_product
     {
         $target = $ENV{REQUEST_URI};
         $target =~ s/\?.*//so;
-        $target =~ s/^\/+//so;
+        $target =~ s!^/+!/!so;
     }
     my $vars = {
         target => $target,
