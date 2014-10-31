@@ -271,6 +271,7 @@ if ($cloned_bug_id)
             $default{$field_name} = $cloned_bug->$field_name;
         }
     }
+    $default{keywords} = join ', ', @{$default{keywords}} if $default{keywords};
 
     # We need to ensure that we respect the 'insider' status of
     # the first comment, if it has one. Either way, make a note
