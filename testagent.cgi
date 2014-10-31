@@ -16,6 +16,11 @@
 # or correct params.
 
 use strict;
-print "content-type:text/plain\n\n";
-print "OK " . ($::ENV{MOD_PERL} || "mod_cgi") . "\n";
+use POSIX;
+
+print "HTTP/1.1 200 OK\n";
+print "Content-Type: text/plain\n\n";
+my ($group) = POSIX::getgrgid(POSIX::getegid());
+$group ||= '';
+print "OK " . $::ENV{SERVER_SOFTWARE} . " group=$group\n";
 exit;

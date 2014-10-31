@@ -36,73 +36,12 @@ if ((@ARGV != 1) || ($ARGV[0] !~ /^https?:/))
     exit(1);
 }
 
-# Try to determine the GID used by the web server.
-my @pscmds = ('ps -eo comm,gid', 'ps -acxo command,gid', 'ps -acxo command,rgid');
-my $sgid = 0;
-if (!ON_WINDOWS)
-{
-    foreach my $pscmd (@pscmds)
-    {
-        open PH, "$pscmd 2>/dev/null |";
-        while (my $line = <PH>)
-        {
-            if ($line =~ /^(?:\S*\/)?(?:httpd|apache)2?\s+(\d+)$/)
-            {
-                $sgid = $1 if $1 > $sgid;
-            }
-        }
-        close(PH);
-    }
-}
-
-# Determine the numeric GID of $webservergroup
-my $webgroupnum = 0;
-my $webservergroup = Bugzilla->localconfig->{webservergroup};
-if ($webservergroup =~ /^(\d+)$/)
-{
-    $webgroupnum = $1;
-}
-else
-{
-    eval { $webgroupnum = (getgrnam $webservergroup) || 0; };
-}
-
-# Check $webservergroup against the server's GID
-if ($sgid > 0)
-{
-    if ($webservergroup eq "")
-    {
-        print
-"WARNING \$webservergroup is set to an empty string.
-That is a very insecure practice. Please refer to the
-Bugzilla documentation.\n";
-    }
-    elsif ($webgroupnum == $sgid || Bugzilla->localconfig->{use_suexec})
-    {
-        print "TEST-OK Webserver is running under group id in \$webservergroup.\n";
-    }
-    else
-    {
-        print
-"TEST-WARNING Webserver is running under group id not matching \$webservergroup.
-This if the tests below fail, this is probably the problem.
-Please refer to the web server configuration section of the Bugzilla guide.
-If you are using virtual hosts or suexec, this warning may not apply.\n";
-    }
-}
-elsif (!ON_WINDOWS)
-{
-    print
-"TEST-WARNING Failed to find the GID for the 'httpd' process, unable
-to validate webservergroup.\n";
-}
-
 # Try to fetch a static file (padlock.png)
 $ARGV[0] =~ s/\/$//;
 my $url = $ARGV[0] . "/images/padlock.png";
 if (fetch($url))
 {
-    print "TEST-OK Got padlock picture.\n";
+    print "TEST-OK Got padlock picture. Webserver is serving static files.\n";
 }
 else
 {
@@ -115,9 +54,47 @@ Check your web server configuration and try again.\n";
 
 # Try to execute a cgi script
 my $response = fetch($ARGV[0] . "/testagent.cgi");
-if ($response =~ /^OK (.*)$/)
+if ($response =~ /^OK (.*?)\s*group=(\S*)\s*$/)
 {
     print "TEST-OK Webserver is executing CGIs via $1.\n";
+    my ($realgroup) = $2;
+    if (!$realgroup)
+    {
+        if (!ON_WINDOWS)
+        {
+            print
+"TEST-WARNING Failed to find the GID for the 'httpd' process, unable
+to validate webservergroup.\n";
+        }
+    }
+    else
+    {
+        # Determine the name of $webservergroup
+        my $webservergroup = Bugzilla->localconfig->{webservergroup};
+        if ($webservergroup =~ /^\d+$/s)
+        {
+            ($webservergroup) = getgrgid $webservergroup;
+        }
+        elsif ($webservergroup eq '')
+        {
+            print
+"TEST-WARNING \$webservergroup is set to an empty string.
+That is a very insecure practice. Please refer to the
+Bugzilla documentation.\n";
+        }
+        if ($realgroup eq $webservergroup)
+        {
+            print "TEST-OK Webserver is running under \$webservergroup ($webservergroup) group.\n";
+        }
+        elsif ($webservergroup ne '')
+        {
+            print
+"TEST-WARNING Webserver is running under group id not matching \$webservergroup.
+This if the tests below fail, this is probably the problem.
+Please refer to the web server configuration section of the Bugzilla guide.
+If you are using virtual hosts or suexec, this warning may not apply.\n";
+        }
+    }
 }
 elsif ($response =~ /^#!/)
 {
