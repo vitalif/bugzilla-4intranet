@@ -439,3 +439,38 @@ function showEditComment(comment_id)
         }
     });
 }
+
+function toggle_obsolete_attachments(link)
+{
+    var table = document.getElementById("attachment_table");
+    // Store current height for scrolling later
+    var originalHeight = table.offsetHeight;
+
+    var r0;
+    var rs = table.tBodies[0];
+    rs = rs.rows || rs.tRows;
+    for (var i = 0; i < rs.length; i++)
+        if (hasClass(rs[i], 'bz_tr_obsolete'))
+            r0 = toggleClass(rs[i], 'bz_default_hidden');
+    link.innerHTML = r0 ? 'Show Obsolete' : 'Hide Obsolete';
+
+    var newHeight = table.offsetHeight;
+    // This scrolling makes the window appear to not move at all.
+    window.scrollBy(0, newHeight - originalHeight);
+
+    return false;
+}
+
+function to_attachment_page(link)
+{
+    var form = document.createElement('form');
+    form.action = link.href;
+    form.method = 'post';
+    var textarea = document.createElement('textarea');
+    textarea.name = "comment";
+    textarea.value = document.getElementById('comment_textarea').value;
+    form.appendChild(textarea);
+    document.body.appendChild(form);
+    form.submit();
+    return false;
+}
