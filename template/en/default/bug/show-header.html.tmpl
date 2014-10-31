@@ -27,7 +27,7 @@
     "${bug.bug_status_obj.name} _ ${bug.resolution_obj.name}" | html %]
 [% DEFAULT header = "$terms.Bug&nbsp;$bug.bug_id" %]
 [% header_addl_info = "Last modified: " _ bug.delta_ts | html %]
-[% javascript_urls = [ "js/field.js", "js/calendar.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?user=${Bugzilla.user.id}" ] %]
+[% javascript_urls = [ "js/field.js", "js/bug.js", "js/calendar.js", "js/bug-visibility.js", "fieldvaluecontrol.cgi?user=${Bugzilla.user.id}" ] %]
 [% style_urls = [ "skins/standard/calendar.css", "skins/standard/show_bug.css", "skins/standard/comments.css" ] %]
 [% doc_section = "bug_page.html" %]
 [% bodyclasses = [

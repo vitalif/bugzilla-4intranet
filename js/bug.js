@@ -3,6 +3,8 @@
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
 
+var checkCommentOnUnload = true;
+
 function updateCommentPrivacy(checkbox, id)
 {
     var comment_elem = document.getElementById('comment_text_'+id).parentNode;
@@ -257,8 +259,11 @@ function changeform_onsubmit()
         return false;
 
     var wtInput = document.changeform.work_time;
-    if (!wtInput)
+    if (wtInput)
+    {
+        checkCommentOnUnload = false;
         return true;
+    }
     var wt = bzParseTime(wtInput.value);
     var awt = wt;
     if (wt != wt)
@@ -277,6 +282,7 @@ function changeform_onsubmit()
 
     wtInput.value = awt;
     adjustRemainingTime();
+    checkCommentOnUnload = false;
     return true;
 }
 
@@ -376,6 +382,17 @@ onDomReady(function()
     }
 });
 
+addListener(window, 'beforeunload', function(e)
+{
+    var ta = document.getElementById('comment_textarea');
+    if (checkCommentOnUnload && ta && ta.value.trim() != '')
+    {
+        e = e || window.event;
+        return (e.returnValue = 'Your comment will be lost. Leave page?');
+    }
+    return false;
+});
+
 addListener(window, 'hashchange', function()
 {
     var a = document.getElementsByName(window.location.hash.substr(1));
@@ -463,6 +480,7 @@ function toggle_obsolete_attachments(link)
 
 function to_attachment_page(link)
 {
+    checkCommentOnUnload = false;
     var form = document.createElement('form');
     form.action = link.href;
     form.method = 'post';

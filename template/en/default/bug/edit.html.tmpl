@@ -49,8 +49,6 @@ var fRemainingTime = [% bug.remaining_time %];
 var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
 </script>
 
-<script type="text/javascript" src="js/bug.js"></script>
-
 [%# CustIS Bug 57315 - Force Fucking Firefox to reset form on Reload %]
 [% USE date %]
 [% SET cfname = 'changeform_' _ date.format(date.now, '%s') %]
