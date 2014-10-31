@@ -156,10 +156,11 @@ var Calendar = {
 
         //Position the div in the correct location...
         var div = document.getElementById(this.opt['calendar']);
+        var sw = document.clientWidth || document.documentElement.clientWidth || document.body.clientWidth;
         var xy = this.getPosition(input);
         var width = input.clientWidth||input.offsetWidth;
-        div.style.left=(xy[0]+width+10)+"px";
-        div.style.top=xy[1]+"px";
+        div.style.left=(xy[0] + div.offsetWidth > sw ? sw-xy[0]-div.offsetWidth : xy[0])+"px";
+        div.style.top=(xy[1] + input.offsetHeight)+"px";
 
         // Show the calendar with the date in the input as the selected date
         var existing_date = new Date();
