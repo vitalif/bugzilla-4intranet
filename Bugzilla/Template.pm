@@ -948,6 +948,9 @@ sub create
             lc_messages => Bugzilla->messages,
             Bugzilla => Bugzilla::Template::Plugin::Bugzilla->new,
 
+            # html_quote in the form of a function
+            html => \&html_quote,
+
             # HTML <select>
             # html_select(name, <selected value>, <values>, [<value names>], [<attr_hash>])
             #   <values> may be one of:
