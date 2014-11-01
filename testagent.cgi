@@ -11,16 +11,20 @@
 #
 # Contributor(s): Joel Peshkin <bugreport@peshkin.net>
 
-# This script is used by servertest.pl to confirm that cgi scripts
+# This script is used by testserver.pl to confirm that cgi scripts
 # are being run instead of shown. This script does not rely on database access
 # or correct params.
 
 use strict;
 use POSIX;
+use File::Basename;
 
 print "HTTP/1.1 200 OK\n";
 print "Content-Type: text/plain\n\n";
+print "OK\n";
 my ($group) = POSIX::getgrgid(POSIX::getegid());
 $group ||= '';
-print "OK " . $::ENV{SERVER_SOFTWARE} . " group=$group\n";
+open FD, ">".dirname($0)."/data/testserver_report";
+print FD $::ENV{SERVER_SOFTWARE} . "\n$group\n";
+close FD;
 exit;

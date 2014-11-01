@@ -22,9 +22,10 @@ use lib qw(. lib);
 use Bugzilla;
 use Bugzilla::Constants;
 
+use File::Basename;
 use Socket;
 
-my $datadir = bz_locations()->{'datadir'};
+my $datadir = bz_locations()->{datadir};
 
 eval "require LWP; require LWP::UserAgent;";
 my $lwp = $@ ? 0 : 1;
@@ -54,10 +55,18 @@ Check your web server configuration and try again.\n";
 
 # Try to execute a cgi script
 my $response = fetch($ARGV[0] . "/testagent.cgi");
-if ($response =~ /^OK (.*?)\s*group=(\S*)\s*$/)
+if ($response =~ /^OK/)
 {
-    print "TEST-OK Webserver is executing CGIs via $1.\n";
-    my ($realgroup) = $2;
+    my ($server_software, $realgroup) = ('?', '');
+    if (open FD, dirname($0).'/data/testserver_report')
+    {
+        $server_software = <FD>;
+        $realgroup = <FD>;
+        close FD;
+        unlink(dirname($0).'/data/testserver_report');
+    }
+    chomp $_ for $server_software, $realgroup;
+    print "TEST-OK Webserver is executing CGIs via $server_software.\n";
     if (!$realgroup)
     {
         if (!ON_WINDOWS)
@@ -109,7 +118,7 @@ else
 }
 
 # Make sure that the web server is honoring .htaccess files
-my $localconfig = bz_locations()->{'localconfig'};
+my $localconfig = bz_locations()->{localconfig};
 $localconfig =~ s~^\./~~;
 $url = $ARGV[0] . "/$localconfig";
 $response = fetch($url);
@@ -140,8 +149,7 @@ if ($@ eq '')
         $gdlib =~ s/\n$//;
         if (!$gdlib)
         {
-            print "TEST-WARNING Failed to run gdlib-config; can't compare " .
-                  "GD versions.\n";
+            print "TEST-WARNING Failed to run gdlib-config; can't compare GD versions.\n";
         }
         else
         {
