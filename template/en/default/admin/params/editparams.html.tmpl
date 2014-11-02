@@ -29,7 +29,7 @@
 
 [% FOREACH panel = panels %]
   [% PROCESS "admin/params/${panel.name}.html.tmpl"
-             params = panel.param_list %]
+             params = panel.params %]
   [% panel.title = title %]
   [% panel.desc = desc %]
   [% panel.param_descs = param_descs %]

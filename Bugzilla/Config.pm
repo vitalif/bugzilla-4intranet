@@ -35,6 +35,7 @@ use strict;
 use base qw(Exporter);
 use Bugzilla::Constants;
 use Bugzilla::Hook;
+use Bugzilla::Util qw(get_subclasses);
 use Bugzilla::Install::Filesystem qw(fix_file_permissions);
 use Data::Dumper;
 use File::Temp;
@@ -54,40 +55,40 @@ use vars qw(@param_list);
 # Perl throws a warning if we use bz_locations() directly after do.
 our %params;
 # Load in the param definitions
-sub _load_params {
-    my $panels = param_panels();
-    my %hook_panels;
-    foreach my $panel (keys %$panels) {
-        my $module = $panels->{$panel};
-        eval("require $module") || die $@;
-        my @new_param_list = $module->get_param_list();
-        $hook_panels{lc($panel)} = { params => \@new_param_list };
-        foreach my $item (@new_param_list) {
-            $params{$item->{'name'}} = $item;
+sub _load_params
+{
+    my $panels = param_panel_props();
+    foreach my $panel (values %$panels)
+    {
+        foreach my $item (@{$panel->{params}})
+        {
+            $params{$item->{name}} = $item;
         }
-        push(@param_list, @new_param_list);
+        push @param_list, @{$panel->{params}};
     }
-    # This hook is also called in editparams.cgi. This call here is required
-    # to make SetParam work.
-    Bugzilla::Hook::process('config_modify_panels', 
-                            { panels => \%hook_panels });
 }
 # END INIT CODE
 
 # Subroutines go here
 
-sub param_panels {
-    my $param_panels = {};
-    my $libpath = bz_locations()->{'libpath'};
-    foreach my $item ((glob "$libpath/Bugzilla/Config/*.pm")) {
-        $item =~ m#/([^/]+)\.pm$#;
-        my $module = $1;
-        $param_panels->{$module} = "Bugzilla::Config::$module" unless $module eq 'Common';
+sub param_panel_props
+{
+    my $r = {};
+    foreach my $panel (@{get_subclasses('Bugzilla::Config')})
+    {
+        next if $panel eq 'Common';
+        my $module = "Bugzilla::Config::$panel";
+        eval("require $module") || die $@;
+        my @module_param_list = "$module"->get_param_list();
+        my $item = {
+            name => lc($panel),
+            params => \@module_param_list,
+            sortkey => eval "\$${module}::sortkey;"
+        };
+        $r->{$item->{name}} = $item;
     }
-    # Now check for any hooked params
-    Bugzilla::Hook::process('config_add_panels', 
-                            { panel_modules => $param_panels });
-    return $param_panels;
+    Bugzilla::Hook::process('config_modify_panels', { panels => $r });
+    return $r;
 }
 
 sub SetParam {

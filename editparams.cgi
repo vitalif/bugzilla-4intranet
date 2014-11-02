@@ -52,35 +52,16 @@ my $current_panel = $ARGS->{section} || 'core';
 $current_panel =~ /^([A-Za-z0-9_-]+)$/;
 $current_panel = $1;
 
-my $current_module;
-my @panels = ();
-my $param_panels = Bugzilla::Config::param_panels();
-foreach my $panel (keys %$param_panels)
-{
-    my $module = $param_panels->{$panel};
-    eval("require $module") || die $@;
-    my @module_param_list = "$module"->get_param_list();
-    my $item = {
-        name => lc($panel),
-        current => ($current_panel eq lc($panel)) ? 1 : 0,
-        param_list => \@module_param_list,
-        sortkey => eval "\$${module}::sortkey;"
-    };
-    push @panels, $item;
-    $current_module = $panel if ($current_panel eq lc($panel));
-}
+my $panels = Bugzilla::Config::param_panel_props();
+$current_panel = undef if !$panels->{$current_panel};
+$panels->{$current_panel}->{current} = 1 if $current_panel;
+$vars->{panels} = [ values %$panels ];
 
-my %hook_panels = map { $_->{name} => { params => $_->{param_list} } } @panels;
-# Note that this hook is also called in Bugzilla::Config.
-Bugzilla::Hook::process('config_modify_panels', { panels => \%hook_panels });
-
-$vars->{panels} = \@panels;
-
-if ($action eq 'save' && $current_module)
+if ($action eq 'save' && $current_panel)
 {
     check_token_data($token, 'edit_parameters');
     my @changes = ();
-    my @module_param_list = @{ $hook_panels{lc($current_module)}->{params} };
+    my @module_param_list = @{ $vars->{panels}->{$current_panel}->{params} };
 
     foreach my $i (@module_param_list)
     {

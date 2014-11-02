@@ -31,7 +31,7 @@
       <th>Section</th>
     </tr>
     [% FOREACH panel = panels %]
-      [% FOREACH param = panel.param_list.sort('name') %]
+      [% FOREACH param = panel.params.sort('name') %]
         <tr>
           <td>
             <a href="editparams.cgi?section=
