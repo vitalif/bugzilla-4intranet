@@ -62,7 +62,8 @@ BEGIN
 sub _die_error
 {
     # We are in some eval(), or we are passed the exception object
-    if (Bugzilla::Error::_in_eval() ||
+    if (${^GLOBAL_PHASE} ne 'RUN' ||
+        Bugzilla::Error::_in_eval() ||
         ref $_[0] eq 'Bugzilla::Error' ||
         ref $_[0] eq 'Bugzilla::HTTPServerSimple::FakeExit')
     {
