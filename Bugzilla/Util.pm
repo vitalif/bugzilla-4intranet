@@ -65,6 +65,7 @@ use JSON;
 
 use Data::Dumper qw(Dumper);
 $Data::Dumper::Useperl = 1;
+$Data::Dumper::Indent = 1;
 no warnings 'redefine';
 *Data::Dumper::qquote = sub
 {
