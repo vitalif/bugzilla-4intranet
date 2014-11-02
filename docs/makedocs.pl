@@ -47,6 +47,7 @@ if (eval { require Pod::Simple })
     $pod_simple = 1;
 };
 
+use Bugzilla::Config;
 use Bugzilla::Install::Util qw(install_string);
 use Bugzilla::Install::Requirements qw(REQUIRED_MODULES OPTIONAL_MODULES);
 use Bugzilla::Constants qw(DB_MODULE BUGZILLA_VERSION);
@@ -55,6 +56,7 @@ use Bugzilla::Constants qw(DB_MODULE BUGZILLA_VERSION);
 # Generate minimum version list
 ###############################################################################
 
+print "Creating required Perl module list...\n";
 my $fd;
 open($fd, '>', 'required-modules.asciidoc') or die('Could not open required-modules.asciidoc: ' . $!);
 print_versions($fd, REQUIRED_MODULES);
@@ -70,6 +72,84 @@ close $fd;
 open($fd, '>', 'optional-modules.asciidoc') or die('Could not open optional-modules.asciidoc: ' . $!);
 print_versions($fd, OPTIONAL_MODULES);
 close $fd;
+
+###############################################################################
+# Generate configuration parameter list
+###############################################################################
+
+print "Creating configuration parameter documentation...\n";
+my $par = Bugzilla::Config::param_panel_props();
+my $tplctx = Bugzilla->template->context;
+my $param_descs = {};
+my $param_doc = '';
+for my $p (sort { $a->{sortkey} cmp $b->{sortkey} || $a->{name} cmp $b->{name} } values %$par)
+{
+    $tplctx->process('template/en/default/admin/params/'.$p->{name}.'.html.tmpl', {});
+    $p->{title} = $tplctx->stash->get('title');
+    $p->{description} = $tplctx->stash->get('desc');
+    $p->{param_descs} = $tplctx->stash->get('param_descs');
+    for (values %{$p->{param_descs}})
+    {
+        my $wrap = 0;
+        s/&lt;/</gso;
+        s/&gt;/>/gso;
+        s/&amp;/&/gso;
+        s/&quot;/\"/gso;
+        s/&#64;/@/g;
+        s/(\[+)/\$\$$1\$\$/gso;
+        s/<(tt|code|kbd)>(.*?)<\/\1>/+$2+/gso;
+        s/<(b|strong)>(.*?)<\/\1>/*$2*/gso;
+        s/<(i|em)>(.*?)<\/\1>/'$2'/gso;
+        s/<a href=[\"\']([^\"\']*)[\"\']>(.*?)<\/a>/link:$1\[$2]/gso;
+        $wrap = 1 if s/\s*<pre(?:\s+[^>]+)?>(.*?)<\/pre>\s*/\n----\n$1\n----\n/gso;
+        $wrap = 1 if s/(\s*<br\s*\/?>\s*)+|<p(\s+[^>]+)?>/\n\n/gso;
+        s/<\/p>//gso;
+        $wrap = 1 if s/\s*<[ud]l>\s*/\n\n/gso;
+        s/\s*<\/[ud]l>\s*/\n/gso;
+        s/<li>\s*(.*?)\s*<\/li>\s*/my $a = "* $1\n"; $a =~ s!\s{2,}! !gso; $a/geso;
+        s/<dt>\s*(.*?)\s*<\/dt>\s*/my $a = "$1 :: "; $a =~ s!\s{2,}! !gso; $a/geso;
+        s/<dd>\s*(.*?)\s*<\/dd>\s*/my $a = "$1\n"; $a =~ s!\s{2,}! !gso; $a/geso;
+        s/^\s*//so;
+        s/\s*$//so;
+        $_ = "+\n--\n$_\n--" if $wrap;
+    }
+    $param_doc .= "[[param-".$p->{name}."]]\n==== ".$p->{title}."\n\n".$p->{description}."\n\n";
+    for (sort keys %{$p->{param_descs}})
+    {
+        $param_doc .= "$_ ::\n".$p->{param_descs}->{$_}."\n\n";
+    }
+}
+open($fd, '>', 'params.asciidoc') or die('Could not open params.asciidoc: ' . $!);
+print $fd $param_doc;
+close $fd;
+
+###############################################################################
+# Make the docs
+###############################################################################
+
+my @langs = glob(getcwd().'/*/asciidoc');
+foreach my $lang (@langs)
+{
+    chdir "$lang/..";
+    for (qw(txt pdf html html/api))
+    {
+        if (!-d $_)
+        {
+            unlink $_;
+            mkdir $_, 0755;
+        }
+    }
+    make_pod() if $pod_simple;
+    -l 'asciidoc/images' or system('ln -s ../images asciidoc/images');
+
+    make_docs('big HTML', "asciidoc -a data-uri -a icons -a toc -a toclevels=5 -o html/Bugzilla-Guide.html asciidoc/Bugzilla-Guide.asciidoc");
+    make_docs('big text', "lynx -dump -justify=off -nolist html/Bugzilla-Guide.html > txt/Bugzilla-Guide.txt");
+    make_docs('chunked HTML', "a2x -a toc -a toclevels=5 -f chunked -D html/ asciidoc/Bugzilla-Guide.asciidoc");
+
+    next unless grep($_ eq "--with-pdf", @ARGV);
+
+    make_docs('PDF', "a2x -a toc -a toclevels=5 -f pdf -D pdf/ asciidoc/Bugzilla-Guide.asciidoc");
+}
 
 sub print_versions
 {
@@ -131,32 +211,4 @@ END_HTML
     $converter->batch_convert(['../../'], 'html/api/');
 
     print "\n";
-}
-
-###############################################################################
-# Make the docs
-###############################################################################
-
-my @langs = glob(getcwd().'/*/asciidoc');
-foreach my $lang (@langs)
-{
-    chdir "$lang/..";
-    for (qw(txt pdf html html/api))
-    {
-        if (!-d $_)
-        {
-            unlink $_;
-            mkdir $_, 0755;
-        }
-    }
-    make_pod() if $pod_simple;
-    -l 'asciidoc/images' or system('ln -s ../images asciidoc/images');
-
-    make_docs('big HTML', "asciidoc -a data-uri -a icons -a toc -a toclevels=5 -o html/Bugzilla-Guide.html asciidoc/Bugzilla-Guide.asciidoc");
-    make_docs('big text', "lynx -dump -justify=off -nolist html/Bugzilla-Guide.html > txt/Bugzilla-Guide.txt");
-    make_docs('chunked HTML', "a2x -a toc -a toclevels=5 -f chunked -D html/ asciidoc/Bugzilla-Guide.asciidoc");
-
-    next unless grep($_ eq "--with-pdf", @ARGV);
-
-    make_docs('PDF', "a2x -a toc -a toclevels=5 -f pdf -D pdf/ asciidoc/Bugzilla-Guide.asciidoc");
 }
