@@ -17,8 +17,14 @@
   # Contributor(s): Marc Schumann <wurblzap@gmail.com>
   #%]
 [%
-   title = "RADIUS"
-   desc = "Configure this first before choosing RADIUS as an authentication method"
+  title = "RADIUS"
+  desc = "Configure this first before choosing RADIUS as an authentication method"
+  info = "<p>RADIUS authentication is a module for Bugzilla's plugin"
+    _ " authentication architecture. This page contains the parameters"
+    _ " required to use it. After setting them up, also set 'RADIUS' value"
+    _ " for the 'user_verify_class' parameter.</p>"
+    _ "<p>NOTE: Most caveats that apply to LDAP authentication apply to RADIUS"
+    _ " authentication as well.</p>"
 %]
 
 [% param_descs = {

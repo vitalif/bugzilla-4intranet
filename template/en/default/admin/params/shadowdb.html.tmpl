@@ -19,8 +19,20 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 [%
-   title = "Shadow Database"
-   desc = "An optional hack to increase database performance"
+  title = "Shadow Database"
+  desc = "An optional hack to increase database performance"
+  info = "<p>Versions of Bugzilla prior to 3.2 used the MySQL MyISAM table type, which supports"
+    _ " only table-level write locking. With MyISAM, any time someone is making a change to"
+    _ " a bug, the entire table is locked until the write operation is complete."
+    _ " Locking for write also blocks reads until the write is complete.</p>"
+    _ "<p>The 'Shadow DB' feature was designed to get around this limitation."
+    _ " The idea was to set up replication to a separate MySQL \"slave\" instance"
+    _ " and use it for read queries. This allowed everyone to read tables that were"
+    _ " otherwise locked by the concurrent users.</p>"
+    _ "<p>As of version 3.2, Bugzilla no longer uses the MyISAM table type."
+    _ " Instead, InnoDB is used, which has <a href=\"http://en.wikipedia.org/wiki/Multiversion_concurrency_control\">MVCC</a>"
+    _ " allowing writers to not block readers. Therefore, the limitations the Shadow Database feature was designed"
+    _ " to workaround <b>no longer exist</b>. Nobody is blocked even by very complex long-running search queries.</p>"
 %]
 
 [% param_descs = {

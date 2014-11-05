@@ -21,6 +21,7 @@
 [%
   title = "User Matching"
   desc = "Set up your user matching policies"
+  info = "The settings on this page control how users are selected and queried when adding a user to a bug."
 %]
 
 [% param_descs = {
@@ -47,8 +48,8 @@
     "effectively correct N 'misprints' in user login names by using " _
     "the Levenshtein distance function for matching users. " _
     "If N is a floating point value, it is treated relative to the length of user name. <br>" _
-    "<b>WARNING:</b> Levenshtein distance is calculated via SQL function levenshtein() " _
-    "which must be installed <b>separately</b> as a <a href='https://github.com/vitalif/mysql-levenshtein'>UDF for MySQL</a> " _
+    "WARNING: Levenshtein distance is calculated via SQL function <tt>LEVENSHTEIN()</tt> " _
+    "which <b>must be installed separately</b> as a <a href='https://github.com/vitalif/mysql-levenshtein'>UDF for MySQL</a> " _
     "or <a href='http://www.postgresql.org/docs/9.3/static/fuzzystrmatch.html'>fuzzystrmatch module for PostgreSQL</a>."
 }
 %]

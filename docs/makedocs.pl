@@ -82,13 +82,15 @@ my $par = Bugzilla::Config::param_panel_props();
 my $tplctx = Bugzilla->template->context;
 my $param_descs = {};
 my $param_doc = '';
-for my $p (sort { $a->{sortkey} cmp $b->{sortkey} || $a->{name} cmp $b->{name} } values %$par)
+for my $p (sort { $a->{sortkey} <=> $b->{sortkey} || $a->{name} cmp $b->{name} } values %$par)
 {
     $tplctx->process('template/en/default/admin/params/'.$p->{name}.'.html.tmpl', {});
     $p->{title} = $tplctx->stash->get('title');
+    $p->{info} = $tplctx->stash->get('info');
     $p->{description} = $tplctx->stash->get('desc');
     $p->{param_descs} = $tplctx->stash->get('param_descs');
-    for (values %{$p->{param_descs}})
+    my $first = 1;
+    for ($p->{info}, values %{$p->{param_descs}})
     {
         my $wrap = 0;
         s/&lt;/</gso;
@@ -100,6 +102,7 @@ for my $p (sort { $a->{sortkey} cmp $b->{sortkey} || $a->{name} cmp $b->{name} }
         s/<(tt|code|kbd)>(.*?)<\/\1>/+$2+/gso;
         s/<(b|strong)>(.*?)<\/\1>/*$2*/gso;
         s/<(i|em)>(.*?)<\/\1>/'$2'/gso;
+        s/<a href=[\"\'](?:editparams\.cgi)?\?section=(\w+)(?:#(\w+))?[\"\']>(.*?)<\/a>/"<<param-$1,".($3||$2).">>"/geso;
         s/<a href=[\"\']([^\"\']*)[\"\']>(.*?)<\/a>/link:$1\[$2]/gso;
         $wrap = 1 if s/\s*<pre(?:\s+[^>]+)?>(.*?)<\/pre>\s*/\n----\n$1\n----\n/gso;
         $wrap = 1 if s/(\s*<br\s*\/?>\s*)+|<p(\s+[^>]+)?>/\n\n/gso;
@@ -111,15 +114,21 @@ for my $p (sort { $a->{sortkey} cmp $b->{sortkey} || $a->{name} cmp $b->{name} }
         s/<dd>\s*(.*?)\s*<\/dd>\s*/my $a = "$1\n"; $a =~ s!\s{2,}! !gso; $a/geso;
         s/^\s*//so;
         s/\s*$//so;
-        $_ = "+\n--\n$_\n--" if $wrap;
+        $_ = "+\n--\n$_\n--" if $wrap && !$first;
+        $first = 0;
     }
-    $param_doc .= "[[param-".$p->{name}."]]\n==== ".$p->{title}."\n\n".$p->{description}."\n\n";
-    for (sort keys %{$p->{param_descs}})
+    $param_doc .= "[[param-".$p->{name}."]]\n==== ".$p->{title}."\n\n".($p->{info} || $p->{description})."\n\n";
+    for (@{$p->{params}})
     {
-        $param_doc .= "$_ ::\n".$p->{param_descs}->{$_}."\n\n";
+        if (!$p->{param_descs}->{$_->{name}})
+        {
+            warn "Missing documentation for $p->{name} / $_->{name}\n";
+            next;
+        }
+        $param_doc .= $_->{name}." ::\n".$p->{param_descs}->{$_->{name}}."\n\n";
     }
 }
-open($fd, '>', 'params.asciidoc') or die('Could not open params.asciidoc: ' . $!);
+open($fd, '>', 'en/params.asciidoc') or die('Could not open en/params.asciidoc: ' . $!);
 print $fd $param_doc;
 close $fd;
 

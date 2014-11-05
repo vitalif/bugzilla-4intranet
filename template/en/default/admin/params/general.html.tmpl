@@ -20,14 +20,25 @@
   #%]
 
 [%
-   title = "General"
-   desc = "Miscellaneous general settings that are not required."
+  title = "General"
+  desc = "Miscellaneous general settings that are not required."
+  info = ""
 %]
 
 [% param_descs = {
   maintainer =>
     "The email address of the person who maintains this installation "
-    _ " of ${terms.Bugzilla}.",
+    _ " of ${terms.Bugzilla}. The address need not be that of a valid Bugzilla account.",
+
+  error_log =>
+    "Path to Bugzilla error log file or empty string if you don't want to write an error log. " _
+    "Relative paths will be prepended with Bugzilla data directory.",
+
+  report_code_errors_to_maintainer =>
+    "Whether to send e-mail messages about each 'code' (internal) error to Bugzilla maintainer (recommended).",
+
+  report_user_errors_to_maintainer =>
+    "Whether to send e-mail messages about each 'user' (invalid input, non-fatal) error to Bugzilla maintainer (not recommended).",
 
   docs_urlbase =>
     "The URL that is the common initial leading part of all"
@@ -48,17 +59,12 @@
     _ " &quot;on&quot;, you must re-run checksetup.pl immediately"
     _ " afterward.</p>",
 
-  shutdownhtml =>
-    "If this field is non-empty, then $terms.Bugzilla will be completely"
-    _ " disabled and this text will be displayed instead of all the"
-    _ " $terms.Bugzilla pages.",
-
   announcehtml =>
     "If this field is non-empty, then $terms.Bugzilla will"
     _ " display whatever is in this field at the top of every"
     _ " HTML page. The HTML you put in this field is not wrapped or"
     _ " enclosed in anything. You might want to wrap it inside a"
-    _ "<tt>&lt;div&gt;</tt>. Give the div <em>id=\"message\"</em> to get"
+    _ " <tt>&lt;div&gt;</tt>. Give the div <em>id=\"message\"</em> to get"
     _ " green text inside a red box, or <em>class=\"bz_private\"</em> for"
     _ " dark red on a red background.  Anything defined in "
     _ " <tt>skins/standard/global.css</tt> or <tt>skins/custom/global.css</tt>"
@@ -71,6 +77,27 @@
 
   bannerhtml =>
     "This parameter specifies HTML code to be displayed at the very top of the page.",
+
+  shutdownhtml =>
+    "<p>If this field is non-empty, then $terms.Bugzilla will be completely"
+    _ " disabled and this text will be displayed instead of all the"
+    _ " $terms.Bugzilla pages to all users, including Admins. Used in the event"
+    _ " of site maintenance or outage situations.</p>"
+    _ "<p>NOTE: Although regular log-in capability is disabled while 'shutdownhtml'"
+    _ " is enabled, safeguards are in place to protect the unfortunate"
+    _ " admin who loses connection to Bugzilla. Should this happen to you,"
+    _ " go directly to the <tt>editparams.cgi</tt> (by typing"
+    _ " the URL in manually, if necessary). Doing this will prompt you to"
+    _ " log in, and your name/password will be accepted here (but nowhere else).</p>",
+
+  new_functionality_msg =>
+    "You may use this text when you want to notify your Bugzilla users about some news.<br />"
+    _ " After you set <i>new_functionality_tsp</i> to current date and <i>new_functionality_msg</i>"
+    _ " to the desired message, that message is displayed to every Bugzilla user until he closes it.",
+
+  new_functionality_tsp =>
+    "Last <i>new_functionality_msg</i> update timestamp. Set to current date and time to start showing"
+    _ " <i>new_functionality_msg</i> to your users.",
 
   upgrade_notification =>
     "$terms.Bugzilla can inform you when a new release is available."
@@ -91,6 +118,4 @@
     _ " access the Internet, you may also need to set the <tt>proxy_url</tt>"
     _ " parameter in the Advanced section.</p>",
 
-  new_functionality_msg => "Message that be shown to users about new functionality in Bugzilla.",
-  new_functionality_tsp => "Timestamp of last updating new functionality message.",
 } %]

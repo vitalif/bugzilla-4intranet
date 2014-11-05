@@ -78,6 +78,24 @@ use constant get_param_list => (
     },
 
     {
+        name => 'error_log',
+        type => 't',
+        default => 'errorlog',
+    },
+
+    {
+        name => 'report_code_errors_to_maintainer',
+        type => 'b',
+        default => 1,
+    },
+
+    {
+        name => 'report_user_errors_to_maintainer',
+        type => 'b',
+        default => 0,
+    },
+
+    {
         name => 'docs_urlbase',
         type => 't',
         default => 'docs/%lang%/html/',

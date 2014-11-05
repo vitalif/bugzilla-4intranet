@@ -3,8 +3,9 @@
   # Contributor(s): Stas Fomin <stas-fomin@yandex.ru>, Vitaliy Filippov <vitalif@mail.ru> %]
 
 [%
-   title = "Integration config"
-   desc = "Configuration for integrating Bugzilla with external systems (MediaWiki, ViewVC, etc)"
+  title = "Integration config"
+  desc = "Configuration for integrating Bugzilla with external systems (MediaWiki, ViewVC, etc)"
+  info = ""
 %]
 
 [% param_descs = {
@@ -17,8 +18,11 @@
       _ " \$EMAIL will be replaced by cleartext user email, so you should only never use it in public networks;"
       _ " \$MD5 will be replaced by MD5 hash of user email, just like it is required by real Gravatar service."
       _ " You can also disable avatar display by clearing this parameter.",
-    viewvc_url => "ViewVC query URL for browsing bug code",
-    wiki_url => "Default MediaWiki URL for bug links",
+    viewvc_url =>
+      "ViewVC query URL for browsing bug code. Bugzilla4Intranet links to ViewVC search page with full-text query 'bugXXX XXX'"
+      _ " which allows to show commits with the bug number in the commit message (like 'Bug XXX' or 'BugXXX').",
+    wiki_url =>
+      "Default MediaWiki URL for bug links. Bugzilla4Intranet links to <tt>&lt;wiki_url&gt;/Bug_XXX</tt> pages when this is non-empty.",
     mediawiki_urls =>
       "<p style='margin: 0'>Known MediaWiki URLs to be quoted in bug comments, one per line. Example:</p>"
       _ "<pre style='margin: 8px 0; padding: 4px; background: white; float: left;"
@@ -26,7 +30,9 @@
       _ "<p style='margin: 0; clear: both'>Links like <b><tt>wikipedia:Article_name#Section</tt></b>"
       _ " and <b><tt>wikipedia:[[Article name#Section]]</tt></b><br /> will be quoted"
       _ " and lead to <b>Section</b> (optional) of <b>Article name</b> page in the Wikipedia.</p>",
-    user_mailto => "Substitution for 'mailto:', you may use a link to user search by email in an external system",
-    ext_disable_refresh_views => "Disable automatic refreshing of DB views on user/group/saved search changes",
+    user_mailto =>
+      "Substitution for 'mailto:', you may use a link to user search by email in an external system.",
+    ext_disable_refresh_views =>
+      "Disable automatic refresh of DB views on user/group/saved search changes.",
   }
 %]

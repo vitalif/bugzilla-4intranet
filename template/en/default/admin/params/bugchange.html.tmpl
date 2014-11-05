@@ -19,8 +19,14 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 [%
-   title = "$terms.Bug Change Policies"
-   desc = "Set up $terms.bug change policies"
+  title = "$terms.Bug Change Policies"
+  desc = "Set up $terms.bug change policies"
+  info = "<p>Set policy on default behavior for bug change events. For example,"
+    _ " choose which status to set a bug to when it is marked as a duplicate,"
+    _ " choose whether to allow bug reporters to set the priority or"
+    _ " target milestone, and what changes should require the user to make a comment.</p>"
+    _ "<p>Note that bug status transitions (including those that require comments) are"
+    _ " configured on the <a href='editworkflow.cgi'>Bug Status Workflow</a> page.</p>"
 %]
 
 [% param_descs = {
@@ -32,6 +38,11 @@
   duplicate_or_move_bug_status =>
     "When $terms.abug is marked as a duplicate of another one " _
     "or is moved to another installation, use this $terms.bug status."
+
+  closed_bug_status =>
+    "The status considered as being \"finally closed\". Used for the operation of " _
+    "'Clear flag requests when closing bugs' user preference: " _
+    "when it is 'On', the flags are cleared when setting bug status to this value.",
 
   duplicate_resolution =>
     "Duplicate bugs are marked as this resolution."

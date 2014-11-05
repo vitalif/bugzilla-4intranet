@@ -19,13 +19,17 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 [%
-   title = "Group Security"
-   desc = "Decide how you will use Security Groups"
+  title = "Group Security"
+  desc = "Decide how you will use Security Groups"
+  info = "Bugzilla security is based on the concept of 'groups'"
+    _ " which are sets of specific users. This page allows you to select"
+    _ " some special functions of groups and their global behaviour."
 %]
 
 [% param_descs = {
-  makeproductgroups => "If this is on, $terms.Bugzilla will associate $terms.abug group " _
-                       "with each product in the database, and use it for querying ${terms.bugs}.",
+  makeproductgroups =>
+    "If this is on, $terms.Bugzilla will by default associate newly created groups"
+    _ " with each product in the database. Generally only useful for small databases.",
 
   chartgroup => "The name of the group of users who can use the 'New Charts' " _
                 "feature. Administrators should ensure that the public categories " _
@@ -42,9 +46,11 @@
   querysharegroup => "The name of the group of users who can share their " _
                      "saved searches with others.",
 
-  usevisibilitygroups => "Do you wish to restrict visibility of users to members of " _
-                         "specific groups?",
-  
+  usevisibilitygroups =>
+    "<p>Do you wish to restrict visibility of users to members of specific groups,"
+    _ " based on the configuration specified in group settings?</p>"
+    _ "<p>If yes, each group can be allowed to see members of selected other groups.</p>",
+
   strict_isolation => "Don't allow users to be assigned to, " _
                       "be qa-contacts on, " _
                       "be added to CC list, " _

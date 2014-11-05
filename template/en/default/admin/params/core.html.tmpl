@@ -19,37 +19,39 @@
   #                 Frédéric Buclin <LpSolit@gmail.com>
   #%]
 
-[% 
-   title = "Required Settings"
-   desc = "Settings that are required for proper operation of $terms.Bugzilla" 
+[%
+  title = "Required Settings"
+  desc = "Settings that are required for proper operation of $terms.Bugzilla"
+  info = "The core required parameters for any Bugzilla installation are set"
+    _ " here. These parameters must be set before a new Bugzilla installation"
+    _ " can be used. Administrators should review this list before"
+    _ " deploying a new Bugzilla installation."
 %]
 
 [% param_descs = {
-  urlbase => "The URL that is the common initial leading part of all $terms.Bugzilla " _
-             "URLs.",
+  urlbase =>
+    "<p>The URL that is the common initial leading part of all $terms.Bugzilla URLs.</p>"
+    _ "<p>For example, if the Bugzilla query page is <i>http://www.foo.com/bugzilla/query.cgi</i>,"
+    _ " the 'urlbase' should be set to <i>http://www.foo.com/bugzilla/</i></p>",
 
-  sslbase => "The URL that is the common initial leading part of all HTTPS " _
-             "(SSL) $terms.Bugzilla URLs.",
+  sslbase =>
+    "Similar to urlbase, this is the URL that is the common initial leading "
+    _ "part of all HTTPS (SSL) $terms.Bugzilla URLs.",
 
-  ssl_redirect => 
+  ssl_redirect =>
     "When this is enabled, $terms.Bugzilla will ensure that every page is"
     _ " accessed over SSL, by redirecting any plain HTTP requests to HTTPS"
     _ " using the <tt>sslbase</tt> parameter. Also, when this is enabled,"
     _ " $terms.Bugzilla will send out links using <tt>sslbase</tt> in emails"
     _ " instead of <tt>urlbase</tt>.",
 
-  cookiepath => "Path, relative to your web document root, to which to restrict " _
-                "$terms.Bugzilla cookies. Normally this is the URI portion of your URL " _
-                "base. Begin with a / (single slash mark). For instance, if " _
-                "$terms.Bugzilla serves from 'http://www.somedomain.com/bugzilla/', set " _
-                "this parameter to /bugzilla/. Setting it to / will allow " _
-                "all sites served by this web server or virtual host to read " _
-                "$terms.Bugzilla cookies.",
-
-  error_log => "Path to Bugzilla error log or empty string if you don't want to write an error log. " _
-               "Relative paths will be prepended with Bugzilla data directory.",
-
-  report_code_errors_to_maintainer => "Whether to send e-mail messages about each 'code' (internal) error to Bugzilla maintainer.",
-  report_user_errors_to_maintainer => "Whether to send e-mail messages about each 'user' (non-fatal) error to Bugzilla maintainer.",
+  cookiepath =>
+    "Path, relative to your web document root, to which to restrict " _
+    "$terms.Bugzilla cookies. Normally this is the URI portion of your URL " _
+    "base. Begin with a / (single slash mark). For instance, if " _
+    "$terms.Bugzilla serves from 'http://www.somedomain.com/bugzilla/', set " _
+    "this parameter to /bugzilla/. Setting it to / will allow " _
+    "all sites served by this web server or virtual host to read " _
+    "$terms.Bugzilla cookies.",
 
 } %]

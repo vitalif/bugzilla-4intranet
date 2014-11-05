@@ -31,7 +31,7 @@ package Bugzilla::Config::Advanced;
 
 use strict;
 
-our $sortkey = 1700;
+our $sortkey = 160;
 
 use constant get_param_list => (
     {

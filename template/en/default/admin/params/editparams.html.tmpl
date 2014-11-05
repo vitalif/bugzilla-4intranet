@@ -32,6 +32,7 @@
              params = panel.params %]
   [% panel.title = title %]
   [% panel.desc = desc %]
+  [% panel.info = info %]
   [% panel.param_descs = param_descs %]
   [% IF panel.current %][% curpanel = loop.index %][% END %]
 [% END %]
@@ -99,11 +100,15 @@
 
         <h3>[% current_panel.desc | none %]</h3>
 
+        [% IF !current_panel.info %]
         <p>
           This lets you edit the basic operating parameters of [% terms.Bugzilla %].
-          Be careful!<br />
+          Be careful!
           Any item you check "Reset" on will get reset to its default value.
         </p>
+        [% END %]
+
+        [% current_panel.info | none %]
 
         [%# CONTENT PANEL %]
         <form method="post" action="editparams.cgi">
