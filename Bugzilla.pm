@@ -363,6 +363,7 @@ sub session_data
     $c->{session} || return undef;
     if (!$c->{session}->{_session_data_decoded})
     {
+        Encode::_utf8_off($c->{session}->{session_data});
         $c->{session}->{_session_data_decoded} = ($c->{session}->{session_data}
             ? JSON::decode_json($c->{session}->{session_data}) : {});
     }
