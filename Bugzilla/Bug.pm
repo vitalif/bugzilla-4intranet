@@ -3530,7 +3530,7 @@ sub GetBugActivity
         " WHERE a.bug_id = ? $datepart $attachpart $suppwhere";
     if (!$attach_id)
     {
-        $query = "($query) UNION (SELECT 'longdesc' field_name, 0 field_desc, null, " . $dbh->sql_date_format('a.bug_when') .
+        $query = "($query) UNION ALL (SELECT 'longdesc' field_name, 0 field_desc, null, " . $dbh->sql_date_format('a.bug_when') .
             " bug_when, a.oldthetext removed, a.thetext added, profile1.login_name, a.comment_id, a.comment_count".
             " FROM longdescs_history a".
             " INNER JOIN profiles profile1 ON profile1.userid = a.who".

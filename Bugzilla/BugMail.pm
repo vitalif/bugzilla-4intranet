@@ -280,7 +280,7 @@ sub Send
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
                    $when_restriction)
-      UNION (SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
+ UNION ALL (SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
                    fielddefs1.sortkey fieldsortkey,
                    lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname, lh.comment_id, lh.comment_count
               FROM longdescs_history lh
