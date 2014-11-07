@@ -84,6 +84,7 @@ my $param_descs = {};
 my $param_doc = '';
 for my $p (sort { $a->{sortkey} <=> $b->{sortkey} || $a->{name} cmp $b->{name} } values %$par)
 {
+    next if !-f '../template/en/default/admin/params/'.$p->{name}.'.html.tmpl';
     $tplctx->process('template/en/default/admin/params/'.$p->{name}.'.html.tmpl', {});
     $p->{title} = $tplctx->stash->get('title');
     $p->{info} = $tplctx->stash->get('info');

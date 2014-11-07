@@ -1,4 +1,4 @@
-= The Bugzilla Guide - 3.6.4 Release
+= The Bugzilla4Intranet Guide - (UNRELEASED)
 
 [[about]]
 == About This Guide
@@ -6,8 +6,8 @@
 [[copyright]]
 === Copyright Information
 
-This document is copyright (c) 2000-2011 by the various
-Bugzilla contributors who wrote it.
+This document is copyright (c) 2000-2014 by the various
+Bugzilla and Bugzilla4Intranet contributors who wrote it.
 
 [quote]
 ____
@@ -53,18 +53,12 @@ your security needs are met.
 [[newversions]]
 === New Versions
 
-This is the 3.6.4 version of The Bugzilla Guide. It is so named
-to match the current version of Bugzilla.
+This is the (UNRELEASED) version of The Bugzilla4Intranet Guide. It is so named
+to match the current version of Bugzilla4Intranet.
 
-The latest version of this guide can always be found at link:$$http://www.bugzilla.org/docs/$$[]. However, you should read
-the version which came with the Bugzilla release you are using.
-
-In addition, there are Bugzilla template localization projects in
-link:$$http://www.bugzilla.org/download/#localizations$$[several languages].
-They may have translated documentation available. If you would like to
-volunteer to translate the Guide into additional languages, please visit the
-link:$$https://wiki.mozilla.org/Bugzilla:L10n$$[Bugzilla L10n team]
-page.
+The latest version of this guide can always be found at
+http://github.com/vitalif/bugzilla4intranet/tree/beta/docs/en/asciidoc/Bugzilla-Guide.asciidoc.
+However, you should read the version which came with the Bugzilla4Intranet release you are using.
 
 [[credits]]
 === Credits
@@ -111,7 +105,7 @@ Thanks also go to the following people for significant contributions to this doc
 * Martin Wulffeld
 
 Also, thanks are due to the members of the
-link:$$news://news.mozilla.org/mozilla.support.bugzilla$$[ mozilla.support.bugzilla]
+link:$$news://news.mozilla.org/mozilla.support.bugzilla$$[mozilla.support.bugzilla]
 newsgroup (and its predecessor, netscape.public.mozilla.webtools).
 Without your discussions, insight, suggestions, and patches,
 this could never have happened.
@@ -133,6 +127,27 @@ Environment variables:: VARIABLE
 Code example
 ----
 
+== About Bugzilla and Bugzilla4Intranet
+
+Bugzilla is a free bug-tracking system that is developed by the Mozilla community.
+While it's actively maintained, it contains a lot of legacy and ugly code, and some features
+that are implemented in a very strange and non-intuitive manner.
+
+Bugzilla4Intranet is a highly improved fork of Bugzilla version 3.6.4, which was started
+just as a customised Bugzilla version used internally in link:http://custis.ru/[CUSTIS]
+company. CUSTIS is a Russian company that develops custom-built large-scale information systems
+for banking and trade applications.
+
+The amount of changes has quickly become so great and so "fundamental" that starting with 3.6.4,
+the idea of merging with the upstream was rejected and that's when Bugzilla4Intranet
+became a separate project.
+
+The ideal goal of Bugzilla4Intranet is being Fast and Customisable. Ideally, no behaviour should
+be hardcoded, no modification of code or templates should be required for customisation or localisation.
+
+In this guide, both 'Bugzilla' and 'Bugzilla4Intranet' terms usually refer to Bugzilla4Intranet.
+If something only applies to the 'original Bugzilla', it is stated separately.
+
 [[installing-bugzilla]]
 == Installing Bugzilla
 
@@ -145,16 +160,14 @@ you do not need to install it. None of this chapter is relevant to
 you. Ask your Bugzilla administrator for the URL to access it from
 your web browser.
 
-The Bugzilla server software is usually installed on Linux or Solaris.
+The Bugzilla server software is usually installed on GNU/Linux or *BSD system.
 If you are installing on another OS, check <<os-specific,OS-Specific Installation Notes>>
 before you start your installation to see if there are any special
 instructions.
 
 This guide assumes that you have administrative access to the
-Bugzilla machine. It not possible to
-install and run Bugzilla itself without administrative access except
-in the very unlikely event that every single prerequisite is
-already installed.
+Bugzilla machine. It is also possible to install and run Bugzilla
+without administrative access, although it is usually harder.
 
 [WARNING]
 The installation process may make your machine insecure for
@@ -166,10 +179,10 @@ before installing Bugzilla (and at regular intervals thereafter :-).
 
 In outline, the installation proceeds as follows:
 
-<<install-perl,Install Perl>>
+<<install-perl5,Install Perl 5>>
 (5.8.1 or above)
 
-<<install-database,Install a Database Engine>>
+<<install-database,Install a Database Engine>> (and optionally <<install-sphinx,Sphinx Search>>)
 
 <<install-webserver,Install a Webserver>>
 
@@ -182,28 +195,34 @@ In outline, the installation proceeds as follows:
 
 Configure all of the above.
 
-[[install-perl]]
-==== Perl
+[[install-perl5]]
+==== Perl 5
 
 Installed Version Test:
 ----
 perl -v
 ----
 
-Any machine that doesn't have Perl on it is a sad machine indeed.
+Any machine that doesn't have Perl 5 on it is a sad machine indeed.
 If you don't have it and your OS doesn't provide official packages,
-visit link:$$http://www.perl.org$$[].
-Although Bugzilla runs with Perl 5.8.1,
+visit http://www.perl.org. Although Bugzilla should run with Perl 5.8.1,
 it's a good idea to be using the latest stable version.
+
+NOTE: Although Windows is not a recommended platform itself,
+we recommend to use link:http://strawberryperl.com/[Strawberry Perl] under it.
+Strawberry Perl contains a working GCC compiler toolchain and a package manager
+that allows to install Perl modules containing native code easily.
 
 [[install-database]]
 ==== Database Engine
 
-Bugzilla supports MySQL, PostgreSQL and Oracle as database servers.
+Bugzilla supports MySQL/MariaDB, PostgreSQL and Oracle as database servers,
+or SQLite as an embedded SQL database for very small installations.
+
 You only require one of these systems to make use of Bugzilla.
 
 [[install-mysql]]
-===== MySQL
+===== MySQL or MariaDB
 
 Installed Version Test:
 ----
@@ -211,15 +230,19 @@ mysql -V
 ----
 
 If you don't have it and your OS doesn't provide official packages,
-visit link:$$http://www.mysql.com$$[]. You need MySQL version
-4.1.2 or higher.
+visit http://mariadb.org/ or http://www.mysql.com/.
+
+Bugzilla is compatible with any MySQL/MariaDB version 4.1.2 or higher, but the best
+is to use latest MariaDB versions, because it contains more advanced features out-of-the-box.
+MariaDB is a community fork of MySQL started after MySQL company was acquired by Oracle,
+and is fully compatible with original MySQL.
 
 [NOTE]
-Many of the binary versions of MySQL store their data files in _/var_.
-On some Unix systems, this is part of a smaller root partition,
-and may not have room for your bug database. To change the data
-directory, you have to build MySQL from source yourself, and
-set it as an option to _configure_.
+Many of the binary versions of MySQL/MariaDB store their data files in _/var_.
+On some systems, this is part of a smaller root partition,
+and may not have room for your bug database. In this case just move
+existing database files to some other place and change
+data directory in your _my.cnf_ configuration file.
 
 If you install from something other than a packaging/installation
 system, such as .rpm (Redhat Package), .deb (Debian Package), .exe
@@ -235,7 +258,7 @@ psql -V
 ----
 
 If you don't have it and your OS doesn't provide official packages,
-visit link:$$http://www.postgresql.org/$$[]. You need PostgreSQL
+visit http://www.postgresql.org/. You need PostgreSQL
 version 8.00.0000 or higher.
 
 If you install from something other than a packaging/installation
@@ -246,6 +269,13 @@ PostgreSQL server is started when the machine boots.
 [[install-oracle]]
 ===== Oracle
 
+WARNING: Oracle is not a recommended database for Bugzilla4Intranet.
+It's a closed-source commercial product, it's more complex to administer and it
+doesn't offer any real advantage over MySQL or PostgreSQL for Bugzilla.
+There some MySQL-specific features in Bugzilla and most testing is done on
+MySQL and PostgreSQL installations so while Oracle support should mostly work,
+it may still be more buggy than MySQL or PostgreSQL.
+
 Installed Version Test:
 ----
 select * from v$version
@@ -254,7 +284,7 @@ select * from v$version
 (you first have to log in into your DB)
 
 If you don't have it and your OS doesn't provide official packages,
-visit link:$$http://www.oracle.com/$$[]. You need Oracle
+visit http://www.oracle.com/. You need Oracle
 version 10.02.0 or higher.
 
 If you install from something other than a packaging/installation
@@ -262,111 +292,185 @@ system, such as .rpm (Redhat Package), .deb (Debian Package), .exe
 (Windows Executable), or .msi (Microsoft Installer), make sure the
 Oracle server is started when the machine boots.
 
+===== SQLite
+
+Due to SQLite's link:$$http://sqlite.org/faq.html#q5$$[concurrency limitations]
+we recommend SQLite only for small and development Bugzilla installations.
+
+No special configuration is required to run Bugzilla on SQLite, besides
+installing perl `DBD::SQLite` module. The database will be stored in _data/db/$db_name_,
+where `$db_name` is the database name defined in _localconfig_.
+
+[[install-sphinx]]
+==== Sphinx Search
+
+link:http://sphinxsearch.com[Sphinx Search] is an easy-to-use high-performance full-text
+search server. It's faster (in some cases *much* faster) and gives better search quality
+than the full-text search built into any of the databases Bugzilla may use (especially
+MySQL).
+
+Bugzilla4Intranet may use Sphinx for full-text searching. If you want to use it,
+you must install Sphinx server (any version that supports SphinxQL, that is, at least 2.0.1).
+Use official packages of your distribution or visit http://sphinxsearch.com/downloads/.
+
+After installing Sphinx, you must enable SphinxQL protocol by adding 'listen'
+directive to the 'searchd' section of your 'sphinx.conf' (usually located in
+'/etc/sphinxsearch' on GNU/Linux), and configure the index for Bugzilla.
+Example configuration is (also provided in 'data/sphinx.conf'):
+
+----
+index bugs
+{
+    type          = rt
+    path          = /var/lib/sphinxsearch/data/bugs
+    rt_field      = short_desc
+    rt_field      = comments
+    rt_field      = comments_private
+    docinfo       = extern
+    enable_star   = 1
+    charset_type  = utf-8
+    charset_table = 0..9, A..Z->a..z, a..z, U+410..U+42F->U+430..U+44F, U+430..U+44F
+    blend_chars   = _, -, &, +, @, $
+    morphology    = stem_enru
+    min_word_len  = 2
+}
+
+searchd
+{
+    ...
+    listen = /var/run/sphinxsearch/searchd.sock:mysql41
+    ...
+}
+----
+
+After configuring Sphinx server set '$sphinx_*' variables in your 'localconfig'.
+For the above case it should look like the following:
+
+----
+$sphinx_index = 'bugs';
+$sphinx_host = '127.0.0.1';
+$sphinx_port = 0;
+$sphinx_sock = '/var/run/sphinxsearch/searchd.sock';
+----
+
+.Installing Sphinx from source
+
+To install Sphinx from source, run the following commands:
+
+----
+tar -zxf sphinx-<YOUR_VERSION>.tar.gz
+cd sphinx-<YOUR_VERSION>
+./configure --prefix=/usr --sysconfdir=/etc/sphinxsearch --localstatedir=/var --datarootdir=/var/lib/sphinxsearch --enable-id64
+make clean
+make -j4
+sudo make install
+----
+
 [[install-webserver]]
 ==== Web Server
 
-Installed Version Test: view the default welcome page at
-http://&lt;your-machine&gt;/
+You have several options here:
 
-You have freedom of choice here, pretty much any web server that
-is capable of running CGI
-scripts will work.
-However, we strongly recommend using the Apache web server
-(either 1.3.x or 2.x), and
-the installation instructions usually assume you are
-using it. If you have got Bugzilla working using another web server,
-please share your experiences with us by filing a bug in link:$$https://bugzilla.mozilla.org/enter_bug.cgi?product=Bugzilla&amp;component=Documentation$$[Bugzilla Documentation].
+* *Recommended option:* use the pure-perl standalone HTTP server 'HTTPServerSimple.pl'
+  supplied with Bugzilla4Intranet installed behind a fast reverse-proxy like link:http://nginx.org[nginx]
+  or link:http://lighttpd.net/[lighttpd].
 
-If you don't have Apache and your OS doesn't provide official packages,
-visit link:$$http://httpd.apache.org/$$[].
+* *The simplest way:* Use just 'HTTPServerSimple.pl' without any reverse proxy. It is capable of serving static files,
+  so this setup also works, but it may be less secure to have it point directly to the public network
+  (because it's of course less tested than nginx or lighttpd). Also note that the standalone server
+  doesn't support keepalive so the client will open much more connections which also affects page load speed.
+
+* Run Bugzilla inside link:http://httpd.apache.org/[Apache] with link:http://perl.apache.org/[mod_perl].
+  This setup should result roughly the same performance, but usually consumes more memory than the
+  standalone server, especially if you have several virtual hosts / web applications in a single Apache instance.
+  Sometimes mod_perl usage also results is very strange bugs that don't show up in the bare Perl.
+
+* *The worst:* Run Bugzilla using CGI with any webserver capable of running CGI scripts.
+  This is the worst option because CGI means Perl must re-initialise all Bugzilla modules on every request
+  which usually leads to poor performance.
 
 [[install-bzfiles]]
 ==== Bugzilla
 
-link:$$http://www.bugzilla.org/download/$$[Download a Bugzilla tarball]
-(or check it out from CVS) and place
-it in a suitable directory, accessible by the default web server user
-(probably "apache" or "www").
-Good locations are either directly in the web server's document directories or
-in _/usr/local_ with a symbolic link to the web server's
-document directories or an alias in the web server's configuration.
+link:$$http://wiki.4intra.net/Bugzilla4Intranet/Download$$[Download a Bugzilla tarball]
+(or check it out from link:https://github.com/vitalif/bugzilla-4intranet/[Github repository])
+and place it in a suitable directory, accessible by the default web server user
+(in case of Apache, it's usually "httpd", "apache" or "www-data").
 
 [CAUTION]
-====
 The default Bugzilla distribution is NOT designed to be placed
-in a _cgi-bin_ directory. This
-includes any directory which is configured using the
+in a _cgi-bin_ directory. This includes any directory which is configured using the
 ScriptAlias directive of Apache.
-====
 
-Once all the files are in a web accessible directory, make that
-directory writable by your web server's user. This is a temporary step
-until you run the
-_checksetup.pl_
-script, which locks down your installation.
+It's not needed (and even _not recommended_) to make Bugzilla files to be writable by your web-server user.
+Although they _must_ be readable by it and you may even leave them world-readable - that's no problem
+because _checksetup.pl_ will take care of setting correct permissions to sensitive files and to files
+that Bugzilla needs to write (mainly _data/_ directory). But you should run _checksetup.pl_ from under
+the user that is a member of the web-server group (or a superuser) so it could change group on these files.
 
 [[install-perlmodules]]
 ==== Perl Modules
 
-Bugzilla's installation process is based
-on a script called _checksetup.pl_.
-The first thing it checks is whether you have appropriate
-versions of all the required
+Bugzilla's installation process is based on a script called _checksetup.pl_.
+The first thing it checks is whether you have appropriate versions of all the required
 Perl modules. The aim of this section is to pass this check.
 When it passes, proceed to <<configuration,Configuration>>.
 
-At this point, you need to _su_ to root. You should
-remain as root until the end of the install. To check you have the
-required modules, run:
+To check you have the required modules, run:
 
 ----
 bash# ./checksetup.pl --check-modules
 ----
 
-_checksetup.pl_ will print out a list of the
-required and optional Perl modules, together with the versions
-(if any) installed on your machine.
-The list of required modules is reasonably long; however, you
-may already have several of them installed.
+_checksetup.pl_ will print out a list of the required and optional Perl modules,
+together with the versions (if any) installed on your machine. The list of required
+modules is reasonably long; however, you may already have several of them installed.
 
-The preferred way to install missing Perl modules is to use the package
-manager provided by your operating system (e.g "rpm" or
-"yum" on Linux distros, or "ppm" on Windows
-if using ActivePerl, see <<win32-perl-modules,Perl Modules on Win32>>).
-If some Perl modules are still missing or are too old, then we recommend
-using the _install-module.pl_ script (doesn't work
-with ActivePerl on Windows). If for some reason you really need to
-install the Perl modules manually, see
-<<install-perlmodules-manual,Manual Installation of Perl Modules>>. For instance, on Unix,
-you invoke _install-module.pl_ as follows:
+The best is to install missing Perl modules system-wise, but this requires root permissions
+(_su_ or _sudo bash_ to root before proceeding).
 
-----
-bash# perl install-module.pl <modulename>
-----
+You may install modules using the following methods:
+
+. Using the official packages of your operating system or distribution.
+  It's *almost certain* that not all modules are available as the official packages,
+  at least on GNU/Linux distributions, but you may install the ones that are available
+  with the system package manager. Package manager is usually 'yum' or 'zypper' in
+  RPM-based GNU/Linux distros, 'apt-get' in Debian GNU/Linux-based systems, and 'ppm'
+  (Perl Package Manager) in Windows link:http://www.activestate.com/activeperl[ActivePerl]
+  and link:http://strawberryperl.com/[Strawberry Perl] distributions. Package names vary:
+
+  * For example, in Debian ImageMagick is 'perlmagick' and most other packages
+    have names similar to 'libxxx-yyyperl' for 'Xxx::Yyy' perl module.
+  * In RPM-based distros, packages are usually named 'perl-Xxx-Yyy'.
+  * In PPM, they're usually just 'Xxx-Yyy'.
+
+. Using link:http://cpan.org/[CPAN] shell. In fact, you may install all required modules using CPAN.
+  To install modules using CPAN shell, run `cpan Module1 Module2...` or `perl -MCPAN -eshell Module1 Module2...`
+  command under the root user, where 'Module1', 'Module2' and etc are the required
+  modules.
++
+NOTE: Some of modules (database drivers, GD, ImageMagick and etc) contain native code (C/C++)
+and require a working compiler toolchain, libraries and their development ('-dev' or '-devel') packages to install.
+
+. Using the _install-module.pl_ script. In this case just run `perl install-module.pl <modulename>`
+  from the Bugzilla installation directory. It basically invokes CPAN, but it's capable
+  of installing modules to local Bugzilla directory instead of installing them system-wise.
+
+. Manually. In this case see <<install-perlmodules-manual,Manual Installation of Perl Modules>>.
 
 [TIP]
 ====
 Many people complain that Perl modules will not install for
 them. Most times, the error messages complain that they are missing a
-file in
-"@INC".
+file in "@INC".
+
 Virtually every time, this error is due to permissions being set too
 restrictively for you to compile Perl modules or not having the
 necessary Perl development libraries installed on your system.
 Consult your local UNIX systems administrator for help solving these
-permissions issues; if you
-_are_
+permissions issues; if you _are_
 the local UNIX sysadmin, please consult the newsgroup/mailing list
 for further assistance or hire someone to help you out.
-====
-
-[NOTE]
-====
-If you are using a package-based system, and attempting to install the
-Perl modules from CPAN, you may need to install the "development" packages for
-MySQL and GD before attempting to install the related Perl modules. The names of
-these packages will vary depending on the specific distribution you are using,
-but are often called _&lt;packagename&gt;-devel_.
 ====
 
 Here is a complete list of modules and their minimum versions.
@@ -417,19 +521,8 @@ ensure that the mail is delivered properly. They are implemented
 as services, and you should ensure that the MTA is in the auto-start
 list of services for the machine.
 
-If a simple mail sent with the command-line 'mail' program
+If a simple mail sent with the command-line 'mail' or 'sendmail -t' program
 succeeds, then Bugzilla should also be fine.
-
-[[using-mod_perl-with-bugzilla]]
-==== Installing Bugzilla on mod_perl
-
-It is now possible to run the Bugzilla software under +$$mod_perl$$+ on
-Apache. +$$mod_perl$$+ has some additional requirements to that of running
-Bugzilla under +$$mod_cgi$$+ (the standard and previous way).
-
-Bugzilla requires +$$mod_perl$$+ to be installed, which can be
-obtained from link:$$http://perl.apache.org$$[] - Bugzilla requires
-version 1.999022 (AKA 2.0.0-RC5) to be installed.
 
 [[configuration]]
 === Configuration
@@ -455,45 +548,29 @@ bash ./checksetup.pl
 
 This time, _checksetup.pl_ should tell you that all
 the correct modules are installed and will display a message about, and
-write out a  file called, _localconfig_. This file
+write out a file called, _localconfig_. This file
 contains the default settings for a number of Bugzilla parameters.
 
-Load this file in your editor. The only two values you
-_need_ to change are $db_driver and $db_pass,
-respectively the type of the database and the password for
-the user you will create for your database. Pick a strong
-password (for simplicity, it should not contain single quote
-characters) and put it here. $db_driver can be either 'mysql',
-'Pg' or 'oracle'.
+Load this file in your editor. The only values you _need_ to change are
+database connection details:
 
-[NOTE]
-====
-In Oracle, +$$$db_name$$+ should actually be
+'$db_driver' :: Name of the database driver you want to use. May be 'mysql', 'pg', 'oracle' or 'sqlite'.
+'$db_host' :: Hostname or IP address on which the database server runs, usually 'localhost' (ignored by SQLite).
+'$db_user' and '$db_password' :: Database user and password to connect as (ignored by SQLite).
+  Pick a username and a strong password; you will create this user during the next installation step.
+'$db_name' :: Name of the database Bugzilla should use (database filename in case of SQLite).
+  In case of MySQL/PostgreSQL you will create this database during the next installation step.
+  +
+NOTE: In Oracle, '$db_name' should actually be
 the SID name of your database (e.g. "XE" if you are using Oracle XE).
-====
 
-You may need to change the value of
-_webservergroup_ if your web server does not
-run in the "apache" group.  On Debian, for example, Apache runs in
-the "www-data" group.  If you are going to run Bugzilla on a
-machine where you do not have root access (such as on a shared web
-hosting account), you will need to leave
-_webservergroup_ empty, ignoring the warnings
-that _checksetup.pl_ will subsequently display
-every time it is run.
+You may need to change the value of '$webservergroup' if your web server does not
+run in the "apache" group. On Debian, for example, Apache runs in the "www-data" group.
+If you are going to run Bugzilla on a machine where you do not have root or web-server
+group access, you will need to leave _webservergroup_ empty, ignoring the warnings that
+_checksetup.pl_ will subsequently display every time it is run.
 
-[CAUTION]
-====
-If you are using suexec, you should use your own primary group
-for _webservergroup_ rather than leaving it
-empty, and see the additional directions in the suexec section
-<<suexec,SuEXEC>>.
-====
-
-The other options in the _localconfig_ file
-are documented by their accompanying comments. If you have a slightly
-non-standard database setup, you may wish to change one or more of
-the other "$db_*" parameters.
+The other options in the _localconfig_ file are documented by their accompanying comments.
 
 [[database-engine]]
 ==== Database Server
@@ -502,44 +579,44 @@ This section deals with configuring your database server for use
 with Bugzilla. Currently, <<mysql,MySQL>>, <<postgresql,PostgreSQL>>
 and <<oracle,Oracle>> are available.
 
+SQLite does not require additional configuration.
+
 [[database-schema]]
 ===== Bugzilla Database Schema
 
-The Bugzilla database schema is available at
-link:$$http://www.ravenbrook.com/project/p4dti/tool/cgi/bugzilla-schema/$$[Ravenbrook].
-This very valuable tool can generate a written description of
-the Bugzilla database schema for any version of Bugzilla. It
-can also generate a diff between two versions to help someone
-see what has changed.
+The Bugzilla database schema is described in 'Bugzilla/DB/Schema.pm' source file.
+
+There is the link:$$http://www.ravenbrook.com/project/p4dti/tool/cgi/bugzilla-schema/$$[Ravenbrook]
+utility which can generate a written description of the schema, but it's now limited to
+Bugzilla 3.4.2 and surely it doesn't know anything about Bugzilla4Intranet. Nevertheless,
+its source is available in link:https://github.com/Ravenbrook/bugzilla-schema[this GitHub repository],
+so you may try to use it by hand on a Bugzilla4Intranet installation.
 
 [[mysql]]
 ===== MySQL
 
 [CAUTION]
 ====
-MySQL's default configuration is insecure.
+MySQL's default configuration may be insecure.
 We highly recommend to run _$$mysql_secure_installation$$_
 on Linux or the MySQL installer on Windows, and follow the instructions.
 Important points to note are:
 
 . Be sure that the root account has a secure password set.
-
-. Do not create an anonymous account, and if it exists, say "yes"
-to remove it.
-
-. If your web server and MySQL server are on the same machine,
-you should disable the network access.
+. Do not create an anonymous account, and if it exists, say "yes" to remove it.
+. If your web server and MySQL server are on the same machine, you should disable the network access.
 ====
 
 [[mysql-max-allowed-packet]]
-.Allow large attachments and many comments
+.Allow many comments
 
-By default, MySQL will only allow you to insert things
-into the database that are smaller than 1MB. Attachments
-may be larger than this. Also, Bugzilla combines all comments
-on a single bug into one field for full-text searching, and the
-combination of all comments on a single bug could in some cases
-be larger than 1MB.
+By default, MySQL will only allow you to insert things into the database that are smaller than 1MB.
+But in the case you use MySQL full-text search, Bugzilla combines all comments
+on a single bug into one field, and the combination of all comments on a single
+bug could in some cases be larger than 1MB.
+
+Original Bugzilla also used to store attachments in the DB, but Bugzilla4Intranet
+doesn't do it by default, so max_allowed_packet doesn't affect them.
 
 To change MySQL's default, you need to edit your MySQL
 configuration file, which is usually _/etc/my.cnf_
@@ -577,56 +654,21 @@ link:$$http://www.mysql.com/doc/en/Fulltext_Fine-tuning.html$$[].
 [[install-setupdatabase-adduser]]
 .Add a user to MySQL
 
-You need to add a new MySQL user for Bugzilla to use.
-(It's not safe to have Bugzilla use the MySQL root account.)
-The following instructions assume the defaults in
-__localconfig__; if you changed those,
-you need to modify the SQL command appropriately. You will
-need the _++$db_pass++_ password you
-set in _localconfig_ in
-<<localconfig,localconfig>>.
+You need to add a new MySQL user for Bugzilla to use
+(It's not safe to have Bugzilla use the MySQL root account).
+You will need the '$db_*' values you set in _localconfig_ in <<localconfig,localconfig>>.
 
-We use an SQL _GRANT_ command to create
-a "bugs" user. This also restricts the
-"bugs"user to operations within a database
-called "bugs", and only allows the account
-to connect from "localhost". Modify it to
-reflect your setup if you will be connecting from another
-machine or as a different user.
+We use an SQL _GRANT_ command to create the '$db_user' user. This also restricts him
+to operations within a database called '$db_name', and only allows the account
+to connect from '$db_host' (usually 'localhost'). Modify it to reflect your setup if
+you will be connecting from another machine or as a different user.
 
 Run the _mysql_ command-line client and enter:
 
 ----
-mysql> GRANT ALL PRIVILEGES ON bugs.* TO bugs@localhost IDENTIFIED BY '$db_pass';
+mysql> GRANT ALL PRIVILEGES ON $db_name.* TO '$db_user'@'$db_host' IDENTIFIED BY '$db_pass';
 mysql> FLUSH PRIVILEGES;
 ----
-
-.Permit attachments table to grow beyond 4GB
-
-By default, MySQL will limit the size of a table to 4GB.
-This limit is present even if the underlying filesystem
-has no such limit. To set a higher limit, follow these
-instructions.
-
-After you have completed the rest of the installation (or at least the
-database setup parts), you should run the _MySQL_
-command-line client and enter the following, replacing +$$$bugs_db$$+
-with your Bugzilla database name (__bugs__ by default):
-
-----
-mysql> use $bugs_db
-mysql> ALTER TABLE attachments AVG_ROW_LENGTH=1000000, MAX_ROWS=20000;
-----
-
-The above command will change the limit to 20GB. Mysql will have
-to make a temporary copy of your entire table to do this. Ideally,
-you should do this when your attachments table is still small.
-
-[NOTE]
-====
-This does not affect Big Files, attachments that are stored directly
-on disk instead of in the database.
-====
 
 [[postgresql]]
 ===== PostgreSQL
@@ -635,11 +677,8 @@ on disk instead of in the database.
 
 You need to add a new user to PostgreSQL for the Bugzilla
 application to use when accessing the database. The following instructions
-assume the defaults in __localconfig__; if you
-changed those, you need to modify the commands appropriately. You will
-need the _++$db_pass++_ password you
-set in _localconfig_ in
-<<localconfig,localconfig>>.
+assume the defaults in __localconfig__; if you changed those, you need to modify the commands appropriately. You will
+need the '$db_pass' password you set in _localconfig_ in <<localconfig,localconfig>>.
 
 On most systems, to create the user in PostgreSQL, you will need to
 login as the root user, and then
@@ -650,17 +689,17 @@ bash# su - postgres
 
 As the postgres user, you then need to create a new user:
 
-bash$ createuser -U postgres -dRSP bugs
+----
+bash$ createuser -U postgres -dRSP $db_user
+----
 
 When asked for a password, provide the password which will be set as
-_++$db_pass++_ in _localconfig_.
-The created user will not be a superuser (-S) and will not be able to create
-new users (-R). He will only have the ability to create databases (-d).
+'$db_pass' in _localconfig_. The created user will not be a superuser (-S)
+and will not be able to create new users (-R). He will only have the
+ability to create databases (-d).
 
 [NOTE]
-====
 If your are running PostgreSQL 8.0, you must replace -dRSP by -dAP.
-====
 
 .Configure PostgreSQL
 
@@ -669,20 +708,16 @@ usually located in _/var/lib/pgsql/data/_. In this file,
 you will need to add a new line to it as follows:
 
 ----
-host   all    bugs   127.0.0.1    255.255.255.255  md5
+host   all    $db_user   127.0.0.1    255.255.255.255  md5
 ----
 
 This means that for TCP/IP (host) connections, allow connections from
-'127.0.0.1' to 'all' databases on this server from the 'bugs' user, and use
+'127.0.0.1' to 'all' databases on this server from the '$db_user' user, and use
 password authentication (md5) for that user.
 
 Now, you will need to restart PostgreSQL, but you will need to fully
 stop and start the server rather than just restarting due to the possibility
-of a change to _postgresql.conf_. After the server has
-restarted, you will need to edit _localconfig_, finding
-the +$$$db_driver$$+ variable and setting it to
-+Pg+ and changing the password in +$$$db_pass$$+
-to the one you picked previously, while setting up the account.
+of a change to _postgresql.conf_.
 
 [[oracle]]
 ===== Oracle
@@ -699,19 +734,16 @@ AUTOEXTEND ON NEXT 30M MAXSIZE UNLIMITED
 ----
 
 Here, the name of the tablespace is 'bugs', but you can
-choose another name. _++$path_to_datafile++_ is
+choose another name. '$path_to_datafile' is
 the path to the file containing your database, for instance
-_/u01/oradata/bugzilla.dbf_.
+_/u01/app/oracle/oradata/XE/bugzilla.dbf_.
 The initial size of the database file is set in this example to 500 Mb,
 with an increment of 30 Mb everytime we reach the size limit of the file.
 
 .Add a User to Oracle
 
-The user name and password must match what you set in
-_localconfig_ (++$$$db_user$$++
-and ++$$$db_pass$$++, respectively). Here, we assume that
-the user name is 'bugs' and the tablespace name is the same
-as above.
+The user name and password must match what you set in _localconfig_ ('$db_user' and '$db_pass', respectively).
+Here, we assume that the user name is 'bugs' and the tablespace name is the same as above.
 
 ----
 CREATE USER bugs
@@ -729,8 +761,8 @@ GRANT EXECUTE ON CTXSYS.CTX_DDL TO bugs;
 
 .Configure the Web Server
 
-If you use Apache, append these lines to _httpd.conf_
-to set ORACLE_HOME and LD_LIBRARY_PATH. For instance:
+You should add ORACLE_HOME and LD_LIBRARY_PATH to your web-server environment
+variables. For instance, for Apache, add the following into 'httpd.conf':
 
 ----
 SetEnv ORACLE_HOME /u01/app/oracle/product/10.2.0/
@@ -761,17 +793,15 @@ _checksetup.pl_ at any time if you wish.
 [[http]]
 ==== Web server
 
-Configure your web server according to the instructions in the
-appropriate section. (If it makes a difference in your choice,
-the Bugzilla Team recommends Apache.) To check whether your web server
-is correctly configured, try to access _testagent.cgi_
+Configure your web server according to the instructions in the appropriate section.
+To check whether your web server is correctly configured, try to access _testagent.cgi_
 from your web server. If "OK" is displayed, then your configuration
 is successful. Regardless of which web server
 you are using, however, ensure that sensitive information is
 not remotely available by properly applying the access controls in
 <<security-webserver-access,Disabling Remote Access to Bugzilla Configuration Files>>.
-You can run _testserver.pl_ to check if your web server serves
-Bugzilla files as expected.
+
+NOTE: You can run _testserver.pl_ to check if your web server serves Bugzilla files as expected.
 
 [[http-apache]]
 ===== Bugzilla using Apache
@@ -3200,7 +3230,7 @@ group controls accessed on this page.
 . Global configuration parameters. Bugzilla has several parameters
 that control the overall default group behavior and restriction
 levels. For more information on the parameters that control
-group behavior globally, see <<param-group-security,Group Security>>.
+group behavior globally, see <<param-groupsecurity,Group Security>>.
 
 . Product association with groups. Most of the functionality of groups
 and group security is controlled at the product level. Some aspects
@@ -5649,16 +5679,27 @@ from the command line (or from a cron job) with no parameters.
 [appendix]
 == Manual Installation of Perl Modules
 
-[[modules-manual-instructions]]
-=== Instructions
-
 If you need to install Perl modules manually, here's how it's done.
-Download the module using the link given in the next section, and then
-apply this magic incantation, as root:
+Find the module on http://cpan.org/ site, download the _.tar.gz_ package using your browser,
+and then apply this magic incantation, as root:
 
 ----
 bash# tar -xzvf <module>.tar.gz
 bash# cd <module>
+----
+
+Then, if a Build.PL file exists in the module directory, run:
+
+----
+bash# perl Build.PL
+bash# perl Build
+bash# perl Build test
+bash# perl Build install
+----
+
+Else run:
+
+----
 bash# perl Makefile.PL
 bash# make
 bash# make test
@@ -5668,167 +5709,9 @@ bash# make install
 [NOTE]
 ====
 In order to compile source code under Windows you will need to obtain
-a 'make' utility.  The _nmake_ utility provided with
-Microsoft Visual C++ may be used.  As an alternative, there is a
-utility called _dmake_ available from CPAN which is
-written entirely in Perl.
-
-As described in <<modules-manual-download,Download Locations>>, however, most
-packages already exist and are available from ActiveState or theory58S.
-We highly recommend that you install them using the ppm GUI available with
-ActiveState and to add the theory58S repository to your list of repositories.
+a working compiler toolchain including a 'make' utility;
+link:http://strawberryperl.com/[Strawberry Perl] contains one.
 ====
-
-[[modules-manual-download]]
-=== Download Locations
-
-[NOTE]
-====
-Running Bugzilla on Windows requires the use of ActiveState
-Perl 5.8.1 or higher. Many modules already exist in the core
-distribution of ActiveState Perl. Additional modules can be downloaded
-from link:$$http://theoryx5.uwinnipeg.ca/ppms/$$[] if you use
-Perl 5.8.x or from link:$$http://cpan.uwinnipeg.ca/PPMPackages/10xx/$$[]
-if you use Perl 5.10.x.
-====
-
-CGI:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/CGI.pm/$$[]
-Documentation: link:$$http://perldoc.perl.org/CGI.html$$[]
-
-....
-
-Data-Dumper:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/Data-Dumper/$$[]
-Documentation: link:$$http://search.cpan.org/dist/Data-Dumper/Dumper.pm$$[]
-
-....
-
-Date::Format (part of TimeDate):
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/TimeDate/$$[]
-Documentation: link:$$http://search.cpan.org/dist/TimeDate/lib/Date/Format.pm$$[]
-
-....
-
-DBI:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/DBI/$$[]
-Documentation: link:$$http://dbi.perl.org/docs/$$[]
-
-....
-
-DBD::mysql:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/DBD-mysql/$$[]
-Documentation: link:$$http://search.cpan.org/dist/DBD-mysql/lib/DBD/mysql.pm$$[]
-
-....
-
-DBD::Pg:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/DBD-Pg/$$[]
-Documentation: link:$$http://search.cpan.org/dist/DBD-Pg/Pg.pm$$[]
-
-....
-
-Template-Toolkit:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/Template-Toolkit/$$[]
-Documentation: link:$$http://www.template-toolkit.org/docs.html$$[]
-
-....
-
-GD:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/GD/$$[]
-Documentation: link:$$http://search.cpan.org/dist/GD/GD.pm$$[]
-
-....
-
-Template::Plugin::GD:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/Template-GD/$$[]
-Documentation: link:$$http://www.template-toolkit.org/docs/aqua/Modules/index.html$$[]
-
-....
-
-MIME::Parser (part of MIME-tools):
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/MIME-tools/$$[]
-Documentation: link:$$http://search.cpan.org/dist/MIME-tools/lib/MIME/Parser.pm$$[]
-
-....
-
-[[modules-manual-optional]]
-=== Optional Modules
-
-Chart::Lines:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/Chart/$$[]
-Documentation: link:$$http://search.cpan.org/dist/Chart/Chart.pod$$[]
-
-....
-
-GD::Graph:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/GDGraph/$$[]
-Documentation: link:$$http://search.cpan.org/dist/GDGraph/Graph.pm$$[]
-
-....
-
-GD::Text::Align (part of GD::Text::Util):
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/GDTextUtil/$$[]
-Documentation: link:$$http://search.cpan.org/dist/GDTextUtil/Text/Align.pm$$[]
-
-....
-
-XML::Twig:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/dist/XML-Twig/$$[]
-Documentation: link:$$http://standards.ieee.org/resources/spasystem/twig/twig_stable.html$$[]
-
-....
-
-PatchReader:
-
-....
-
-CPAN Download Page: link:$$http://search.cpan.org/author/JKEISER/PatchReader/$$[]
-Documentation: link:$$http://www.johnkeiser.com/mozilla/Patch_Viewer.html$$[]
-
-....
 
 [[gfdl]]
 [appendix]
