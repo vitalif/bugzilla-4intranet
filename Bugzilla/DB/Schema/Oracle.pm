@@ -50,24 +50,25 @@ sub _initialize {
     $self->{db_specific} = {
 
         BOOLEAN =>      'integer',
-        FALSE =>        '0', 
+        FALSE =>        '0',
         TRUE =>         '1',
 
         INT1 =>         'integer',
         INT2 =>         'integer',
         INT3 =>         'integer',
         INT4 =>         'integer',
+        BIGINT =>       'number(19)',
 
         SMALLSERIAL  => 'integer',
         MEDIUMSERIAL => 'integer',
         INTSERIAL    => 'integer',
-        BIGSERIAL    => 'bigint',
+        BIGSERIAL    => 'number(19)',
 
         TINYTEXT   =>   'varchar(255)',
         MEDIUMTEXT =>   'varchar(4000)',
         LONGTEXT   =>   'clob',
 
-        LONGBLOB =>     'blob',
+        LONGBLOB =>     'clob',
 
         DATETIME =>     'date',
 
@@ -110,7 +111,7 @@ sub _get_create_index_ddl {
 
     my ($self, $table_name, $index_name, $index_fields, $index_type) = @_;
     $index_name = "idx_" . $self->_hash_identifier($index_name);
-    if ($index_type eq 'FULLTEXT') {
+    if (uc($index_type||'') eq 'FULLTEXT') {
         my $sql = "CREATE INDEX $index_name ON $table_name (" 
                   . join(',',@$index_fields)
                   . ") INDEXTYPE IS CTXSYS.CONTEXT "

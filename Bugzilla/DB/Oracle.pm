@@ -12,8 +12,8 @@
 #
 # The Original Code is the Bugzilla Bug Tracking System.
 #
-# The Initial Developer of the Original Code is Oracle Corporation. 
-# Portions created by Oracle are Copyright (C) 2007 Oracle Corporation. 
+# The Initial Developer of the Original Code is Oracle Corporation.
+# Portions created by Oracle are Copyright (C) 2007 Oracle Corporation.
 # All Rights Reserved.
 #
 # Contributor(s): Lance Larsh <lance.larsh@oracle.com>
@@ -66,9 +66,10 @@ sub new {
     # construct the DSN from the parameters we got
     my $dsn = "dbi:Oracle:host=$host;sid=$dbname";
     $dsn .= ";port=$port" if $port;
-    my $attrs = { FetchHashKeyName => 'NAME_lc',  
+    my $attrs = { FetchHashKeyName => 'NAME_lc',
                   LongReadLen => ( Bugzilla->params->{'maxattachmentsize'}
-                                     || 1000 ) * 1024, 
+                                     || 1000 ) * 1024,
+                  LongTruncOk => 1,
                 };
     my $self = $class->db_new($dsn, $user, $pass, $attrs);
     # Needed by TheSchwartz
@@ -79,7 +80,7 @@ sub new {
     # Set the session's default date format to match MySQL
     $self->do("ALTER SESSION SET NLS_DATE_FORMAT='YYYY-MM-DD HH24:MI:SS'");
     $self->do("ALTER SESSION SET NLS_TIMESTAMP_FORMAT='YYYY-MM-DD HH24:MI:SS'");
-    $self->do("ALTER SESSION SET NLS_LENGTH_SEMANTICS='CHAR'") 
+    $self->do("ALTER SESSION SET NLS_LENGTH_SEMANTICS='CHAR'")
         if Bugzilla->params->{'utf8'};
     # To allow case insensitive query.
     $self->do("ALTER SESSION SET NLS_COMP='ANSI'");
@@ -116,14 +117,14 @@ sub bz_check_regexp {
         { value => $pattern, dberror => $self->errstr });
 }
 
-sub bz_explain { 
-     my ($self, $sql) = @_; 
-     my $sth = $self->prepare("EXPLAIN PLAN FOR $sql"); 
+sub bz_explain {
+     my ($self, $sql) = @_;
+     my $sth = $self->prepare("EXPLAIN PLAN FOR $sql");
      $sth->execute();
      my $explain = $self->selectcol_arrayref(
          "SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY)");
-     return join("\n", @$explain); 
-} 
+     return join("\n", @$explain);
+}
 
 sub sql_group_concat {
     my ($self, $text, $separator) = @_;
@@ -146,16 +147,16 @@ sub sql_not_regexp {
 
     $self->bz_check_regexp($real_pattern) if !$nocheck;
 
-    return "NOT REGEXP_LIKE($expr, $pattern)" 
+    return "NOT REGEXP_LIKE($expr, $pattern)"
 }
 
 sub sql_limit {
     my ($self, $limit, $offset) = @_;
 
     if(defined $offset) {
-        return  "/* LIMIT $limit $offset */";
+        return  "LIMIT $offset, $limit";
     }
-    return "/* LIMIT $limit */";
+    return "LIMIT $limit";
 }
 
 sub sql_string_concat {
@@ -166,7 +167,7 @@ sub sql_string_concat {
 
 sub sql_string_until {
     my ($self, $string, $substring) = @_;
-    return "SUBSTR($string, 1, " 
+    return "SUBSTR($string, 1, "
            . $self->sql_position($substring, $string)
            . " - 1)";
 }
@@ -190,7 +191,7 @@ sub sql_fulltext_search {
 
 sub sql_date_format {
     my ($self, $date, $format) = @_;
-    
+
     $format = "%Y.%m.%d %H:%i:%s" if !$format;
 
     $format =~ s/\%Y/YYYY/g;
@@ -230,8 +231,8 @@ sub sql_in {
         my $length = $#in_list + 1;
         my $splice = $length > 1000 ? 1000 : $length;
         my @sub_in_list = splice(@in_list, 0, $splice);
-        push(@in_str, 
-             $self->SUPER::sql_in($column_name, \@sub_in_list)); 
+        push(@in_str,
+             $self->SUPER::sql_in($column_name, \@sub_in_list));
     }
     return "( " . join(" OR ", @in_str) . " )";
 }
@@ -254,7 +255,7 @@ sub bz_drop_table {
      }
 }
 
-# Dropping all FKs for a specified table. 
+# Dropping all FKs for a specified table.
 sub _bz_drop_fks {
     my ($self, $table) = @_;
     my @columns = $self->_bz_real_schema->get_table_columns($table);
@@ -282,17 +283,34 @@ sub _fix_hashref {
      my ($row) = @_;
      return undef if !defined $row;
      foreach my $value (values %$row) {
-       $value = _fix_empty($value) if defined $value;
+         $value = _fix_empty($value) if defined $value;
      }
      return $row;
 }
 
-sub adjust_statement {
+sub adjust_statement
+{
     my ($sql) = @_;
-    
-    if ($sql =~ /^CREATE OR REPLACE.*/i){
+
+    if ($sql =~ /^CREATE\s+OR\s+REPLACE.*/is)
+    {
         return $sql;
-    } 
+    }
+    elsif ($sql =~ s/^\s*INSERT\s+(INTO[^\']+VALUES)\s*//is)
+    {
+        # Oracle does not support normal multi-row inserts O_O!!!
+        my $pre = " $1";
+        my $n = 0;
+        my $r = "";
+        while ($sql =~ s/^\(((?:[^()\']+|\'(?:[^\']+|\'\')+\'|\((?1)\))*)\)\s*(?:,\s*)?//so)
+        {
+            $r .= "$pre ($1)";
+            $n++;
+        }
+        die "Can't translate SQL to INSERT ALL: '$sql' left after translating" if length $sql;
+        $r = $n > 1 ? "INSERT ALL$r SELECT * FROM dual" : "INSERT$r";
+        return $r;
+    }
 
     # We can't just assume any occurrence of "''" in $sql is an empty
     # string, since "''" can occur inside a string literal as a way of
@@ -301,46 +319,55 @@ sub adjust_statement {
     # split the statement into parts by single-quotes.  The negative value
     # at the end to the split operator from dropping trailing empty strings
     # (e.g., when $sql ends in "''")
-    my @parts = split /'/, $sql, -1;
+    my @parts = split /\'/, $sql, -1;
 
-    if( !(@parts % 2) ) {
+    if (!(@parts % 2))
+    {
         # Either the string is empty or the quotes are mismatched
         # Returning input unmodified.
         return $sql;
     }
 
-    # We already verified that we have an odd number of parts.  If we take
+    # Oracle doesn't have LIMIT, so if we find the LIMIT comment, wrap the
+    # query with "SELECT * FROM (...) WHERE rownum < $limit"
+    my ($limit, $offset, $for_update) = (0, 0, 0);
+    if ($parts[$#parts] =~ s/LIMIT\s+(?:(?:(\d+),\s*)?(\d+))(\s*FOR\s+UPDATE)?\s*$//is)
+    {
+        $offset = $1 || 0;
+        $limit = $2;
+        $for_update = $3;
+    }
+
+    # We already verified that we have an odd number of parts. If we take
     # the first part off now, we know we're entering the loop with an even
     # number of parts
     my @result;
     my $part = shift @parts;
-    
+
     # Oracle requires a FROM clause in all SELECT statements, so append
     # "FROM dual" to queries without one (e.g., "SELECT NOW()")
     my $is_select = ($part =~ m/^\s*SELECT\b/io);
-    my $has_from =  ($part =~ m/\bFROM\b/io) if $is_select;
+    my $has_from = ($part =~ m/\bFROM\b/io) if $is_select;
 
     # Oracle recognizes CURRENT_DATE, but not CURRENT_DATE()
     $part =~ s/\bCURRENT_DATE\b\(\)/CURRENT_DATE/io;
-    
+
     # Oracle use SUBSTR instead of SUBSTRING
     $part =~ s/\bSUBSTRING\b/SUBSTR/io;
-   
+
     # Oracle need no 'AS'
     $part =~ s/\bAS\b//ig;
-    
-    # Oracle doesn't have LIMIT, so if we find the LIMIT comment, wrap the
-    # query with "SELECT * FROM (...) WHERE rownum < $limit"
-    my ($limit,$offset) = ($part =~ m{/\* LIMIT (\d*) (\d*) \*/}o);
-    
+
     push @result, $part;
-    while( @parts ) {
+    while (@parts)
+    {
         my $string = shift @parts;
         my $nonstring = shift @parts;
-    
+
         # if the non-string part is zero-length and there are more parts left,
-        # then this is an escaped quote inside a string literal   
-        while( !(length $nonstring) && @parts  ) {
+        # then this is an escaped quote inside a string literal
+        while (!length $nonstring && @parts)
+        {
             # we know it's safe to remove two parts at a time, since we
             # entered the loop with an even number of parts
             $string .= "''" . shift @parts;
@@ -348,31 +375,29 @@ sub adjust_statement {
         }
 
         # Look for a FROM if this is a SELECT and we haven't found one yet
-        $has_from = ($nonstring =~ m/\bFROM\b/io) 
-                    if ($is_select and !$has_from);
+        $has_from = ($nonstring =~ m/\bFROM\b/io) if $is_select && !$has_from;
 
         # Oracle recognizes CURRENT_DATE, but not CURRENT_DATE()
         $nonstring =~ s/\bCURRENT_DATE\b\(\)/CURRENT_DATE/io;
 
         # Oracle use SUBSTR instead of SUBSTRING
         $nonstring =~ s/\bSUBSTRING\b/SUBSTR/io;
-        
+
         # Oracle need no 'AS'
         $nonstring =~ s/\bAS\b//ig;
-        
-        # Take the first 4000 chars for comparison  
-        $nonstring =~ s/\(\s*(longdescs_\d+\.thetext|attachdata_\d+\.thedata)/
-                      \(DBMS_LOB.SUBSTR\($1, 4000, 1\)/ig;
 
-        # Look for a LIMIT clause
-        ($limit) = ($nonstring =~ m(/\* LIMIT (\d*) \*/)o);
+        # Take the first 4000 chars for comparison
+        $nonstring =~ s/(\S+\.(?:(?:old)?thetext|thedata|added|removed))/DBMS_LOB.SUBSTR\($1, 4000, 1\)/gis;
 
-        if(!length($string)){
-           push @result, EMPTY_STRING;
-           push @result, $nonstring;
-        } else {
-           push @result, $string;
-           push @result, $nonstring;
+        if (!length($string))
+        {
+            push @result, EMPTY_STRING;
+            push @result, $nonstring;
+        }
+        else
+        {
+            push @result, $string;
+            push @result, $nonstring;
         }
     }
 
@@ -382,30 +407,21 @@ sub adjust_statement {
     $new_sql .= " FROM DUAL" if ($is_select and !$has_from);
 
     # Wrap the query with a "WHERE rownum <= ..." if we found LIMIT
-    
-    if (defined($limit)) {
-        if ($new_sql !~ /\bWHERE\b/) {
+
+    if ($limit)
+    {
+        if ($new_sql !~ /\bWHERE\b/)
+        {
             $new_sql = $new_sql." WHERE 1=1";
         }
-         my ($before_where, $after_where) = split /\bWHERE\b/i,$new_sql;
-         if (defined($offset)) {
-             if ($new_sql =~ /(.*\s+)FROM(\s+.*)/i) { 
-                 my ($before_from,$after_from) = ($1,$2);
-                 $before_where = "$before_from FROM ($before_from,"
-                             . " ROW_NUMBER() OVER (ORDER BY 1) R "
-                             . " FROM $after_from ) "; 
-                 $after_where = " R BETWEEN $offset+1 AND $limit+$offset";
-             }
-         } else {
-                 $after_where = " rownum <=$limit AND ".$after_where;
-         }
-
-         $new_sql = $before_where." WHERE ".$after_where;
+        $new_sql = "SELECT * FROM ($new_sql) WHERE rownum BETWEEN $offset AND $limit";
     }
+
     return $new_sql;
 }
 
-sub do {
+sub do
+{
     my $self = shift;
     my $sql  = shift;
     $sql = adjust_statement($sql);
@@ -460,7 +476,7 @@ sub selectall_arrayref {
     unshift @_, $new_stmt;
     my $ref = $self->SUPER::selectall_arrayref(@_);
     return undef if !defined $ref;
-    
+
     foreach my $row (@$ref) {
        if (ref($row) eq 'ARRAY') {
             _fix_arrayref($row);
@@ -480,7 +496,7 @@ sub selectall_hashref {
     unshift @_, $new_stmt;
     my $rows = $self->SUPER::selectall_hashref(@_);
     return undef if !defined $rows;
-    foreach my $row (values %$rows) { 
+    foreach my $row (values %$rows) {
           _fix_hashref($row);
     }
     return $rows;
@@ -516,8 +532,13 @@ sub prepare_cached {
 }
 
 sub quote_identifier {
-     my ($self,$id) = @_;
-     return $id;
+    my ($self,$id) = @_;
+    return $id;
+}
+
+sub release_savepoint
+{
+    # do nothing, Oracle does not support RELEASE SAVEPOINT
 }
 
 #####################################################################
@@ -528,7 +549,7 @@ sub bz_table_columns_real {
     my ($self, $table) = @_;
     $table = uc($table);
     my $cols = $self->selectcol_arrayref(
-        "SELECT LOWER(COLUMN_NAME) FROM USER_TAB_COLUMNS WHERE 
+        "SELECT LOWER(COLUMN_NAME) FROM USER_TAB_COLUMNS WHERE
          TABLE_NAME = ?  ORDER BY COLUMN_NAME", undef, $table);
     return @$cols;
 }
@@ -536,7 +557,7 @@ sub bz_table_columns_real {
 sub bz_table_list_real {
     my ($self) = @_;
     my $tables = $self->selectcol_arrayref(
-        "SELECT LOWER(TABLE_NAME) FROM USER_TABLES WHERE 
+        "SELECT LOWER(TABLE_NAME) FROM USER_TABLES WHERE
         TABLE_NAME NOT LIKE ?  ORDER BY TABLE_NAME", undef, 'DR$%');
     return @$tables;
 }
@@ -547,26 +568,26 @@ sub bz_table_list_real {
 
 sub bz_setup_database {
     my $self = shift;
-    
+
     # Create a function that returns SYSDATE to emulate MySQL's "NOW()".
-    # Function NOW() is used widely in Bugzilla SQLs, but Oracle does not 
-    # have that function, So we have to create one ourself. 
+    # Function NOW() is used widely in Bugzilla SQLs, but Oracle does not
+    # have that function, So we have to create one ourself.
     $self->do("CREATE OR REPLACE FUNCTION NOW "
               . " RETURN DATE IS BEGIN RETURN SYSDATE; END;");
-    $self->do("CREATE OR REPLACE FUNCTION CHAR_LENGTH(COLUMN_NAME VARCHAR2)" 
+    $self->do("CREATE OR REPLACE FUNCTION CHAR_LENGTH(COLUMN_NAME VARCHAR2)"
               . " RETURN NUMBER IS BEGIN RETURN LENGTH(COLUMN_NAME); END;");
-    
+
     # Create types for group_concat
     my $t_clob_delim = $self->selectcol_arrayref("
         SELECT TYPE_NAME FROM USER_TYPES WHERE TYPE_NAME=?",
-        undef, 'T_CLOB_DELIM'); 
+        undef, 'T_CLOB_DELIM');
 
     if ( !@$t_clob_delim ) {
         $self->do("CREATE OR REPLACE TYPE T_CLOB_DELIM AS OBJECT "
               . "( p_CONTENT CLOB, p_DELIMITER VARCHAR2(256));");
     }
 
-    $self->do("CREATE OR REPLACE TYPE T_GROUP_CONCAT AS OBJECT 
+    $self->do("CREATE OR REPLACE TYPE T_GROUP_CONCAT AS OBJECT
                (  CLOB_CONTENT CLOB,
                   DELIMITER    VARCHAR2(256),
                   STATIC FUNCTION ODCIAGGREGATEINITIALIZE(
@@ -574,7 +595,7 @@ sub bz_setup_database {
                   RETURN NUMBER,
                   MEMBER FUNCTION ODCIAGGREGATEITERATE(
                       SELF IN OUT NOCOPY T_GROUP_CONCAT,
-                      VALUE IN T_CLOB_DELIM) 
+                      VALUE IN T_CLOB_DELIM)
                   RETURN NUMBER,
                   MEMBER FUNCTION ODCIAGGREGATETERMINATE(
                       SELF IN T_GROUP_CONCAT,
@@ -583,7 +604,7 @@ sub bz_setup_database {
                   RETURN NUMBER,
                   MEMBER FUNCTION ODCIAGGREGATEMERGE(
                       SELF IN OUT NOCOPY T_GROUP_CONCAT,
-                      CTX2 IN T_GROUP_CONCAT) 
+                      CTX2 IN T_GROUP_CONCAT)
                   RETURN NUMBER);");
 
     $self->do("CREATE OR REPLACE TYPE BODY T_GROUP_CONCAT IS
@@ -597,35 +618,35 @@ sub bz_setup_database {
                   END;
                   MEMBER FUNCTION ODCIAGGREGATEITERATE(
                       SELF IN OUT NOCOPY T_GROUP_CONCAT,
-                      VALUE IN T_CLOB_DELIM) 
+                      VALUE IN T_CLOB_DELIM)
                   RETURN NUMBER IS
                   BEGIN
                       SELF.DELIMITER := VALUE.P_DELIMITER;
-                      DBMS_LOB.WRITEAPPEND(SELF.CLOB_CONTENT, 
+                      DBMS_LOB.WRITEAPPEND(SELF.CLOB_CONTENT,
                                            LENGTH(SELF.DELIMITER),
                                            SELF.DELIMITER);
                       DBMS_LOB.APPEND(SELF.CLOB_CONTENT, VALUE.P_CONTENT);
-  
+
                       RETURN ODCICONST.SUCCESS;
                   END;
                   MEMBER FUNCTION ODCIAGGREGATETERMINATE(
                       SELF IN T_GROUP_CONCAT,
                       RETURNVALUE OUT NOCOPY CLOB,
-                      FLAGS IN NUMBER) 
+                      FLAGS IN NUMBER)
                   RETURN NUMBER IS
                   BEGIN
-                      RETURNVALUE := RTRIM(LTRIM(SELF.CLOB_CONTENT, 
-                                     SELF.DELIMITER), 
+                      RETURNVALUE := RTRIM(LTRIM(SELF.CLOB_CONTENT,
+                                     SELF.DELIMITER),
                                      SELF.DELIMITER);
                       RETURN ODCICONST.SUCCESS;
                   END;
                   MEMBER FUNCTION ODCIAGGREGATEMERGE(
                       SELF IN OUT NOCOPY T_GROUP_CONCAT,
-                      CTX2 IN T_GROUP_CONCAT) 
+                      CTX2 IN T_GROUP_CONCAT)
                   RETURN NUMBER IS
                   BEGIN
-                      DBMS_LOB.WRITEAPPEND(SELF.CLOB_CONTENT, 
-                                           LENGTH(SELF.DELIMITER), 
+                      DBMS_LOB.WRITEAPPEND(SELF.CLOB_CONTENT,
+                                           LENGTH(SELF.DELIMITER),
                                            SELF.DELIMITER);
                       DBMS_LOB.APPEND(SELF.CLOB_CONTENT, CTX2.CLOB_CONTENT);
                       RETURN ODCICONST.SUCCESS;
@@ -633,8 +654,8 @@ sub bz_setup_database {
                END;");
 
     # Create user-defined aggregate function group_concat
-    $self->do("CREATE OR REPLACE FUNCTION GROUP_CONCAT(P_INPUT T_CLOB_DELIM) 
-               RETURN CLOB 
+    $self->do("CREATE OR REPLACE FUNCTION GROUP_CONCAT(P_INPUT T_CLOB_DELIM)
+               RETURN CLOB
                DETERMINISTIC PARALLEL_ENABLE AGGREGATE USING T_GROUP_CONCAT;");
 
     # Create a WORLD_LEXER named BZ_LEX for multilingual fulltext search
@@ -665,12 +686,12 @@ sub bz_setup_database {
                 if ( $update =~ /CASCADE/i ){
                      my $trigger_name = uc($fk_name . "_UC");
                      my $exist_trigger = $self->selectcol_arrayref(
-                         "SELECT OBJECT_NAME FROM USER_OBJECTS 
+                         "SELECT OBJECT_NAME FROM USER_OBJECTS
                           WHERE OBJECT_NAME = ?", undef, $trigger_name);
                     if(@$exist_trigger) {
                         $self->do("DROP TRIGGER $trigger_name");
                     }
-  
+
                      my $tr_str = "CREATE OR REPLACE TRIGGER $trigger_name"
                          . " AFTER UPDATE OF $to_column ON $to_table "
                          . " REFERENCING "
@@ -700,7 +721,7 @@ sub bz_setup_database {
 
 package Bugzilla::DB::Oracle::st;
 use base qw(DBI::st);
- 
+
 sub fetchrow_arrayref {
     my $self = shift;
     my $ref = $self->SUPER::fetchrow_arrayref(@_);
@@ -761,6 +782,6 @@ sub fetch {
     if ($row) {
       Bugzilla::DB::Oracle::_fix_arrayref($row);
     }
-   return $row;
+    return $row;
 }
 1;
