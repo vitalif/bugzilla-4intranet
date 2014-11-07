@@ -675,13 +675,14 @@ UPDATE products p SET
 WHERE description LIKE \'%[CC:%]%\'');
     }
 
+    # These indexes are useless - there is no place in the code using them
+    $dbh->bz_drop_index('bugs_activity', 'bugs_activity_added_idx');
+    $dbh->bz_drop_index('bugs_activity', 'bugs_activity_removed_idx');
+
     if ($dbh->bz_column_info(bugs_activity => 'added')->{TYPE} ne 'LONGTEXT')
     {
-        $dbh->bz_drop_index('bugs_activity', 'bugs_activity_added_idx');
-        $dbh->bz_drop_index('bugs_activity', 'bugs_activity_removed_idx');
         $dbh->bz_alter_column('bugs_activity', 'added');
         $dbh->bz_alter_column('bugs_activity', 'removed');
-        $dbh->bz_add_index('bugs_activity', 'bugs_activity_added_idx', ['added(255)']);
         # Concatenate separate lines in bugs_activity for long text fields
         $dbh->do(
             'CREATE TABLE backup_bugs_activity AS SELECT a.* FROM fielddefs f, bugs_activity a'.
@@ -703,9 +704,6 @@ WHERE description LIKE \'%[CC:%]%\'');
         );
         $dbh->do('DROP TABLE bugs_activity_joined');
     }
-
-    # 2012-06-06 dkl@mozilla.com - Bug 762288
-    $dbh->bz_add_index('bugs_activity', 'bugs_activity_removed_idx', ['removed(255)']);
 
     # Change types of all ID fields to INT4
     if ($dbh->bz_column_info('bugs', 'bug_id')->{TYPE} ne 'INTSERIAL' ||
@@ -2681,7 +2679,7 @@ sub _copy_attachments_thedata_to_attach_data
     }
     elsif ($dbh->bz_table_info("attach_data"))
     {
-        ($convert_new) = $dbh->selectrow_array("SELECT COUNT(id) > 0 FROM attach_data");
+        ($convert_new) = $dbh->selectrow_array("SELECT COUNT(*) FROM attach_data");
         # Only need to move attachment data from table `attach_data`
         # to filesystem when force_attach_bigfile is TRUE
         $convert_new &&= Bugzilla->params->{force_attach_bigfile};

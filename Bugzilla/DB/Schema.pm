@@ -321,8 +321,6 @@ use constant ABSTRACT_SCHEMA => {
             bugs_activity_who_idx     => ['who'],
             bugs_activity_bug_when_idx => ['bug_when'],
             bugs_activity_fieldid_idx => ['fieldid'],
-            bugs_activity_added_idx   => ['added(255)'],
-            bugs_activity_removed_idx => ['removed(255)'],
         ],
     },
 
