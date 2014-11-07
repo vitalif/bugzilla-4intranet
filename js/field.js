@@ -384,6 +384,10 @@ function addKeywordsAutocomplete()
 // CustIS bug 66910 - check new keywords and requery description for it
 function check_new_keywords(form)
 {
+    if (!form.keywords)
+    {
+        return true;
+    }
     var input_kw = form.keywords.value.trim();
     input_kw = input_kw.length ? input_kw.split(/[,\s]*,[,\s]*/) : [];
     var kw_hash = {};
