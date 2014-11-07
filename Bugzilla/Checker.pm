@@ -46,7 +46,7 @@ use constant DB_COLUMNS => (
 );
 use constant NAME_FIELD => 'message';
 use constant ID_FIELD   => 'id';
-use constant LIST_ORDER => NAME_FIELD;
+use constant LIST_ORDER => 'id';
 
 use constant REQUIRED_CREATE_FIELDS => qw(query_id message);
 
