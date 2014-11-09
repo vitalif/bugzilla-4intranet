@@ -217,12 +217,16 @@ that allows to install Perl modules containing native code easily.
 ==== Database Engine
 
 Bugzilla supports MySQL/MariaDB, PostgreSQL and Oracle as database servers,
-or SQLite as an embedded SQL database for very small installations.
+or SQLite as an embedded SQL database for small or development installations.
 
 You only require one of these systems to make use of Bugzilla.
 
 [[install-mysql]]
 ===== MySQL or MariaDB
+
+MySQL is a popular free and open-source DBMS; MariaDB is an enhanced
+community fork of MySQL started when MySQL company
+has been acquired by Oracle. It's fully compatible with MySQL.
 
 Installed Version Test:
 ----
@@ -233,9 +237,7 @@ If you don't have it and your OS doesn't provide official packages,
 visit http://mariadb.org/ or http://www.mysql.com/.
 
 Bugzilla is compatible with any MySQL/MariaDB version 4.1.2 or higher, but the best
-is to use latest MariaDB versions, because it contains more advanced features out-of-the-box.
-MariaDB is a community fork of MySQL started after MySQL company was acquired by Oracle,
-and is fully compatible with original MySQL.
+is to use the latest MariaDB version, because it contains more advanced features out-of-the-box.
 
 [NOTE]
 Many of the binary versions of MySQL/MariaDB store their data files in _/var_.
@@ -270,11 +272,11 @@ PostgreSQL server is started when the machine boots.
 ===== Oracle
 
 WARNING: Oracle is not a recommended database for Bugzilla4Intranet.
-It's a closed-source commercial product, it's more complex to administer and it
+It's a closed-source commercial product, it's harded to administer and it
 doesn't offer any real advantage over MySQL or PostgreSQL for Bugzilla.
-There some MySQL-specific features in Bugzilla and most testing is done on
+Moreover, there are some MySQL-specific features in Bugzilla and most testing is done on
 MySQL and PostgreSQL installations so while Oracle support should mostly work,
-it may still be more buggy than MySQL or PostgreSQL.
+it may be more buggy than MySQL or PostgreSQL.
 
 Installed Version Test:
 ----
@@ -293,6 +295,9 @@ system, such as .rpm (Redhat Package), .deb (Debian Package), .exe
 Oracle server is started when the machine boots.
 
 ===== SQLite
+
+SQLite is a small and lightweight embedded SQL database library, so it doesn't
+require separate DBMS server.
 
 Due to SQLite's link:$$http://sqlite.org/faq.html#q5$$[concurrency limitations]
 we recommend SQLite only for small and development Bugzilla installations.
@@ -392,9 +397,9 @@ You have several options here:
 [[install-bzfiles]]
 ==== Bugzilla
 
-link:$$http://wiki.4intra.net/Bugzilla4Intranet/Download$$[Download a Bugzilla tarball]
+link:$$https://github.com/vitalif/bugzilla-4intranet/archive/beta.zip$$[Download a Bugzilla archive]
 (or check it out from link:https://github.com/vitalif/bugzilla-4intranet/[Github repository])
-and place it in a suitable directory, accessible by the default web server user
+and extract it in a suitable directory, accessible by the default web server user
 (in case of Apache, it's usually "httpd", "apache" or "www-data").
 
 [CAUTION]
@@ -761,12 +766,14 @@ GRANT EXECUTE ON CTXSYS.CTX_DDL TO bugs;
 
 .Configure the Web Server
 
-You should add ORACLE_HOME and LD_LIBRARY_PATH to your web-server environment
-variables. For instance, for Apache, add the following into 'httpd.conf':
+For Oracle database driver to work, you must add ORACLE_HOME and
+LD_LIBRARY_PATH to your web-server environment
+variables. For instance, for Apache and Oracle XE installed into
+'/u01/app/oracle/product/11.2.0/xe', add the following into 'httpd.conf':
 
 ----
-SetEnv ORACLE_HOME /u01/app/oracle/product/10.2.0/
-SetEnv LD_LIBRARY_PATH /u01/app/oracle/product/10.2.0/lib/
+SetEnv ORACLE_HOME /u01/app/oracle/product/11.2.0/xe
+SetEnv LD_LIBRARY_PATH /u01/app/oracle/product/11.2.0/xe/lib/
 ----
 
 When this is done, restart your web server.
@@ -787,231 +794,247 @@ it needs one to start off with.
 Enter the email address of an administrator, his or her full name,
 and a suitable Bugzilla password.
 
-_checksetup.pl_ will then finish. You may rerun
-_checksetup.pl_ at any time if you wish.
+_checksetup.pl_ will then finish. You may rerun _checksetup.pl_ at any time if you wish.
 
 [[http]]
 ==== Web server
 
 Configure your web server according to the instructions in the appropriate section.
-To check whether your web server is correctly configured, try to access _testagent.cgi_
-from your web server. If "OK" is displayed, then your configuration
-is successful. Regardless of which web server
-you are using, however, ensure that sensitive information is
-not remotely available by properly applying the access controls in
+To check whether your web server is correctly configured, run
+`perl testserver.pl http://<your-bugzilla-url>`
+from the Bugzilla installation directory. It will perform some checks;
+if OK is displayed for all of them, then your configuration is successful.
+
+Regardless of which web server you are using, however, ensure that
+sensitive information is not remotely available by properly applying the access controls in
 <<security-webserver-access,Disabling Remote Access to Bugzilla Configuration Files>>.
 
-NOTE: You can run _testserver.pl_ to check if your web server serves Bugzilla files as expected.
+[[http-standalone]]
+===== Standalone server (HTTPServerSimple.pl)
 
-[[http-apache]]
-===== Bugzilla using Apache
+NOTE: *HTTPServerSimple.pl is the recommended way to run Bugzilla.*
+It's a simple pure-perl application that doesn't require an external web server to run.
+it's fast, it's free of mod_perl-specific bugs, it doesn't require Apache to be
+installed, and it consumes less memory than mod_perl or CGI-based setups.
 
-.Useful Directives when configuring Bugzilla
+The fastest and safest way is to use it with a reverse proxy like
+link:http://nginx.org[nginx] or link:http://lighttpd.net/[lighttpd] so it serves
+static files and proxies all script requests to 'HTTPServerSimple.pl'.
+Refer to the official documentation of these servers for information about
+how to configure them.
 
-link:$$http://httpd.apache.org/docs-2.0/mod/core.html#addhandler$$[AddHandler] ::
-    Tell Apache that it's OK to run CGI scripts.
-link:$$http://httpd.apache.org/docs-2.0/mod/core.html#allowoverride$$[AllowOverride] ::
-link:$$http://httpd.apache.org/docs-2.0/mod/core.html#options$$[Options] ::
-    These directives are used to tell Apache many things about
-    the directory they apply to. For Bugzilla's purposes, we need
-    them to allow script execution and _.htaccess_ overrides.
-link:$$http://httpd.apache.org/docs-2.0/mod/mod_dir.html#directoryindex$$[DirectoryIndex] ::
-    Used to tell Apache what files are indexes.
-    Add _index.cgi_ to the list of valid files
-link:$$http://httpd.apache.org/docs-2.0/mod/core.html#scriptinterpretersource$$[ScriptInterpreterSource] ::
-    Used when running Apache on windows so the shebang
-    line doesn't have to be changed in every Bugzilla script.
+It's also possible to use the standalone server without a reverse proxy if you
+don't want to use one. In this case just configure 'HTTPServerSimple.pl' to listen
+on '0.0.0.0:80'. However this setup does not allow you to use SSL and even HTTP keepalive,
+and to have a single server for multiple sites or webapplications, because port 80
+is occupied by Bugzilla.
 
-You have two options for running Bugzilla under Apache -
-<<http-apache-mod_cgi,mod_cgi>> (the default) and
-<<http-apache-mod_perl,mod_perl>> (new in Bugzilla
-2.23)
+.How to configure HTTPServerSimple.pl
 
-[[http-apache-mod_cgi]]
-.Apache httpd with mod_cgi
+'HTTPServerSimple.pl' is configured either in the config file or via
+command line options:
 
-To configure your Apache web server to work with Bugzilla while using
-mod_cgi, do the following:
+ perl HTTPServerSimple.pl --<OPTION> <VALUE> [CONFIG-FILE]
 
-Load _httpd.conf_ in your editor.
-In Fedora and Red Hat Linux, this file is found in
-_/etc/httpd/conf_.
+It has reasonable defaults for most options, so the simplest way to run
+it undex Linux/BSD system is:
 
-Apache uses &lt;Directory&gt;
-directives to permit fine-grained permission setting. Add the
-following lines to a directive that applies to the location
-of your Bugzilla installation. (If such a section does not
-exist, you'll want to add one.) In this example, Bugzilla has
-been installed at
-_/var/www/html/bugzilla_.
+ perl HTTPServerSimple.pl --port [HOST:]PORT --user USER --group GROUP
+
+Where HOST and PORT are the desired host and port which Bugzilla should listen on,
+and USER and GROUP are the system user/group for running the web server process.
+
+Configuration file syntax is also very simple:
 
 ----
-<Directory /var/www/html/bugzilla>
-    AddHandler cgi-script .cgi
-    Options +Indexes +ExecCGI
-    DirectoryIndex index.cgi
-    AllowOverride Limit
-</Directory>
+# Comment
+option      value
 ----
 
-These instructions: allow apache to run .cgi files found
-within the bugzilla directory; instructs the server to look
-for a file called _index.cgi_ if someone
-only types the directory name into the browser; and allows
-Bugzilla's _.htaccess_ files to override
-global permissions.
+[[standalone-options]]
+.Full list of configuration options
 
-[NOTE]
-====
-It is possible to make these changes globally, or to the
-directive controlling Bugzilla's parent directory (e.g.
-&lt;Directory /var/www/html/&gt;).
-Such changes would also apply to the Bugzilla directory...
-but they would also apply to many other places where they
-may or may not be appropriate. In most cases, including
-this one, it is better to be as restrictive as possible
-when granting extra access.
-====
+port :: TCP port or 'host:port' to listen on. Default '127.0.0.1:8157',
+  which means to listen on port 8157 of loopback interface.+
+WARNING: You should leave '127.0.0.1' for setups with a reverse proxy.
 
-[NOTE]
-====
-On Windows, you may have to also add the
-ScriptInterpreterSource Registry-Strict
-line, see <<win32-http,Windows specific notes>>.
-====
+min_servers, max_servers, min_spare_servers, max_spare_servers ::
+  Prefork parameters. The first two parameters specify minumum and maximum
+  total count of server processes, the second two specify minimum and maximum
+  count of idle server processes ready to handle new requests.
+  These usually depend on your load; default is 4-20 total processes with 4-8 idle ones.
 
-_checksetup.pl_ can set tighter permissions
-on Bugzilla's files and directories if it knows what group the
-web server runs as. Find the Group
-line in _httpd.conf_, place the value found
-there in the _++$webservergroup++_ variable
-in _localconfig_, then rerun
-_checksetup.pl_.
+max_requests :: Each server process is restarted after this number of requests.
+  Used to fight memory leaks. Default value is 1000 requests.
 
-Optional: If Bugzilla does not actually reside in the webspace
-directory, but instead has been symbolically linked there, you
-will need to add the following to the
-Options line of the Bugzilla
-&lt;Directory&gt; directive
-(the same one as in the step above):
+user, group :: System user and group to run under. *Never* set it to root!
+
+log_file :: Path to the log file. Default '/var/log/bugzilla.log'. It must
+  be writable by user/group specified in the previous options.
+
+log_level :: Log level (0-4). Greater numbers mean more log messages. Default 2.
+
+pid_file :: Path to the PID file (file to which the server writes its process ID).
+
+background :: Whether to detach from the terminal from which the server is started
+  (--background on the command line or 'background 1' in the config file).
+
+reload :: Whether to reload Bugzilla modules and scripts on each request
+  (used for development, specified similar to the 'background' option).
+
+path_parent_regexp :: This regexp is stripped from the beginning of server request URI.
+  Specify something here if your Bugzilla installation is not in the root server path.
+
+deny_regexp :: HTTP 403 Access Denied is returned to all requests with URI matching this regexp.
+  This option has a reasonable default value; usually you should not override it.
+
+http_env :: This option is a comma-separated list of environment variables that
+  should be taken from the 'X-<name>' request header. For example, for a multiple-database
+  setup you may set it to 'http_env PROJECT' and pass 'X-Project' from your reverse proxy.+
+WARNING: You should not use this option without a reverse proxy.
+
+preload :: '*.cgi' is specified here by default to reduce server memory usage by
+  preloading all Bugzilla scripts into memory 'before' startup, so child processes
+  can share memory with the parent one and don't need to load scripts by themselves.
+
+.nginx configuration example
+
+Example nginx virtual host for reverse-proxying requests to HTTPServerSimple.pl:
 
 ----
-
-+FollowSymLinks
-
+server {
+    listen 80;
+    server_name <your-bugzilla-site-name>; # for example my-bugzilla.com
+    root <your-bugzilla-installation-directory>; # for example /var/www/bugzilla
+    location ~ ^(localconfig|data/(?!webdot/)|.*\.(pm|pl|sh)($|\?)|(/|^)(CVS|\.(ht|svn|hg|bzr|git)).*) {
+        deny all;
+    }
+    location ~ ^/*[^/]+.cgi {
+        proxy_pass http://127.0.0.1:8157;
+        include proxy_params;
+    }
+    location /buglist.cgi {
+        proxy_pass http://127.0.0.1:8157;
+        include proxy_params;
+        proxy_buffering off;
+    }
+}
 ----
-
-Without this directive, Apache will not follow symbolic links
-to places outside its own directory structure, and you will be
-unable to run Bugzilla.
 
 [[http-apache-mod_perl]]
-.Apache httpd with mod_perl
+===== Bugzilla in Apache using mod_perl
 
-Some configuration is required to make Bugzilla work with Apache
-and mod_perl
+mod_perl is an Apache module than allows to run Perl applications as Apache handlers.
 
-Load _httpd.conf_ in your editor.
-In Fedora and Red Hat Linux, this file is found in
-_/etc/httpd/conf_.
+Apache virtual host configuration for Bugzilla with mod_perl should look like the following:
 
-Add the following information to your httpd.conf file, substituting
-where appropriate with your own local paths.
+----
+<VirtualHost *:80>
+    ServerAdmin <your-email>
+    ServerName <your-bugzilla-site-name>
+    DocumentRoot <your-bugzilla-installation-directory>
+
+    PerlOptions +Parent
+    PerlOptions +GlobalRequest
+    PerlSwitches -T -I<your-bugzilla-installation-directory>
+    PerlModule Apache::XMLRPC::Lite
+    PerlConfigRequire <your-bugzilla-installation-directory>/mod_perl.pl
+</VirtualHost>
+----
+
+You should also set '$webservergroup' variable in your 'localconfig' to
+the group Apache runs as and re-run 'checksetup.pl'.
+
+After that restart Apache and Bugzilla should now be running within the mod_perl environment.
 
 [NOTE]
 ====
-This should be used instead of the &lt;Directory&gt; block
-shown above. This should also be above any other +$$mod_perl$$+
-directives within the _httpd.conf_ and must be specified
-in the order as below.
-====
-
-[WARNING]
-====
-You should also ensure that you have disabled +KeepAlive+
-support in your Apache install when utilizing Bugzilla under mod_perl
-====
-
-----
-
-PerlSwitches -I/var/www/html/bugzilla -I/var/www/html/bugzilla/lib -w -T
-PerlConfigRequire /var/www/html/bugzilla/mod_perl.pl
-
-----
-
-_checksetup.pl_ can set tighter permissions
-on Bugzilla's files and directories if it knows what group the
-web server runs as. Find the Group
-line in _httpd.conf_, place the value found
-there in the _++$webservergroup++_ variable
-in _localconfig_, then rerun
-_checksetup.pl_.
-
-On restarting Apache, Bugzilla should now be running within the
-mod_perl environment. Please ensure you have run checksetup.pl to set
-permissions before you restart Apache.
-
-[NOTE]
-====
-Please bear the following points in mind when looking at using
-Bugzilla under mod_perl:
+Please bear the following points in mind when looking at using Bugzilla under mod_perl:
 
 * mod_perl support in Bugzilla can take up a HUGE amount of RAM. You could be
-looking at 30MB per httpd child, easily. Basically, you just need a lot of RAM.
-The more RAM you can get, the better. mod_perl is basically trading RAM for
-speed. At least 2GB total system RAM is recommended for running Bugzilla under
-mod_perl.
-
-* Under mod_perl, you have to restart Apache if you make any manual change to
-any Bugzilla file. You can't just reload--you have to actually
-_restart_ the server (as in make sure it stops and starts
-again). You _can_ change localconfig and the params file
-manually, if you want, because those are re-read every time you load a page.
+looking at 30MB per httpd child, easily, and that's just for a single Bugzilla
+instance without any other web applications.
+Basically, you just need a lot of RAM. The more RAM you can get, the better.
 
 * You must run in Apache's Prefork MPM (this is the default). The Worker MPM
 may not work--we haven't tested Bugzilla's mod_perl support under threads.
 (And, in fact, we're fairly sure it _won't_ work.)
 
-* Bugzilla generally expects to be the only mod_perl application running on
-your entire server. It may or may not work if there are other applications also
-running under mod_perl. It does try its best to play nice with other mod_perl
-applications, but it still may have conflicts.
-
-* It is recommended that you have one Bugzilla instance running under mod_perl
-on your server. Bugzilla has not been tested with more than one instance running.
+* Bugzilla4Intranet supports module reload in mod_perl without restart.
+It's mainly useful for development purposes; if you upgrade Bugzilla, you should
+fully restart Apache with `apachectl restart`. To use reload support add the
+following just before `PerlConfigRequire <...>/mod_perl.pl`:
++
+--
+----
+<Perl>
+    $Bugzilla::RELOAD_MODULES = 1;
+    $^P |= 0x10;
+</Perl>
+----
+--
 ====
 
-[[http-iis]]
-===== Microsoft Internet Information Services
+[[http-apache]]
+===== Bugzilla using CGI
 
-If you are running Bugzilla on Windows and choose to use
-Microsoft's Internet Information Services
-or Personal Web Server you will need
-to perform a number of other configuration steps as explained below.
-You may also want to refer to the following Microsoft Knowledge
-Base articles:
+The last possibility to run Bugzilla is using any web or application server capable
+of running CGI scripts, for example, Apache, uWSGI, IIS...
+
+It's the worst option because CGI means Perl must re-initialise all Bugzilla modules
+on every request which usually leads to poor performance.
+
+.Apache with mod_cgi
+
+For example, when using Apache mod_cgi, the virtual host config should look like:
+----
+<VirtualHost *:80>
+    ServerAdmin <your-email>
+    ServerName <your-bugzilla-site-name>
+    DocumentRoot <your-bugzilla-installation-directory>
+    <Directory <your-bugzilla-installation-directory>>
+        AddHandler cgi-script .cgi
+        Options -Indexes +ExecCGI
+        DirectoryIndex index.cgi
+        AllowOverride Limit
+    </Directory>
+</VirtualHost>
+----
+
+NOTE: On Windows, you may have to also add the ScriptInterpreterSource
+Registry-Strict line, see <<win32-http,Windows specific notes>>.
+
+NOTE: If Bugzilla does not actually reside in the DocumentRoot
+directory, but instead has been symbolically linked there, you
+will need to add `+FollowSymLinks` to `Options` line of the Bugzilla
+&lt;Directory&gt; directive.
+
+[[http-iis]]
+.CGI with Microsoft Internet Information Services
+
+NOTE: Both <<http-apache-mod_perl,mod_perl>> and <<http-standalone,HTTPServerSimple.pl>>
+are available under Windows, so IIS CGI is not a recommended option.
+
+If you are running Bugzilla on Windows and choose to use Microsoft's Internet Information Services
+or Personal Web Server you will need to perform a number of other configuration steps as explained below.
+You may also want to refer to the following Microsoft Knowledge Base articles:
 link:$$http://support.microsoft.com/default.aspx?scid=kb;en-us;245225$$[245225]
-"HOW TO: Configure and Test a PERL Script with IIS 4.0,
-5.0, and 5.1" (for Internet Information
-Services) and
+"HOW TO: Configure and Test a PERL Script with IIS 4.0, 5.0, and 5.1" (for Internet Information Services) and
 link:$$http://support.microsoft.com/default.aspx?scid=kb;en-us;231998$$[231998]
 "HOW TO: FP2000: How to Use Perl with Microsoft Personal Web
-Server on Windows 95/98" (for Personal Web
-Server).
+Server on Windows 95/98" (for Personal Web Server).
 
 You will need to create a virtual directory for the Bugzilla
-install.  Put the Bugzilla files in a directory that is named
-something _other_ than what you want your
-end-users accessing.  That is, if you want your users to access
-your Bugzilla installation through
+install. Put the Bugzilla files in a directory that is named
+something _other_ than what you want your end-users accessing.
+That is, if you want your users to access your Bugzilla installation through
 "http://&lt;yourdomainname&gt;/Bugzilla", then do
-_not_ put your Bugzilla files in a directory
-named "Bugzilla".  Instead, place them in a different
-location, and then use the IIS Administration tool to create a
-Virtual Directory named "Bugzilla" that acts as an alias for the
-actual location of the files.  When creating that virtual directory,
-make sure you add the "Execute (such as ISAPI applications or
-CGI)" access permission.
+_not_ put your Bugzilla files in a directory named "Bugzilla".
+Instead, place them in a different location, and then use the IIS
+Administration tool to create a Virtual Directory named "Bugzilla"
+that acts as an alias for the actual location of the files.
+When creating that virtual directory, make sure you add the
+"Execute (such as ISAPI applications or CGI)" access permission.
 
 You will also need to tell IIS how to handle Bugzilla's
 .cgi files. Using the IIS Administration tool again, open up
@@ -1029,13 +1052,9 @@ For example:
 c:\perl\bin\perl.exe -xc:\bugzilla -wT "%s" %s
 ----
 
-[NOTE]
-====
-The ActiveState install may have already created an entry for
-.pl files that is limited to "GET,HEAD,POST". If
-so, this mapping should be _removed_ as
+NOTE: The ActiveState install may have already created an entry for
+.pl files that is limited to "GET,HEAD,POST". If so, this mapping should be _removed_ as
 Bugzilla's .pl files are not designed to be run via a web server.
-====
 
 IIS will also need to know that the index.cgi should be treated
 as a default document.  On the Documents tab page of the virtual
@@ -1052,30 +1071,16 @@ such as _localconfig_ and your _data_ directory are secured as described in
 ==== Bugzilla
 
 Your Bugzilla should now be working. Access
-_http://&lt;your-bugzilla-server&gt;/_ -
-you should see the Bugzilla
-front page. If not, consult the
-<<troubleshooting,Troubleshooting section>>.
-
-[NOTE]
-====
-The URL above may be incorrect if you installed Bugzilla into a
-subdirectory or used a symbolic link from your web site root to
-the Bugzilla directory.
-====
+_http://&lt;your-bugzilla-server&gt;/_ - you should see the Bugzilla
+front page. If not, consult the <<troubleshooting,Troubleshooting section>>.
 
 Log in with the administrator account you defined in the last
-_checksetup.pl_ run. You should go through
-the Parameters page and see if there are any you wish to change.
-They key parameters are documented in <<parameters,Parameters>>;
-you should certainly alter
-_maintainer_ and __urlbase__;
-you may also want to alter
-_cookiepath_ or _requirelogin_.
+_checksetup.pl_ run. You should go through the Parameters page and
+see if there are any you wish to change. The key parameters are documented in <<parameters,Parameters>>;
+you should certainly alter _maintainer_ and __urlbase__; you may also want to alter _cookiepath_ or _requirelogin_.
 
 Bugzilla has several optional features which require extra
-configuration. You can read about those in
-<<extraconfig,Optional Additional Configuration>>.
+configuration. You can read about those in <<extraconfig,Optional Additional Configuration>>.
 
 [[extraconfig]]
 === Optional Additional Configuration
@@ -1083,19 +1088,17 @@ configuration. You can read about those in
 Bugzilla has a number of optional features. This section describes how
 to configure or enable them.
 
-==== Bug Graphs
+==== Charts
 
 If you have installed the necessary Perl modules you
-can start collecting statistics for the nifty Bugzilla
-graphs.
+can start collecting statistics for the nifty Bugzilla statistics graphs.
 
 ----
 bash# crontab -e
 ----
 
 This should bring up the crontab file in your editor.
-Add a cron entry like this to run
-_collectstats.pl_
+Add a cron entry like this to run _collectstats.pl_
 daily at 5 after midnight:
 
 ----
@@ -1105,44 +1108,12 @@ daily at 5 after midnight:
 After two days have passed you'll be able to view bug graphs from
 the Reports page.
 
-[NOTE]
-====
-Windows does not have 'cron', but it does have the Task
-Scheduler, which performs the same duties. There are also
-third-party tools that can be used to implement cron, such as
-link:$$http://www.nncron.ru/$$[nncron].
-====
-
-[[installation-whining-cron]]
-==== The Whining Cron
-
-What good are
-bugs if they're not annoying? To help make them more so you
-can set up Bugzilla's automatic whining system to complain at engineers
-which leave their bugs in the NEW or REOPENED state without triaging them.
-
-This can be done by adding the following command as a daily
-crontab entry, in the same manner as explained above for bug
-graphs. This example runs it at 12.55am.
-
-----
-55 0 * * * cd <your-bugzilla-directory> ; ./whineatnews.pl
-----
-
-[NOTE]
-====
-Windows does not have 'cron', but it does have the Task
-Scheduler, which performs the same duties. There are also
-third-party tools that can be used to implement cron, such as
-link:$$http://www.nncron.ru/$$[nncron].
-====
-
 [[installation-whining]]
 ==== Whining
 
 As of Bugzilla 2.20, users can configure Bugzilla to regularly annoy
 them at regular intervals, by having Bugzilla execute saved searches
-at certain times and emailing the results to the user.  This is known
+at certain times and emailing the results to the user. This is known
 as "Whining".  The process of configuring Whining is described
 in <<whining,Whining>>, but for it to work a Perl script must be
 executed at regular intervals.
@@ -1155,46 +1126,27 @@ graphs. This example runs it every 15 minutes.
 */15 * * * * cd <your-bugzilla-directory> ; ./whine.pl
 ----
 
-[NOTE]
-====
-Whines can be executed as often as every 15 minutes, so if you specify
+NOTE: Whines can be executed as often as every 15 minutes, so if you specify
 longer intervals between executions of whine.pl, some users may not
 be whined at as often as they would expect.  Depending on the person,
 this can either be a very Good Thing or a very Bad Thing.
-====
 
-[NOTE]
-====
-Windows does not have 'cron', but it does have the Task
-Scheduler, which performs the same duties. There are also
-third-party tools that can be used to implement cron, such as
-link:$$http://www.nncron.ru/$$[nncron].
-====
+[[installation-whining-cron]]
+==== Whining at New Bugs
 
-[[apache-addtype]]
-==== Serving Alternate Formats with the right MIME type
+What good are bugs if they're not annoying? To help make them more so you
+can set up Bugzilla's automatic whining system to complain at engineers
+which leave their bugs in the NEW or REOPENED state without triaging them.
 
-Some Bugzilla pages have alternate formats, other than just plain
-HTML. In particular, a few Bugzilla pages can
-output their contents as either XUL (a special
-Mozilla format, that looks like a program GUI)
-or RDF (a type of structured XML
-that can be read by various programs).
-
-In order for your users to see these pages correctly, Apache must
-send them with the right MIME type. To do this,
-add the following lines to your Apache configuration, either in the
-&lt;VirtualHost&gt; section for your
-Bugzilla, or in the &lt;Directory&gt;
-section for your Bugzilla:
+This can be done by adding the following command as a daily crontab entry,
+in the same manner as explained above for bug graphs. This example runs it at 12.55am.
 
 ----
-AddType application/vnd.mozilla.xul+xml .xul
-AddType application/rdf+xml .rdf
+55 0 * * * cd <your-bugzilla-directory> ; ./whineatnews.pl
 ----
 
 [[multiple-bz-dbs]]
-=== Multiple Bugzilla databases with a single installation
+==== Multiple Bugzilla databases with a single installation
 
 The previous instructions referred to a standard installation, with
 one unique Bugzilla database. However, you may want to host several
@@ -1233,6 +1185,9 @@ other Webservers may differ.
 Don't forget to also export this variable before accessing Bugzilla
 by other means, such as cron tasks for instance.
 
+NOTE: To use multiple databases with 'HTTPServerSimple.pl'-based install,
+use its <<standalone-options,http_env>> configuration variable.
+
 [[os-specific,OS-Specific Installation Notes]]
 === OS-Specific Installation Notes
 
@@ -1248,97 +1203,57 @@ covered, please file a bug in link:$$https://bugzilla.mozilla.org/enter_bug.cgi?
 [[os-win32]]
 ==== Microsoft Windows
 
-Making Bugzilla work on Windows is more difficult than making it
-work on Unix.  For that reason, we still recommend doing so on a Unix
-based system such as GNU/Linux.  That said, if you do want to get
-Bugzilla running on Windows, you will need to make the following
-adjustments. A detailed step-by-step
-link:$$https://wiki.mozilla.org/Bugzilla:Win32Install$$[ installation guide for Windows] is also available
-if you need more help with your installation.
+Making Bugzilla work on Windows is more difficult than making it work on Unix.
+For that reason, we still recommend doing so on a Unix based system such as GNU/Linux.
+That said, if you do want to get Bugzilla running on Windows, you will need to make some
+adjustments.
 
 [[win32-perl]]
 ===== Win32 Perl
 
-Perl for Windows can be obtained from
-link:$$http://www.activestate.com/$$[ActiveState].
-You should be able to find a compiled binary at link:$$http://aspn.activestate.com/ASPN/Downloads/ActivePerl/$$[].
-The following instructions assume that you are using version
-5.8.1 of ActiveState.
+There are two main Perl distributions for Windows:
+link:http://strawberryperl.com/[Strawberry Perl] and link:http://www.activestate.com/activeperl[ActivePerl].
 
-[NOTE]
-====
-These instructions are for 32-bit versions of Windows. If you are
-using a 64-bit version of Windows, you will need to install 32-bit
-Perl in order to install the 32-bit modules as described below.
-====
+We recommended to use Strawberry Perl. It's fully open-source, it's easier to use,
+and it contains both working GCC compiler toolchain and a package manager
+that allows to install Perl modules containing native code without problem.
 
 [[win32-perl-modules]]
 ===== Perl Modules on Win32
 
-Bugzilla on Windows requires the same perl modules found in
-<<install-perlmodules,Perl Modules>>. The main difference is that
-windows uses PPM instead
-of CPAN. ActiveState provides a GUI to manage Perl modules. We highly
-recommend that you use it. If you prefer to use ppm from the
-command-line, type:
+Bugzilla on Windows requires the same perl modules found in <<install-perlmodules,Perl Modules>>.
+The main difference is that PPM is used on Windows instead of CPAN.
+Both ActivePerl and Strawberry Perl have 'PPM' utility; we highly recommend that you use it.
 
 ----
 C:\perl> ppm install <module name>
 ----
 
-The best source for the Windows PPM modules needed for Bugzilla
-is probably the theory58S website, which you can add to your list
-of repositories as follows (for Perl 5.8.x):
-
-----
-ppm repo add theory58S http://theoryx5.uwinnipeg.ca/ppms/
-----
-
-If you are using Perl 5.10.x, you cannot use the same PPM modules as Perl
-5.8.x as they are incompatible. In this case, you should add the following
-repository:
-
-----
-ppm repo add theory58S http://cpan.uwinnipeg.ca/PPMPackages/10xx/
-----
-
 [NOTE]
-====
-In versions prior to 5.8.8 build 819 of PPM the command is
-
-----
-ppm repository add theory58S http://theoryx5.uwinnipeg.ca/ppms/
-----
-====
-
-[NOTE]
-====
 The PPM repository stores modules in 'packages' that may have
 a slightly different name than the module.  If retrieving these
 modules from there, you will need to pay attention to the information
 provided when you run _checksetup.pl_ as it will
 tell you what package you'll need to install.
-====
 
 [TIP]
-====
 If you are behind a corporate firewall, you will need to let the
 ActiveState PPM utility know how to get through it to access
 the repositories by setting the HTTP_proxy system environmental
 variable. For more information on setting that variable, see
 the ActiveState documentation.
-====
 
 [[win32-http]]
 ===== Serving the web pages
 
-As is the case on Unix based systems, any web server should
-be able to handle Bugzilla; however, the Bugzilla Team still
-recommends Apache whenever asked. No matter what web server
-you choose, be sure to pay attention to the security notes
+As is the case on Unix based systems, any web server should be able to handle Bugzilla;
+however, recommended options is still <<http-standalone,HTTPServerSimple.pl>>.
+<<http-apache-mod_perl,mod_perl>> is a little tricky to get running under Windows,
+but it's also possible.
+
+No matter what web server you choose, be sure to pay attention to the security notes
 in <<security-webserver-access,Disabling Remote Access to Bugzilla Configuration Files>>.
-More information on configuring specific web servers can be found
-in <<http,Web server>>.
+More information on configuring specific web servers can be found in <<http,Web server>>.
 
 [NOTE]
 ====
@@ -1362,72 +1277,63 @@ with C:\Perl\bin\perl.exe -T as value (adapt to your
 path if needed) in the registry. When this is done, restart Apache.
 ====
 
-[[win32-email]]
 ===== Sending Email
 
 To enable Bugzilla to send email on Windows, the server running the
 Bugzilla code must be able to connect to, or act as, an SMTP server.
 
+===== Scheduled Tasks (cron)
+
+Windows does not have 'cron', but it does have the Task Scheduler, which performs the same duties.
+There are also third-party tools that can be used to implement cron, such as link:$$http://www.nncron.ru/$$[nncron].
+
+Task Scheduler is available under 'Control Panel -> Scheduled Tasks -> Add Scheduled Task'.
+
 [[os-macosx]]
 ==== Mac OS X
 
-Making Bugzilla work on Mac OS X requires the following
-adjustments.
+Making Bugzilla work on Mac OS X requires the following adjustments.
 
 [[macosx-sendmail]]
 ===== Sendmail
 
-In Mac OS X 10.3 and later,
-link:$$http://www.postfix.org/$$[Postfix]
-is used as the built-in email server.  Postfix provides an executable
+In Mac OS X 10.3 and later, link:$$http://www.postfix.org/$$[Postfix]
+is used as the built-in email server. Postfix provides an executable
 that mimics sendmail enough to fool Bugzilla, as long as Bugzilla can
 find it.
 
 As of version 2.20, Bugzilla will be able to find the fake
-sendmail executable without any assistance.  However, you will have
+sendmail executable without any assistance. However, you will have
 to turn on the sendmailnow parameter before you do anything that would
 result in email being sent.  For more information, see the description
 of the sendmailnow parameter in <<parameters,Parameters>>.
 
 [[macosx-libraries]]
-===== Libraries &amp; Perl Modules on Mac OS X
+===== Libraries & Perl Modules on Mac OS X
 
-Apple does not include the GD library with Mac OS X. Bugzilla
-needs this for bug graphs.
+Apple does not include the GD library with Mac OS X. Bugzilla needs this for bug graphs.
 
-You can use DarwinPorts (link:$$http://darwinports.com/$$[])
-or Fink (link:$$http://sourceforge.net/projects/fink/$$[]), both
-of which are similar in nature to the CPAN installer, but install
-common unix programs.
+You can use MacPorts (https://macports.org/), Homebrew (http://brew.sh/) or Fink (http://www.finkproject.org/),
+all of which are similar in nature to the CPAN installer, but install common UNIX programs.
 
-Follow the instructions for setting up DarwinPorts or Fink.
-Once you have one installed, you'll want to use it to install the
-_gd2_ package.
+Once you have one of them installed, you'll want to use it to install the _gd2_ package.
 
 Fink will prompt you for a number of dependencies, type 'y' and hit
 enter to install all of the dependencies and then watch it work. You will
-then be able to use CPAN to
-install the GD Perl module.
+then be able to use CPAN to install the GD Perl module.
 
 [NOTE]
 ====
 To prevent creating conflicts with the software that Apple
 installs by default, Fink creates its own directory tree at
-_/sw_ where it installs most of
-the software that it installs. This means your libraries and headers
-will be at _/sw/lib_ and
-_/sw/include_ instead of
-_/usr/lib_ and
-_/usr/include_. When the
-Perl module config script asks where your _libgd_
-is, be sure to tell it
-_/sw/lib_.
+_/sw_ where it installs most of the software that it installs. This means your libraries and headers
+will be at _/sw/lib_ and _/sw/include_ instead of _/usr/lib_ and
+_/usr/include_. When the Perl module config script asks where your _libgd_ is,
+be sure to tell it _/sw/lib_.
 ====
 
-Also available via DarwinPorts and Fink is
-_expat_. After installing the expat package, you
-will be able to install XML::Parser using CPAN. If you use fink, there
-is one caveat. Unlike recent versions of
+To install XML::Parser from CPAN, the expat package is needed.
+If you use fink, there is one caveat. Unlike recent versions of
 the GD module, XML::Parser doesn't prompt for the location of the
 required libraries. When using CPAN, you will need to use the following
 command sequence:
@@ -1447,28 +1353,10 @@ The exit command will return you to your original shell.
 especially "make test" as errors may prevent
 XML::Parser from functioning correctly with Bugzilla.
 
-[[os-linux]]
-==== Linux Distributions
-
-Many Linux distributions include Bugzilla and its
-dependencies in their native package management systems.
-Installing Bugzilla with root access on any Linux system
-should be as simple as finding the Bugzilla package in the
-package management application and installing it using the
-normal command syntax. Several distributions also perform
-the proper web server configuration automatically on installation.
-
-Please consult the documentation of your Linux
-distribution for instructions on how to install packages,
-or for specific instructions on installing Bugzilla with
-native package management tools. There is also a
-link:$$http://wiki.mozilla.org/Bugzilla:Linux_Distro_Installation$$[ Bugzilla Wiki Page] for distro-specific installation
-notes.
-
 [[nonroot]]
-=== UNIX (non-root) Installation Notes
+==== Linux/UNIX (non-root)
 
-==== Introduction
+===== Introduction
 
 If you are running a *NIX OS as non-root, either due
 to lack of access (web hosts, for example) or for security
@@ -1478,7 +1366,7 @@ a setup. It is recommended that you read through the
 first to get an idea on the installation steps required.
 (These notes will reference to steps in that guide.)
 
-==== MySQL
+===== MySQL
 
 You may have MySQL installed as root. If you're
 setting up an account with a web host, a MySQL account
@@ -1487,45 +1375,33 @@ the bugs account, or use the account given to you.
 
 [WARNING]
 ====
-You may have problems trying to set up
-_GRANT_ permissions to the database.
+You may have problems trying to set up _GRANT_ permissions to the database.
 If you're using a web host, chances are that you have a
 separate database which is already locked down (or one big
 database with limited/no access to the other areas), but you
 may want to ask your system administrator what the security
-settings are set to, and/or run the _GRANT_
-command for you.
+settings are set to, and/or run the _GRANT_ command for you.
 
 Also, you will probably not be able to change the MySQL
-root user password (for obvious reasons), so skip that
-step.
+root user password (for obvious reasons), so skip that step.
 ====
-
-===== Running MySQL as Non-Root
 
 .The Custom Configuration Method
 
-Create a file .my.cnf in your
-home directory (using /home/foo in this example)
-as follows....
+Create a file .my.cnf in your home directory (using /home/foo in this example) as follows...
 
 ----
 [mysqld]
 datadir=/home/foo/mymysql
 socket=/home/foo/mymysql/thesock
-port=8081
+skip-networking
 
 [mysql]
 socket=/home/foo/mymysql/thesock
-port=8081
-
-[mysql.server]
-user=mysql
-basedir=/var/lib
 
 [safe_mysqld]
-err-log=/home/foo/mymysql/the.log
-pid-file=/home/foo/mymysql/the.pid
+err-log=/home/foo/mymysql/mysql.log
+pid-file=/home/foo/mymysql/mysql.pid
 ----
 
 .The Custom Built Method
@@ -1559,22 +1435,18 @@ users. (Again, the MySQL root account has nothing to do with
 the *NIX root account.)
 
 [NOTE]
-====
 You will need to start the daemons yourself. You can either
 ask your system administrator to add them to system startup files, or
 add a crontab entry that runs a script to check on these daemons
 and restart them if needed.
-====
 
 [WARNING]
-====
 Do NOT run daemons or other services on a server without first
 consulting your system administrator! Daemons use up system resources
 and running one may be in violation of your terms of service for any
 machine on which you are a user!
-====
 
-==== Perl
+===== Perl
 
 On the extremely rare chance that you don't have Perl on
 the machine, you will have to build the sources
@@ -1586,7 +1458,7 @@ bash$ wget http://perl.org/CPAN/src/stable.tar.gz
 bash$ tar zvxf stable.tar.gz
 bash$ cd perl-5.8.1 (or whatever the version of Perl is called)
 bash$ sh Configure -de -Dprefix=/home/foo/perl
-bash$ make &amp;&amp; make test &amp;&amp; make install
+bash$ make && make test && make install
 ----
 
 Once you have Perl installed into a directory (probably
@@ -1594,14 +1466,13 @@ in __$$~/perl/bin$$__), you will need to
 install the Perl Modules, described below.
 
 [[install-perlmodules-nonroot]]
-==== Perl Modules
+===== Perl Modules
 
 Installing the Perl modules as a non-root user is accomplished by
-running the _install-module.pl_
-script. For more details on this script, see
+running the _install-module.pl_ script. For more details on this script, see
 link:$$api/install-module.html$$[_install-module.pl_ documentation]
 
-==== HTTP Server
+===== HTTP Server
 
 Ideally, this also needs to be installed as root and
 run under a special web server account. As long as
@@ -1623,22 +1494,12 @@ option to override the HTTPD_ROOT compiled into the web server, you
 get control of your own customized web server.
 
 [NOTE]
-====
 You will need to start the daemons yourself. You can either
 ask your system administrator to add them to system startup files, or
 add a crontab entry that runs a script to check on these daemons
 and restart them if needed.
-====
 
-[WARNING]
-====
-Do NOT run daemons or other services on a server without first
-consulting your system administrator! Daemons use up system resources
-and running one may be in violation of your terms of service for any
-machine on which you are a user!
-====
-
-==== Bugzilla
+===== Bugzilla
 
 When you run _./checksetup.pl_ to create
 the _localconfig_ file, it will list the Perl
@@ -1648,38 +1509,16 @@ then delete the _localconfig_ file and try again.
 
 [WARNING]
 ====
-One option in _localconfig_ you
-might have problems with is the web server group. If you can't
-successfully browse to the _index.cgi_ (like
-a Forbidden error), you may have to relax your permissions,
+One option in _localconfig_ you might have problems with is the web server group. If you can't
+successfully browse to the _index.cgi_ (like a Forbidden error), you may have to relax your permissions,
 and blank out the web server group. Of course, this may pose
 as a security risk. Having a properly jailed shell and/or
-limited access to shell accounts may lessen the security risk,
-but use at your own risk.
+limited access to shell accounts may lessen the security risk, but use at your own risk.
+
+If you are running on a system that uses 'suexec' (most shared
+hosting environments do this), you will need to set the _webservergroup_ value in _localconfig_
+to match _your_ primary group, rather than the one the web server runs under.
 ====
-
-[[suexec]]
-===== suexec or shared hosting
-
-If you are running on a system that uses suexec (most shared
-hosting environments do this), you will need to set the
-_webservergroup_ value in _localconfig_
-to match _your_ primary group, rather than the one
-the web server runs under.  You will need to run the following
-shell commands after running _./checksetup.pl_,
-every time you run it (or modify _checksetup.pl_
-to do them for you via the system() command).
-
-----
-for i in docs graphs images js skins; do find $i -type d -exec chmod o+rx {} \; ; done
-for i in jpg gif css js png html rdf xul; do find . -name \*.$i -exec chmod o+r {} \; ; done
-find . -name .htaccess -exec chmod o+r {} \;
-chmod o+x . data data/webdot
-----
-
-Pay particular attention to the number of semicolons and dots.
-They are all important.  A future version of Bugzilla will
-hopefully be able to do this for you out of the box.
 
 [[upgrade]]
 === Upgrading to New Releases
@@ -3515,7 +3354,7 @@ directives in Apache can be found in <<http-apache,Bugzilla using Apache>>
 ====
 
 * In the main Bugzilla directory, you should:
-** Block: _*.pl_, *localconfig*_
+** Block: _*.pl_, _localconfig*_
 * In __data__:
 ** Block everything
 * In __data/webdot__:
@@ -3524,7 +3363,7 @@ directives in Apache can be found in <<http-apache,Bugzilla using Apache>>
 *** But allow _*.dot_ only for the remote webdot server
 ** Otherwise, if you use a local GraphViz:
 *** Block everything
-*** But allow: _*.png_ _*.gif_ *.jpg_ *.map_
+*** But allow: _*.png_ _*.gif_ _*.jpg_ _*.map_
 ** And if you don't use any dot:
 *** Block everything
 * In __Bugzilla__:
