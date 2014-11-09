@@ -37,7 +37,9 @@ my $in_eval = 0;
 $SIG{INT} = sub { warn "Terminating"; CORE::exit(); };
 
 # Create and run
-my $server = Bugzilla::HTTPServerSimple->new(@ARGV);
+my @args = @ARGV;
+@ARGV = ();
+my $server = Bugzilla::HTTPServerSimple->new;
 $server->run();
 
 # HTTP::Server::Simple subclass (the real server)
@@ -54,7 +56,7 @@ use base qw(HTTP::Server::Simple::CGI);
 
 use constant DEFAULT_CONFIG => (
     class               => 'Net::Server::PreFork',
-    port                => '0.0.0.0:8157',
+    port                => '127.0.0.1:8157',
     min_servers         => 4,
     max_servers         => 20,
     min_spare_servers   => 4,
@@ -81,11 +83,19 @@ sub new
     my $self = HTTP::Server::Simple::new($class);
     my $cmdline = [];
     my $series = [];
+    my $nextvalue = 0;
     for (@args)
     {
         if (/^--([^=]+)(?:=(.*))?/s)
         {
-            push @$cmdline, $1, $2||1;
+            push @$cmdline, 1 if $nextvalue;
+            $nextvalue = !$2;
+            push @$cmdline, $1;
+        }
+        elsif (!$nextvalue)
+        {
+            push @$cmdline, $_;
+            $nextvalue = 0;
         }
         else
         {
