@@ -47,7 +47,7 @@ my @masterlist =
     grep { !$_->{nobuglist} }
     values %{ Bugzilla::Search->COLUMNS };
 
-Bugzilla::Hook::process('colchange_columns', {'columns' => \@masterlist} );
+Bugzilla::Hook::process('colchange_columns', { columns => \@masterlist });
 
 $vars->{masterlist} = \@masterlist;
 $vars->{COLUMNS} = Bugzilla::Search->COLUMNS;

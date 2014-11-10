@@ -531,6 +531,9 @@ sub STATIC_COLUMNS
             title => "Creation Date",
             name => $dbh->sql_date_format('bugs.creation_ts', '%Y-%m-%d'),
         },
+        'attachments.submitter' => {
+            nobuglist => 1,
+        },
     };
 
     # Search-only fields that were previously in fielddefs
@@ -580,13 +583,13 @@ sub STATIC_COLUMNS
         my $type = $field->value_type;
         $columns->{$id}->{title} = $field->description;
         # FIXME Maybe enable obsolete fields in search? Or do it optionally?
-        $columns->{$id}->{nobuglist} = $field->obsolete;
+        $columns->{$id}->{nobuglist} = $field->obsolete || $id =~ /^attachments\./s;
         $columns->{$id}->{nocharts} = $field->obsolete;
         next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
         if ($field->type == FIELD_TYPE_BUG_ID)
         {
             push @bugid_fields, $field;
-            $columns->{$id}->{name} = "bugs.$id";
+            $columns->{$id}->{name} = "bugs.$id" if $id ne 'dup_id';
         }
         elsif ($field->type == FIELD_TYPE_BUG_ID_REV)
         {
