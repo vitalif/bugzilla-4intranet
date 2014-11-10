@@ -17,7 +17,9 @@
   [% IF allow_edit %]
   <td align="center" valign="top">
     <a href="editgroups.cgi?action=changeform&group=[% group.id %]"><img src="images/edit.png" alt="edit" title="edit" /></a>
+    [% IF group.is_bug_group %]
     <a href="editgroups.cgi?action=del&group=[% group.id %]"><img src="images/delete.png" alt="delete" title="delete" /></a>
+    [% END %]
   </td>
   [% END %]
 [% END %]
