@@ -209,7 +209,7 @@ visit http://www.perl.org. Although Bugzilla should run with Perl 5.8.1,
 it's a good idea to be using the latest stable version.
 
 NOTE: Although Windows is not a recommended platform itself,
-we recommend to use link:http://strawberryperl.com/[Strawberry Perl] under it.
+we recommend to use link:http://strawberryperl.com/[Strawberry Perl] on it.
 Strawberry Perl contains a working GCC compiler toolchain and a package manager
 that allows to install Perl modules containing native code easily.
 
@@ -365,7 +365,7 @@ To install Sphinx from source, run the following commands:
 ----
 tar -zxf sphinx-<YOUR_VERSION>.tar.gz
 cd sphinx-<YOUR_VERSION>
-./configure --prefix=/usr --sysconfdir=/etc/sphinxsearch --localstatedir=/var --datarootdir=/var/lib/sphinxsearch --enable-id64
+./configure --prefix=/usr --sysconfdir=/etc/sphinxsearch --localstatedir=/var --datarootdir=/var/lib/sphinxsearch --enable-id64 --with-libstemmer
 make clean
 make -j4
 sudo make install
@@ -386,7 +386,7 @@ You have several options here:
   doesn't support keepalive so the client will open much more connections which also affects page load speed.
 
 * Run Bugzilla inside link:http://httpd.apache.org/[Apache] with link:http://perl.apache.org/[mod_perl].
-  This setup should result roughly the same performance, but usually consumes more memory than the
+  This setup should result in roughly the same performance, but usually consumes more memory than the
   standalone server, especially if you have several virtual hosts / web applications in a single Apache instance.
   Sometimes mod_perl usage also results is very strange bugs that don't show up in the bare Perl.
 
@@ -395,22 +395,26 @@ You have several options here:
   which usually leads to poor performance.
 
 [[install-bzfiles]]
-==== Bugzilla
+==== Bugzilla4Intranet
 
-link:$$https://github.com/vitalif/bugzilla-4intranet/archive/beta.zip$$[Download a Bugzilla archive]
-(or check it out from link:https://github.com/vitalif/bugzilla-4intranet/[Github repository])
-and extract it in a suitable directory, accessible by the default web server user
+You can check out Bugzilla4Intranet from one of these Git repositories:
+
+* https://github.com/vitalif/bugzilla-4intranet
+* http://yourcmc.ru/git/summary/bugzilla-4intranet.git
+
+Also you can download a release archive from GitHub 'Releases' page: https://github.com/vitalif/bugzilla-4intranet/releases
+or just from a branch: https://github.com/vitalif/bugzilla-4intranet/archive/beta.zip and extract
+it in a suitable directory, accessible by the default web server user
 (in case of Apache, it's usually "httpd", "apache" or "www-data").
 
 [CAUTION]
-The default Bugzilla distribution is NOT designed to be placed
-in a _cgi-bin_ directory. This includes any directory which is configured using the
-ScriptAlias directive of Apache.
+The Bugzilla distribution is NOT designed to be placed in a _cgi-bin_ directory.
+This includes any directory which is configured using the ScriptAlias directive of Apache.
 
 It's not needed (and even _not recommended_) to make Bugzilla files to be writable by your web-server user.
 Although they _must_ be readable by it and you may even leave them world-readable - that's no problem
 because _checksetup.pl_ will take care of setting correct permissions to sensitive files and to files
-that Bugzilla needs to write (mainly _data/_ directory). But you should run _checksetup.pl_ from under
+that Bugzilla needs to write (mainly _data/_ directory). But you should run _checksetup.pl_ as
 the user that is a member of the web-server group (or a superuser) so it could change group on these files.
 
 [[install-perlmodules]]
@@ -451,7 +455,7 @@ You may install modules using the following methods:
 
 . Using link:http://cpan.org/[CPAN] shell. In fact, you may install all required modules using CPAN.
   To install modules using CPAN shell, run `cpan Module1 Module2...` or `perl -MCPAN -eshell Module1 Module2...`
-  command under the root user, where 'Module1', 'Module2' and etc are the required
+  command as the root user, where 'Module1', 'Module2' and etc are the required
   modules.
 +
 NOTE: Some of modules (database drivers, GD, ImageMagick and etc) contain native code (C/C++)
@@ -867,7 +871,7 @@ min_servers, max_servers, min_spare_servers, max_spare_servers ::
 max_requests :: Each server process is restarted after this number of requests.
   Used to fight memory leaks. Default value is 1000 requests.
 
-user, group :: System user and group to run under. *Never* set it to root!
+user, group :: System user and group to run as. *Never* set it to root!
 
 log_file :: Path to the log file. Default '/var/log/bugzilla.log'. It must
   be writable by user/group specified in the previous options.
@@ -1523,289 +1527,110 @@ to match _your_ primary group, rather than the one the web server runs under.
 [[upgrade]]
 === Upgrading to New Releases
 
-Upgrading to new Bugzilla releases is very simple. There is
-a script included with Bugzilla that will automatically
-do all of the database migration for you.
+Upgrading to new Bugzilla4Intranet releases from older Bugzilla4Intranet version
+or from any version of original Bugzilla up to Bugzilla 4.4 is very simple.
+'./checksetup.pl' does all of the database migration for you.
 
-The following sections explain how to upgrade from one
-version of Bugzilla to another. Whether you are upgrading
-from one bug-fix version to another (such as 3.0.1 to 3.0.2)
-or from one major version to another (such as from 3.0 to 3.2),
-the instructions are always the same.
+The overall process looks like the following: shutdown Bugzilla web server ->
+backup database and files -> update code -> run './checksetup.pl' -> start web server again.
 
-[NOTE]
-====
-Any examples in the following sections are written as though the
-user were updating to version 2.22.1, but the procedures are the
-same no matter what version you're updating to. Also, in the
-examples, the user's Bugzilla installation is found at
-_/var/www/html/bugzilla_. If that is not the
-same as the location of your Bugzilla installation, simply
-substitute the proper paths where appropriate.
-====
+During minor upgrades that do not affect database you may even not need to run 'checksetup.pl'
+at all, however it is safer to always run it, regardless of how big the update is.
+You may use 'shutdownhtml' parameter instead of shutting down the whole Bugzilla web server;
+however, it will logout all users who visit Bugzilla while it is active.
 
-[[upgrade-before]]
 ==== Before You Upgrade
 
-Before you start your upgrade, there are a few important
-steps to take:
+Before you start your upgrade, there are a few important steps to take:
 
-. Read the link:$$http://www.bugzilla.org/releases/$$[Release Notes] of the version you're upgrading to,
-particularly the "Notes for Upgraders" section.
+. Read the Release Notes of the version you're upgrading to, particularly the "Notes for Upgraders" section.
 
-. View the <<sanitycheck,Sanity Check>> page
-on your installation before upgrading. Attempt to fix all warnings
-that the page produces before you go any further, or you may
-experience problems  during your upgrade.
+. (Optional) View the <<sanitycheck,Sanity Check>> page on your installation before upgrading.
+  Problems Sanity Check checks for are non-critical and should not usually affect the upgrade.
 
 . Shut down your Bugzilla installation by putting some HTML or
-text in the shutdownhtml parameter
-(see <<parameters,Parameters>>).
+  text in the shutdownhtml parameter (see <<parameters,Parameters>>).
 
-. Make a backup of the Bugzilla database.
-_THIS IS VERY IMPORTANT_. If
-anything goes wrong during the upgrade, your installation
-can be corrupted beyond recovery. Having a backup keeps you safe.
+. Make a backup of the Bugzilla database. _THIS IS VERY IMPORTANT_. If
+  anything goes wrong during the upgrade, your installation
+  can be corrupted beyond recovery. Having a backup keeps you safe.
 
 [WARNING]
-====
 Upgrading is a one-way process. You cannot "downgrade" an
 upgraded Bugzilla. If you wish to revert to the old Bugzilla
 version for any reason, you will have to restore your database
 from this backup.
-====
+
+[WARNING]
+Upgrading original Bugzilla to Bugzilla4Intranet is also a one-way process.
+You *can* upgrade original Bugzilla installations (any version up to 4.4)
+to Bugzilla4Intranet, but you *can not* downgrade Bugzilla4Intranet back to the
+original Bugzilla.
 
 Here are some sample commands you could use to backup
 your database, depending on what database system you're
 using. You may have to modify these commands for your
 particular setup.
 
-MySQL:::
-_mysqldump --opt -u bugs -p bugs &gt; bugs.sql_
+MySQL::: `mysqldump --opt -u bugs -p bugs > bugs.sql`
 
-PostgreSQL:::
-_$$pg_dump --no-privileges --no-owner -h localhost -U bugs &gt; bugs.sql$$_
+PostgreSQL::: `pg_dump --no-privileges --no-owner -h localhost -U bugs > bugs.sql`
 
-[[upgrade-files]]
-==== Getting The New Bugzilla
+SQLite::: Just make a copy 'data/db/<your-database.db>'.
 
-There are three ways to get the new version of Bugzilla.
-We'll list them here briefly and then explain them
-more later.
+==== Getting The New Bugzilla4Intranet
 
-<<upgrade-cvs,CVS>>::
-If have _cvs_ installed on your machine
-and you have Internet access, this is the easiest way to
-upgrade, particularly if you have made modifications
-to the code or templates of Bugzilla.
+Just like when your were doing the initial installation, download a release archive
+or pull and checkout a new version Bugzilla4Intranet from Git repository.
 
-<<upgrade-tarball,Download the tarball>>::
-This is a very simple way to upgrade, and good if you
-haven't made many (or any) modifications to the code or
-templates of your Bugzilla.
-
-<<upgrade-patches,Patches>>::
-If you have made modifications to your Bugzilla, and
-you don't have Internet access or you don't want to use
-cvs, then this is the best way to upgrade.
-
-You can only do minor upgrades (such as 3.0 to 3.0.1 or
-3.0.1 to 3.0.2) with patches.
-
-[[upgrade-modified]]
-===== If you have modified your Bugzilla
-
-If you have modified the code or templates of your Bugzilla,
-then upgrading requires a bit more thought and effort.
-A discussion of the various methods of updating compared with
-degree and methods of local customization can be found in
-<<template-method,Choosing a Customization Method>>.
-
-The larger the jump you are trying to make, the more difficult it
-is going to be to upgrade if you have made local customizations.
-Upgrading from 3.0 to 3.0.1 should be fairly painless even if
-you are heavily customized, but going from 2.18 to 3.0 is going
-to mean a fair bit of work re-writing your local changes to use
-the new files, logic, templates, etc. If you have done no local
-changes at all, however, then upgrading should be approximately
-the same amount of work regardless of how long it has been since
-your version was released.
-
-[[upgrade-cvs]]
-===== Upgrading using CVS
-
-This requires that you have cvs installed (most Unix machines do),
-and requires that you are able to access cvs-mirror.mozilla.org
-on port 2401, which may not be an option if you are behind a
-highly restrictive firewall or don't have Internet access.
-
-The following shows the sequence of commands needed to update a
-Bugzilla installation via CVS, and a typical series of results.
-
+To update using Git, run these commands in your bugzilla installation directory:
 ----
-bash$ cd /var/www/html/bugzilla
-bash$ cvs login
-Logging in to :pserver:anonymous@cvs-mirror.mozilla.org:2401/cvsroot
-CVS password: ('anonymous', or just leave it blank)
-bash$ cvs -q update -r BUGZILLA-2_22_1 -dP
-P checksetup.pl
-P collectstats.pl
-P docs/rel_notes.txt
-P template/en/default/list/quips.html.tmpl
-...
+bash$ git pull
+bash$ git up v<version>
 ----
 
-[CAUTION]
+To update using an archive, just extract it to your installation directory overwriting
+all Bugzilla files.
+
+[NOTE]
 ====
-If a line in the output from _cvs update_ begins
-with a C, then that represents a
-file with local changes that CVS was unable to properly merge. You
-need to resolve these conflicts manually before Bugzilla (or at
-least the portion using that file) will be usable.
+You should never modify the code or templates of Bugzilla, because otherwise some day
+you may find yourself publishing your own fork, just like we did it with Bugzilla4Intranet :)
+
+Instead of making adjustments that change the hardcoded behaviour, better make your change
+configurable and submit it a pull request for Bugzilla4Intranet on link:https://github.com/vitalif/bugzilla4intranet[GitHub]!
 ====
 
-[[upgrade-tarball]]
-===== Upgrading using the tarball
-
-If you are unable (or unwilling) to use CVS, another option that's
-always available is to obtain the latest tarball from the link:$$http://www.bugzilla.org/download/$$[Download Page] and
-create a new Bugzilla installation from that.
-
-This sequence of commands shows how to get the tarball from the
-command-line; it is also possible to download it from the site
-directly in a web browser. If you go that route, save the file
-to the _/var/www/html_
-directory (or its equivalent, if you use something else) and
-omit the first three lines of the example.
-
-----
-bash$ cd /var/www/html
-bash$ wget http://ftp.mozilla.org/pub/mozilla.org/webtools/bugzilla-2.22.1.tar.gz
-...
-bash$ tar xzvf bugzilla-2.22.1.tar.gz
-bugzilla-2.22.1/
-bugzilla-2.22.1/.cvsignore
-...
-bash$ cd bugzilla-2.22.1
-bash$ cp ../bugzilla/localconfig* .
-bash$ cp -r ../bugzilla/data .
-bash$ cd ..
-bash$ mv bugzilla bugzilla.old
-bash$ mv bugzilla-2.22.1 bugzilla
-----
-
-[WARNING]
-====
-The _cp_ commands both end with periods which
-is a very important detail--it means that the destination
-directory is the current working directory.
-====
-
-This upgrade method will give you a clean install of Bugzilla.
-That's fine if you don't have any local customizations that you
-want to maintain. If you do have customizations, then you will
-need to reapply them by hand to the appropriate files.
-
-[[upgrade-patches]]
-===== Upgrading using patches
-
-A patch is a collection of all the bug fixes that have been made
-since the last bug-fix release.
-
-If you are doing a bug-fix upgrade—that is, one where only the
-last number of the revision changes, such as from 2.22 to
-2.22.1—then you have the option of obtaining and applying a
-patch file from the link:$$http://www.bugzilla.org/download/$$[Download Page].
-
-As above, this example starts with obtaining the file via the
-command line. If you have already downloaded it, you can omit the
-first two commands.
-
-----
-bash$ cd /var/www/html/bugzilla
-bash$ wget http://ftp.mozilla.org/pub/mozilla.org/webtools/bugzilla-2.22-to-2.22.1.diff.gz
-...
-bash$ gunzip bugzilla-2.22-to-2.22.1.diff.gz
-bash$ patch -p1 < bugzilla-2.22-to-2.22.1.diff
-patching file checksetup.pl
-patching file collectstats.pl
-...
-----
-
-[WARNING]
-Be aware that upgrading from a patch file does not change the
-entries in your _CVS_ directory.
-This could make it more difficult to
-<<upgrade-cvs,upgrade using CVS>> in the future.
-
-[[upgrade-completion]]
 ==== Completing Your Upgrade
 
 Now that you have the new Bugzilla code, there are a few final
 steps to complete your upgrade.
 
-. If your new Bugzilla installation is in a different
-directory or on a different machine than your old Bugzilla
-installation, make sure that you have copied the
-_data_ directory and the
-_localconfig_ file from your old Bugzilla
-installation. (If you followed the tarball instructions
-above, this has already happened.)
-
-. If this is a major update, check that the <<configuration,Configuration>> for your new Bugzilla is
-up-to-date. Sometimes the configuration requirements change
-between major versions.
-
-. If you didn't do it as part of the above configuration step,
-now you need to run _checksetup.pl_, which
-will do everything required to convert your existing database
-and settings for the new version:
-
-----
-bash$ cd /var/www/html/bugzilla
-bash$ ./checksetup.pl
-----
-
-[WARNING]
-The period at the beginning of the command
-_./checksetup.pl_ is important and can not
-be omitted.
-
+. If you change installation directory, remember to move your 'data' directory and 'localconfig' file there.
+. If this is a major update, 'checksetup.pl' will warn you about the new configuration variables.
+  Review this warning and make appropriate changes.
++
+--
 [CAUTION]
-If this is a major upgrade (say, 2.22 to 3.0 or similar),
-running _checksetup.pl_ on a large
-installation (75,000 or more bugs) can take a long time,
-possibly several hours.
-
-. Clear any HTML or text that you put into the shutdownhtml
-parameter, to re-activate Bugzilla.
-
-. View the <<sanitycheck,Sanity Check>> page in your
-upgraded Bugzilla.
-
-It is recommended that, if possible, you fix any problems
-you see, immediately. Failure to do this may mean that Bugzilla
-will not work correctly. Be aware that if the sanity check page
-contains more errors after an upgrade, it doesn't necessarily
-mean there are more errors in your database than there were
-before, as additional tests are added to the sanity check over
-time, and it is possible that those errors weren't being
-checked for in the old version.
+If this is a major upgrade (say, 2.22 to 3.0 or similar), running _checksetup.pl_ on
+a large installation (75,000 or more bugs) can take a long time, possibly several hours.
+--
+. Clear any HTML or text that you put into the shutdownhtml parameter, to re-activate Bugzilla.
 
 [[upgrade-notifications]]
 ==== Automatic Notifications of New Releases
 
 Bugzilla 3.0 introduced the ability to automatically notify
 administrators when new releases are available, based on the
-+$$upgrade_notification$$+ parameter, see
-<<parameters,Parameters>>. Administrators will see these
-notifications when they access the _index.cgi_
+'upgrade_notification' parameter, see <<parameters,Parameters>>.
+
+Bugzilla4Intranet is also configured for this auto-notification with its own upgrade channel.
+
+Administrators will see these notifications when they access the _index.cgi_
 page, i.e. generally when logging in. Bugzilla will check once per
-day for new releases, unless the parameter is set to
-"disabled". If you are behind a proxy, you may have to set
-the +$$proxy_url$$+ parameter accordingly. If the proxy
-requires authentication, use the
-+$$http://user:pass@proxy_url/$$+ syntax.
+day for new releases, unless the parameter is set to "disabled".
+If you are behind a proxy, you may have to set the 'proxy_url' parameter accordingly.
+If the proxy requires authentication, use the 'http://user:pass@proxy_url/' syntax.
 
 [[administration]]
 == Administering Bugzilla
