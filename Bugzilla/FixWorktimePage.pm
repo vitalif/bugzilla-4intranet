@@ -364,7 +364,7 @@ sub HandleSuperWorktime
             $vars->{test_times_by_bug} = $times;
             $vars->{test_times_by_user} = $user_times;
             $vars->{users} = $users;
-            $vars->{round} = sub { int($_[0]*100+0.5)/100 };
+            $vars->{round} = sub { ($_[0] < 0 ? -int(-$_[0]*100+0.5) : int($_[0]*100+0.5))/100 };
             $template->process('worktime/dry-run.html.tmpl', $vars);
             exit;
         }
