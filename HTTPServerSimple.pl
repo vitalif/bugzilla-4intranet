@@ -39,7 +39,7 @@ $SIG{INT} = sub { warn "Terminating"; CORE::exit(); };
 # Create and run
 my @args = @ARGV;
 @ARGV = ();
-my $server = Bugzilla::HTTPServerSimple->new;
+my $server = Bugzilla::HTTPServerSimple->new(@args);
 $server->run();
 
 # HTTP::Server::Simple subclass (the real server)
@@ -92,7 +92,7 @@ sub new
             $nextvalue = !$2;
             push @$cmdline, $1;
         }
-        elsif (!$nextvalue)
+        elsif ($nextvalue)
         {
             push @$cmdline, $_;
             $nextvalue = 0;
@@ -102,6 +102,7 @@ sub new
             push @$series, Bugzilla::NetServerConfigParser->_read_conf($_);
         }
     }
+    push @$cmdline, 1 if $nextvalue;
     push @$series, $cmdline;
     unshift @$series, [ DEFAULT_CONFIG() ];
     my $r = {};
