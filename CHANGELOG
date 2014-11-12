@@ -25,10 +25,10 @@ Backports from original Bugzilla 4.4:
 * SQLite support, in fact improved over original 4.4:
  ** It's possible to use built-in SQLite full-text search (FTS4)
  ** Query plans are shown when &debug=1 parameter is passed to buglist.cgi
- ** It's possible to use contrib/bzdbcopy.pl script with SQLite
  ** Bugfix: indexes are not deleted anymore when altering tables
  ** ANALYZE is run in the end of checksetup.pl
 * Add user "last seen date".
+* Fix link:https://bugzilla.mozilla.org/show_bug.cgi?id=924802[CVE-2013-1742] XSS.
 
 Bug field improvements:
 
@@ -80,7 +80,11 @@ Bugfixes:
 * More correct select field population on bug and query forms.
 * Fix read-only display of bug fields to work again.
 * sanitycheck.cgi fixed and works again.
+* contrib/bzdbcopy.pl fixed and works again, does not depend on current localconfig anymore
+  and is capable of copying custom field tables.
+* Oracle support fixed and works again.
 * Make "Clear flag requests when closing bugs" preference actually work.
+* Remove hack that was used to force Firefox to reset bug form on pressing Reload.
 
 Refactoring:
 
