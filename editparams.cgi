@@ -61,7 +61,7 @@ if ($action eq 'save' && $current_panel)
 {
     check_token_data($token, 'edit_parameters');
     my @changes = ();
-    my @module_param_list = @{ $vars->{panels}->{$current_panel}->{params} };
+    my @module_param_list = @{ $panels->{$current_panel}->{params} };
 
     foreach my $i (@module_param_list)
     {
