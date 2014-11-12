@@ -27,6 +27,7 @@ use strict;
 use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Install::Util qw(install_string);
+use Bugzilla::JobQueue::ObjectDriver;
 use base qw(TheSchwartz);
 
 sub new {
@@ -41,10 +42,12 @@ sub new {
     # to write to it.
     my $self = $class->SUPER::new(
         databases => [{
-            dsn    => Bugzilla->dbh_main->{private_bz_dsn},
-            user   => $lc->{db_user},
-            pass   => $lc->{db_pass},
             prefix => 'ts_',
+            driver => Bugzilla::JobQueue::ObjectDriver->new(
+                dsn      => Bugzilla->dbh_main->{private_bz_dsn},
+                username => $lc->{db_user},
+                password => $lc->{db_pass},
+            ),
         }],
     );
 
