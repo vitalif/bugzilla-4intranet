@@ -1655,8 +1655,7 @@ you for this username and password.
 [TIP]
 ====
 If you wish to add more administrative users, add them to
-the "admin" group and, optionally, edit the tweakparams, editusers,
-creategroups, editcomponents, and editkeywords groups to add the
+the "admin" group and, optionally, edit other system groups to add the
 entire admin group to those groups (which is the case by default).
 ====
 
@@ -1719,7 +1718,6 @@ the query page, and then click "Add a new user".
 When done, click "Submit".
 
 [NOTE]
-====
 Adding a user this way will _not_
 send an email informing them of their username and password.
 While useful for creating dummy accounts (watchers which
@@ -1729,7 +1727,6 @@ preferable to log out and use the "New Account"
 button to create users, as it will pre-populate all the
 required fields and also notify the user of her account name
 and password.
-====
 
 [[modifyusers]]
 ===== Modifying Users
@@ -1757,6 +1754,8 @@ for this account. This checkbox replaces the data/nomail file
 which existed in older versions of Bugzilla.
 
 * __Disable Text__:
++
+--
 If you type anything in this box, including just a space, the
 user is prevented from logging in, or making any changes to
 bugs via the web interface.
@@ -1771,77 +1770,23 @@ stop it. If you want an account (disabled or active) to
 stop receiving mail, simply check the
 "Bugmail Disabled" checkbox above.
 
-[NOTE]
-====
-Even users whose accounts have been disabled can still
-submit bugs via the e-mail gateway, if one exists.
-The e-mail gateway should _not_ be
-enabled for secure installations of Bugzilla.
-====
-
-[WARNING]
-====
-Don't disable all the administrator accounts!
-====
+WARNING: Don't disable all the administrator accounts!
+--
 
 * __&lt;groupname&gt;__:
++
+--
 If you have created some groups, e.g. "securitysensitive", then
 checkboxes will appear here to allow you to add users to, or
-remove them from, these groups. The first checkbox gives the
-user the ability to add and remove other users as members of
-this group. The second checkbox adds the user himself as a member
-of the group.
+remove them from, these groups.
 
-* __canconfirm__:
-This field is only used if you have enabled the "unconfirmed"
-status. If you enable this for a user,
-that user can then move bugs from "Unconfirmed" to a "Confirmed"
-status (e.g.: "New" status).
+NOTE: The first checkbox gives the user the ability to add and remove
+other users as members of this group. The second checkbox adds the user
+himself as a member of the group.
 
-* __creategroups__:
-This option will allow a user to create and destroy groups in
-Bugzilla.
-
-* __editbugs__:
-Unless a user has this bit set, they can only edit those bugs
-for which they are the assignee or the reporter. Even if this
-option is unchecked, users can still add comments to bugs.
-
-* __editcomponents__:
-This flag allows a user to create new products and components,
-as well as modify and destroy those that have no bugs associated
-with them. If a product or component has bugs associated with it,
-those bugs must be moved to a different product or component
-before Bugzilla will allow them to be destroyed.
-
-* __editkeywords__:
-If you use Bugzilla's keyword functionality, enabling this
-feature allows a user to create and destroy keywords. As always,
-the keywords for existing bugs containing the keyword the user
-wishes to destroy must be changed before Bugzilla will allow it
-to die.
-
-* __editusers__:
-This flag allows a user to do what you're doing right now: edit
-other users. This will allow those with the right to do so to
-remove administrator privileges from other users or grant them to
-themselves. Enable with care.
-
-* __tweakparams__:
-This flag allows a user to change Bugzilla's Params
-(using _editparams.cgi_.)
-
-* __&lt;productname&gt;__:
-This allows an administrator to specify the products
-in which a user can see bugs. If you turn on the
-"makeproductgroups" parameter in
-the Group Security Panel in the Parameters page,
-then Bugzilla creates one group per product (at the time you create
-the product), and this group has exactly the same name as the
-product itself. Note that for products that already exist when
-the parameter is turned on, the corresponding group will not be
-created. The user must still have the "editbugs"
-privilege to edit bugs in these products.
+NOTE: System groups listed here grant special permissions to users.
+For more information see <<groups,Groups and Group Security>>.
+--
 
 [[user-account-deletion]]
 ===== Deleting Users
@@ -2919,6 +2864,34 @@ be overridden (on a per-bug basis) by bringing up the bug, finding the
 section that starts with "Users in the roles selected below..."
 and un-checking the box next to either 'Reporter' or 'CC List' (or both).
 ====
+
+==== System Groups
+
+admin:: Administrator group. Usually allows to access *all* administrative functions.
+admin_index:: Allows to enter Administration area. *Should not be edited by hand*, granted automatically if you can access any of the administrative functions.
+tweakparams:: Allows to change Bugzilla's Parameters.
+editusers:: Allows to edit or disable users and include/exclude them from *all* groups.
+creategroups:: Allows to create, destroy and edit all groups.
+editclassifications:: Allows to create, destroy and edit classifications.
+editcomponents:: Allows to create, destroy and edit all products, components, versions and milestones.
+editkeywords:: Allows to create, destroy and edit keywords.
+editbugs:: Allows to edit all fields of all bugs the user has access to.
+  A user will be only able to comment on a bug if he's not a member of this group and
+  not an assignee, QA contact or a reporter of that bug. If he's the reporter, but not the 'editbugs'
+  member, he will be able to change anything except assignee, QA, target milestone, priority
+  (if 'letsubmitterchoosepriority' parameter is disabled) fields, and except moving the bug between
+  different open statuses. If he's the assignee or a QA of a bug, he can always change all aspects of it.
+canconfirm:: Allows to confirm bugs (that is, change their status from an unconfirmed to a confirmed one) or mark them as duplicates.
+bz_canusewhineatothers:: Allows to configure whine reports for other users.
+bz_canusewhines:: Allows to configure whine reports for self.
+bz_sudoers:: Allows to impersonate other users and perform actions as them.
+bz_sudo_protect:: Forbids other users to impersonate you.
+bz_editcheckers:: Allows to edit Predicates ("Correctness Checkers").
+editfields:: Allows to create, destroy and edit properties of bug fields.
+editvalues:: Allows to edit allowed values for all bug fields.
+importxls:: Allows to create or update many bugs at once using Excel and CSV files.
+worktimeadmin:: Allows to register working time for other users and for dates in the past (see "Fix Worktime" link under a bug list).
+editflagtypes:: Allows to create, destroy and edit flag types.
 
 [[create-groups]]
 ==== Creating Groups
