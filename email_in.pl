@@ -500,16 +500,20 @@ unless ($user)
         unless (Bugzilla->params->{emailin_autoregister})
         {
             ThrowUserError('invalid_username', { name => $username });
-            exit;
         }
         # Then try to autoregister unknown user
         $user = Bugzilla::User->create({
             login_name      => $username,
             realname        => $mail_fields->{_reporter_name},
             cryptpassword   => 'a3#',
-            disabledtext    => 'Auto-registered account',
+            disabledtext    => '',
         });
     }
+}
+
+if (!$user->is_enabled)
+{
+    ThrowUserError('account_disabled', { disabled_reason => $user->disabledtext });
 }
 
 Bugzilla->set_user($user);
