@@ -3953,7 +3953,7 @@ sub _make_fieldvaluecontrol
                     }
                     else
                     {
-                        $all_ids = [ map { $_->id } $f->value_field->legal_values ];
+                        $all_ids = [ map { $_->id } @{ $f->value_field->legal_values } ];
                     }
                     if (@$all_ids)
                     {

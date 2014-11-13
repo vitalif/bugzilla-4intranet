@@ -146,6 +146,10 @@ sub _get_create_index_ddl {
 
     my ($self, $table_name, $index_name, $index_fields, $index_type) = @_;
 
+    if (lc $index_name eq 'primary') {
+        return "ALTER TABLE $table_name ADD PRIMARY KEY (".join(", ", @$index_fields).")";
+    }
+
     my $sql = "CREATE ";
     $sql .= "$index_type " if $index_type && ($index_type eq 'UNIQUE' || $index_type eq 'FULLTEXT');
     $sql .= "INDEX \`$index_name\` ON $table_name \(" .

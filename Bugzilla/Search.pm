@@ -3129,7 +3129,7 @@ sub negate_expression
     if (ref $q eq 'HASH')
     {
         $q->{neg} = !$q->{neg};
-        $q->{allow_null} = $q->{allow_null} == 1 ? 0 : $q->{allow_null};
+        $q->{allow_null} = ($q->{allow_null} || 0) == 1 ? 0 : $q->{allow_null};
         $q->{description}->[1] = NEGATE_ALL_OPERATORS->{$q->{description}->[1]} || $q->{description}->[1];
     }
     elsif (!ref $q)
