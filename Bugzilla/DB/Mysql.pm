@@ -905,10 +905,10 @@ sub _alter_db_charset_to_utf8 {
 
 sub bz_db_is_utf8 {
     my $self = shift;
-    my $db_collation = $self->selectrow_arrayref(
+    my (undef, $db_collation) = $self->selectrow_array(
         "SHOW VARIABLES LIKE 'character_set_database'");
     # First column holds the variable name, second column holds the value.
-    return $db_collation->[1] =~ /utf8/ ? 1 : 0;
+    return $db_collation =~ /utf8/ ? 1 : 0;
 }
 
 #####################################################################
