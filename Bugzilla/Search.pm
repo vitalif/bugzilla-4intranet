@@ -3511,6 +3511,7 @@ sub expression_sql_many
     shift @q;
     my $term = [];
     my $supp = [];
+    my $suppseen = {};
     for my $i (0..$#q)
     {
         my $t = $q[$i];
@@ -3518,13 +3519,20 @@ sub expression_sql_many
         if ($t->{term})
         {
             push @$term, $t->{neg} ? "NOT($t->{term})" : $t->{term};
-            if (!$t->{allow_null})
+            for (@{$t->{supp} || []})
             {
-                push @$supp, map { s/^(\s*)LEFT/$1INNER/is; $_ } @{$t->{supp} || []};
-            }
-            else
-            {
-                push @$supp, @{$t->{supp} || []};
+                s/^(\s*)LEFT/$1INNER/is if !$t->{allow_null};
+                my $s = $_;
+                $s =~ s/^\s*(LEFT|INNER)\s+//iso;
+                if (exists $suppseen->{$s})
+                {
+                    # The same join may have come from several terms;
+                    # Always use the LEFT if there is one.
+                    $supp->[$suppseen->{$s}] = $_ if lc $1 eq 'left';
+                    next;
+                }
+                $suppseen->{$s} = scalar @$supp;
+                push @$supp, $_;
             }
         }
         else
