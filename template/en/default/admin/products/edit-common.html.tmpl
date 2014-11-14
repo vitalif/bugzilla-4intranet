@@ -37,12 +37,12 @@
   <td><input size="64" maxlength="64" name="product" id="product" value="[% product.name | html %]" /></td>
 </tr>
 
-<tr>
+<tr valign="top">
   <th align="left"><label for="description">Description:</label></th>
   <td><textarea rows="4" cols="64" wrap="virtual" name="description" id="description">[% product.description | html %]</textarea></td>
 </tr>
 
-<tr>
+<tr valign="top">
   <th align="left"><label for="entryheaderhtml">HTML code to display<br /> above the bug form:</label></th>
   <td><textarea rows="4" cols="64" wrap="virtual" name="entryheaderhtml" id="entryheaderhtml">[% product.entryheaderhtml | html %]</textarea></td>
 </tr>
@@ -100,7 +100,7 @@
   </td>
 </tr>
 
-<tr>
+<tr valign="top">
   <th align="left">CC group:</th>
   <td>
     <select name="cc_group">
