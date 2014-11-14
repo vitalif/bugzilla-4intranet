@@ -2025,25 +2025,22 @@ topic, see <<product-group-controls,Assigning Group Controls to Products>>.
 Classifications tend to be used in order to group several related
 products into one distinct entity.
 
-The classifications layer is disabled by default; it can be turned
-on or off using the useclassification parameter,
-in the _Bug Fields_ section of the edit parameters screen.
+The classification field is disabled by default; it can be turned
+on or off in _Bug Fields_ administration area.
 
 Access to the administration of classifications is controlled using
 the _editclassifications_ system group, which defines
 a privilege for creating, destroying, and editing classifications.
 
 When activated, classifications will introduce an additional
-step when filling bugs (dedicated to classification selection), and they
+step when filing bugs (dedicated to classification selection), and they
 will also appear in the advanced search form.
 
 [[products]]
 === Products
 
-Products typically represent real-world
-shipping products. Products can be given
-<<classifications,classifications>>.
-For example, if a company makes computer games,
+Products typically represent real-world shipping products. Products can be given
+<<classifications,classifications>>. For example, if a company makes computer games,
 they could have a classification of "Games", and a separate
 product for each game. This company might also have a
 "Common" product for units of technology used
@@ -2051,46 +2048,71 @@ in multiple games, and perhaps a few special products that
 represent items that are not actually shipping products
 (for example, "Website", or "Administration").
 
-Many of Bugzilla's settings are configurable on a per-product
-basis. The number of "votes" available to
-users is set per-product, as is the number of votes
-required to move a bug automatically from the UNCONFIRMED
+Many of Bugzilla's settings are configurable on a per-product basis.
+The number of "votes" available to users is set per-product, as is
+the number of votes required to move a bug automatically from the UNCONFIRMED
 status to the NEW status.
 
-When creating or editing products the following options are
-available:
+Each product has the following properties:
 
 Product::
-The name of the product
+The name of the product.
 
 Description::
-A brief description of the product
+A brief description of the product. May contain (some) HTML code. "Some" means that
+only "safe" tags are allowed here.
 
-Default milestone::
-Select the default milestone for this product.
+HTML code to display above the bug form::
+This is the per-product 'entryheaderhtml' parameter - basically an introduction text
+which will be displayed before the bug entry form for this product.
 
-Closed for bug entry::
-Select this box to prevent new bugs from being entered against this product.
+Open for bug entry::
+Uncheck this box to disable the product and to prevent new bugs from being entered against it.
 
-Maximum votes per person::
-Maximum votes a user is allowed to give for this product
+Allow unconfirmed::
+Allow unconfirmed bug statuses in this product.
 
-Maximum votes a person can put on a single bug::
-Maximum votes a user is allowed to give for this product in a single bug
+Wiki URL prefix::
+Allows to override 'wiki_url' parameter for bugs in this product. Each bug will basically
+have a link to '<wiki_url>/Bug_XXX'.
+
+Prefer no timetracking::
+Warn users trying to fix worktime in this product about that it shouldn't be done.
+
+CC group::
+If you select a group here, Bugzilla will disallow non-members of this group
+to be Assignee, QA or CC in this product. They will still be allowed to see this product
+bugs or even report new ones if group permissions allow them to do so though.
+
+Maximum votes per user::
+Maximum votes a user is allowed to give for this product.
+
+Maximum votes per user, per single bug::
+Maximum votes a user is allowed to give for any single bug in this product.
 
 Confirmation threshold::
-Number of votes needed to automatically remove any
-bug against this product from the UNCONFIRMED state
+Shown next to 'Allow unconfirmed' when it is checked, this is the number of votes
+needed to automatically move any bug in this product from the UNCONFIRMED to NEW state.
+
+These additional options are available when you create a new product:
 
 Version::
-Specify which version of the product bugs will be
-entered against.
+Specify an initial version to be created in this product.
 
 Create chart datasets for this product::
 Select to make chart datasets available for this product.
 
-When editing a product there is also a link to edit Group Access Controls,
-see <<product-group-controls,Assigning Group Controls to Products>>.
+Create access group for this product::
+Select to create an access group with the same name as the created product
+and associate it as SHOWN/NA with it.
+
+The product edit form also includes:
+
+* Links to edit its components, versions, target milestones (<<comps-vers-miles-products,see details>>)
+  and <<product-group-controls,group access control>>
+* Checkboxes and inputs to edit the properties of custom fields which are configured to depend on product
+  in various ways (enable/disable fields, edit legal values, change default value, enable/disable empty
+  value and field cloning)
 
 [[create-product]]
 ==== Creating New Products
@@ -2098,33 +2120,34 @@ see <<product-group-controls,Assigning Group Controls to Products>>.
 To create a new product:
 
 . Select "Administration" from the footer and then
-choose "Products" from the main administration page.
+  choose "Products" from the main administration page.
 
-. Select the "Add" link in the bottom right.
+. If you have the Classification field enabled in your setup, choose
+  an existing classificaction or create a new one.
 
-. Enter the name of the product and a description. The
-Description field may contain HTML.
+. Select the 'Add' or 'Add product to classification ...' link.
+
+. Fill in the form with the new product properties.
 
 . When the product is created, Bugzilla will give a message
-stating that a component must be created before any bugs can
-be entered against the new product. Follow the link to create
-a new component. See <<components,Components>> for more
-information.
+  stating that a component must be created before any bugs can
+  be entered against the new product. Follow the link to create
+  a new component. See <<components,Components>> for more information.
 
 [[edit-products]]
 ==== Editing Products
 
-To edit an existing product, click the "Products" link from the
-"Administration" page. If the 'useclassification' parameter is
-turned on, a table of existing classifications is displayed,
-including an "Unclassified" category. The table indicates how many products
-are in each classification. Click on the classification name to see its
-products. If the 'useclassification' parameter is not in use, the table
-lists all products directly. The product table summarizes the information
-about the product defined
-when the product was created. Click on the product name to edit these
-properties, and to access links to other product attributes such as the
-product's components, versions, milestones, and group access controls.
+To edit a product:
+
+. Select "Administration" from the footer and then
+  choose "Products" from the main administration page.
+
+. If you have the Classification field enabled in your setup, choose
+  an existing classificaction or create a new one.
+
+. Click on the product name to edit its properties and to access links
+  to other product attributes such as the product's components, versions,
+  milestones, and group access controls.
 
 [[comps-vers-miles-products]]
 ==== Adding or Editing Components, Versions and Target Milestones
@@ -2145,8 +2168,37 @@ For more information on milestones, see <<milestones,Milestones>>.
 [[product-group-controls]]
 ==== Assigning Group Controls to Products
 
-On the "Edit Product" page, there is a link called
-"Edit Group Access Controls". The settings on this page
+The per-product security settings are configured on the 'Edit Group Access Controls' page.
+
+The basic security concept is that the access to _every particular bug_ may be restricted by a
+number of Bugzilla groups. The 'more groups' bug is restricted by, the 'more secret' it is.
+
+Some of these groups may be optional, in this case 'some people' will be able to decide
+about making the bug more or less secret by setting or clearing the checkboxes shown
+on the bug entry/edit form for such groups.
+
+Product group controls specify 'what groups' the bugs in this product may be restricted with,
+'who may decide' on changing that restriction.
+
+Also product group control configure permissions for some additional actions:
+
+Restrict bug entry:: By default any user can enter a bug in the product, regardless of the
+  basic access controls. Specify one or more groups here to require the user
+  to be their member to be able to enter bugs.
+
+Restrict editing and commenting bugs:: By default any user who can access the bug
+  can also comment/edit it. Specify one or more groups here to make this product bugs
+  read-only for all users that are not a member of all specified groups.
+
+Allow product and component administration::
+
+Allow to confirm bugs::
+
+Allow to change any field of this product bugs::
+
+Group is optional when it has "Shown" or "Default" MemberControl or OtherControl.
+"Some people" means "members of the group" for MemberControl and "everyone else" for OtherControl.
+
 control the relationship of the groups to the product being edited.
 
 Group Access Controls are an important aspect of using groups for
@@ -2154,33 +2206,10 @@ isolating products and restricting access to bugs filed against those
 products. For more information on groups, including how to create, edit
 add users to, and alter permission of, see <<groups,Groups and Group Security>>.
 
-After selecting the "Edit Group Access Controls" link from the "Edit
-Product" page, a table containing all user-defined groups for this
-Bugzilla installation is displayed. The system groups that are created
-when Bugzilla is installed are not applicable to Group Access Controls.
-Below is description of what each of these fields means.
-
-Groups may be applicable (e.g bugs in this product can be associated
-with this group) , default (e.g. bugs in this product are in this group
-by default), and mandatory (e.g. bugs in this product must be associated
-with this group) for each product. Groups can also control access
-to bugs for a given product, or be used to make bugs for a product
-totally read-only unless the group restrictions are met. The best way to
-understand these relationships is by example. See
-<<group-control-examples,Common Applications of Group Controls>> for examples of
-product and group relationships.
-
-[NOTE]
-====
-Products and Groups are not limited to a one-to-one relationship.
-Multiple groups can be associated with the same product, and groups
-can be associated with more than one product.
-====
-
-If any group has _Entry_ selected, then the
-product will restrict bug entry to only those users
-who are members of _all_ the groups with
-_Entry_ selected.
+WARNING: This security concept may seem non-intuitive because it's based on 'intersections'
+instead of 'unions'. That is, in the case of Bugzilla, if there are multiple groups assigned
+to a specific bug, only users that are members of 'all of these groups at the same time'
+are allowed to access it (while mosts users basically expect quite the opposite).
 
 If any group has _Canedit_ selected,
 then the product will be read-only for any users
