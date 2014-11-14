@@ -27,10 +27,20 @@ use base qw(Template::Context);
 use Bugzilla::Hook;
 use Scalar::Util qw(blessed);
 
-sub process {
+sub process
+{
     my $self = shift;
     my ($template) = @_;
-    local $Bugzilla::Template::CURRENT_TEMPLATE = $template =~ /\.tmpl$/ ? $template : $Bugzilla::Template::CURRENT_TEMPLATE;
+    my $tplname = $Bugzilla::Template::CURRENT_TEMPLATE;
+    if ($template =~ /\.tmpl$/)
+    {
+        $tplname = $template;
+    }
+    elsif (blessed $template && $template->isa('Template::Document'))
+    {
+        $tplname = $template->{name} || $tplname;
+    }
+    local $Bugzilla::Template::CURRENT_TEMPLATE = $tplname;
     # We don't want to run the template_before_process hook for
     # template hooks (but we do want it to run if a hook calls
     # PROCESS inside itself). The problem is that the {component}->{name} of
@@ -41,7 +51,8 @@ sub process {
     # because that's already part of the extension and they should be able
     # to modify their hook if they want (or just modify the variables in the
     # calling template).
-    if (not delete $self->{bz_in_hook}) {
+    if (not delete $self->{bz_in_hook})
+    {
         $self->{bz_in_process} = 1;
     }
     my $result = $self->SUPER::process(@_);
