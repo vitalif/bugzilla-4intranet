@@ -2177,75 +2177,97 @@ Some of these groups may be optional, in this case 'some people' will be able to
 about making the bug more or less secret by setting or clearing the checkboxes shown
 on the bug entry/edit form for such groups.
 
+===== MemberControl/OtherControl
+
 Product group controls specify 'what groups' the bugs in this product may be restricted with,
-'who may decide' on changing that restriction.
+'who may decide' on changing that restriction. This is controlled by a set of groups with
+two properties: 'MemberControl' and 'OtherControl', both of which may be equal to one of 'Mandatory',
+'Default', 'Shown' or 'NA'.
 
-Also product group control configure permissions for some additional actions:
+Group is optional for the bugs in product when it has 'Shown' or 'Default' MemberControl or OtherControl.
+People who may decide about including each specific bug into the group are 'members of that group'
+for the case of MemberControl and 'everyone else' for OtherControl.
 
-Restrict bug entry:: By default any user can enter a bug in the product, regardless of the
+[options="header",cols="2*10%,80%"]
+|=====
+| MemberControl | OtherControl  | Interpretation
+| Mandatory     | Mandatory     | Simplest case: all bugs in this product are always restricted by this group.
+| Mandatory  | Shown/Default/NA | These combinations are not allowed.
+| Default       | Mandatory     |
+Members of this group are able to restrict or not to restrict bugs in this product by this group.
+
+Non-members are forced to restrict their new bugs by this group and may not change the restriction of existing bugs by this group.
+
+Bug entry form has the group checkbox checked by default for group members.
+
+| Default       | Default       |
+Everyone is able to restrict or not to restrict bugs in this product by this group.
+
+Bug entry form has the group checkbox checked by default for everyone.
+
+| Default       | Shown         | This combination is not allowed.
+| Default       | NA            |
+Members of this group are able to restrict or not to restrict bugs in this product by this group.
+
+Non-members may not restrict bugs by this group.
+
+Bug entry form has the group checkbox checked by default for group members.
+
+| Shown         | Mandatory     |
+Members of this group are able to restrict or not to restrict bugs in this product by this group.
+
+Non-members are forced to restrict their new bugs by this group and may not change the restriction of existing bugs by this group.
+
+Bug entry form has the group checkbox unchecked by default for group members.
+
+| Shown         | Default       |
+Everyone is able to restrict or not to restrict bugs in this product by this group.
+
+Bug entry form has the group checkbox unchecked by default for members of this group, and checked by default for non-members of this group.
+
+| Shown         | Shown         |
+Everyone is able to restrict or not to restrict bugs in this product by this group.
+
+Bug entry form has the group checkbox unchecked by default for everyone.
+
+| Shown         | NA            |
+Members of this group are able to restrict or not to restrict bugs in this product by this group.
+
+Non-members may not restrict bugs by this group.
+
+Bug entry form has the group checkbox unchecked by default.
+
+| NA  | Mandatory/Default/Shown | These combinations are not allowed.
+| NA            | NA            |
+Bugs in this product are never restricted by this group. Equivalent to removing the group from the list.
+
+|=====
+
+===== Additional controls
+
+Product group control also configure permissions for some additional actions:
+
+Restrict bug entry ('ENTRY'):: By default any user can enter a bug in the product, regardless of the
   basic access controls. Specify one or more groups here to require the user
   to be their member to be able to enter bugs.
 
-Restrict editing and commenting bugs:: By default any user who can access the bug
+Restrict editing and commenting bugs ('canedit'):: By default any user who can access the bug
   can also comment/edit it. Specify one or more groups here to make this product bugs
   read-only for all users that are not a member of all specified groups.
 
-Allow product and component administration::
+Allow product and component administration ('editcomponents'):: By default only members of the
+  'editcomponents' system group can administer products. Specify some groups here to allow
+  members of 'any of them' to administer this product.
 
-Allow to confirm bugs::
+Allow to confirm bugs ('canconfirm'):: If unconfirmed states are enabled in this product, you may specify
+  some groups here to allow members of 'any of them' to move this product bugs from
+  unconfirmed to confirmed states. Members of the 'canconfirm' system group will still be able to
+  do the same for all products.
 
-Allow to change any field of this product bugs::
-
-Group is optional when it has "Shown" or "Default" MemberControl or OtherControl.
-"Some people" means "members of the group" for MemberControl and "everyone else" for OtherControl.
-
-control the relationship of the groups to the product being edited.
-
-Group Access Controls are an important aspect of using groups for
-isolating products and restricting access to bugs filed against those
-products. For more information on groups, including how to create, edit
-add users to, and alter permission of, see <<groups,Groups and Group Security>>.
-
-WARNING: This security concept may seem non-intuitive because it's based on 'intersections'
-instead of 'unions'. That is, in the case of Bugzilla, if there are multiple groups assigned
-to a specific bug, only users that are members of 'all of these groups at the same time'
-are allowed to access it (while mosts users basically expect quite the opposite).
-
-If any group has _Canedit_ selected,
-then the product will be read-only for any users
-who are not members of _all_ of the groups with
-_Canedit_ selected. _Only_ users who
-are members of all the _Canedit_ groups
-will be able to edit bugs for this product. This is an additional
-restriction that enables finer-grained control over products rather
-than just all-or-nothing access levels.
-
-The following settings let you
-choose privileges on a _per-product basis_.
-This is a convenient way to give privileges to
-some users for some products only, without having
-to give them global privileges which would affect
-all products.
-
-Any group having _editcomponents_
-selected  allows users who are in this group to edit all
-aspects of this product, including components, milestones
-and versions.
-
-Any group having _canconfirm_ selected
-allows users who are in this group to confirm bugs
-in this product.
-
-Any group having _editbugs_ selected allows
-users who are in this group to edit all fields of
-bugs in this product.
-
-The _MemberControl_ and
-_OtherControl_ are used in tandem to determine which
-bugs will be placed in this group. The only allowable combinations of
-these two parameters are listed in a table on the "Edit Group Access Controls"
-page. Consult this table for details on how these fields can be used.
-Examples of different uses are described below.
+Allow to change any field of this product bugs ('editbugs'):: By default users that are not members of 'editbugs'
+  group are only allowed to comment on most bugs, but not to change the field values
+  (see 'editbugs' in <<systemgroups,System Groups>>). Specify some groups here to allow members of
+  'any of them' to edit all fields of bugs in this product.
 
 [[group-control-examples]]
 ===== Common Applications of Group Controls
@@ -2257,7 +2279,7 @@ of the group being edited for this product. The other fields all
 correspond to the table on the "Edit Group Access Controls" page. If any
 of these options are not listed, it means they are not checked.
 
-Basic Product/Group Restriction
+.Basic Product/Group Restriction
 
 Suppose there is a product called "Bar". The
 "Bar" product can only have bugs entered against it by users in the
@@ -2268,20 +2290,16 @@ users could see the bug. This arrangement would achieved by the
 following:
 
 ----
-
 Product Bar:
 foo: ENTRY, MANDATORY/MANDATORY, CANEDIT
-
 ----
 
 Perhaps such strict restrictions are not needed for product "Bar". A
 more lenient way to configure product "Bar" and group "Foo" would be:
 
 ----
-
 Product Bar:
 foo: ENTRY, SHOWN/SHOWN, EDITCOMPONENTS, CANCONFIRM, EDITBUGS
-
 ----
 
 The above indicates that for product "Bar", members of group "Foo" can
@@ -2292,20 +2310,18 @@ in group "Foo", even if they themselves are not in "Foo". Anyone in group
 bugs against product "Bar", and can edit all fields of any bug against
 product "Bar".
 
-General User Access With Security Group
+.General User Access With Security Group
 
 To permit any user to file bugs against "Product A",
 and to permit any user to submit those bugs into a
 group called "Security":
 
 ----
-
 Product A:
 security: SHOWN/SHOWN
-
 ----
 
-General User Access With A Security Product
+.General User Access With A Security Product
 
 To permit any user to file bugs against product called "Security"
 while keeping those bugs from becoming visible to anyone
@@ -2313,13 +2329,11 @@ outside the group "SecurityWorkers" (unless a member of the
 "SecurityWorkers" group removes that restriction):
 
 ----
-
 Product Security:
 securityworkers: DEFAULT/MANDATORY
-
 ----
 
-Product Isolation With a Common Group
+.Product Isolation With a Common Group
 
 To permit users of "Product A" to access the bugs for
 "Product A", users of "Product B" to access the bugs for
@@ -2332,30 +2346,22 @@ Group" to access both, three groups are needed:
 
 . AccessB Group: Contains users of product B and the Support group.
 
-Once these three groups are defined, the product group controls
-can be set to:
+Once these three groups are defined, the product group controls can be set to:
 
 ----
-
 Product A:
 AccessA: ENTRY, MANDATORY/MANDATORY
 Product B:
 AccessB: ENTRY, MANDATORY/MANDATORY
-
 ----
 
-Perhaps the "Support Group" wants more control. For example,
-the "Support Group"  could be permitted to make bugs inaccessible to
-users of both groups "AccessA" and "AccessB".
-Then, the "Support Group" could be permitted to publish
-bugs relevant to all users in a third product (let's call it
-"Product Common") that is read-only
-to anyone outside the "Support Group". In this way the "Support Group"
-could control bugs that should be seen by both groups.
+Perhaps the "Support Group" wants more control. For example, the "Support Group"  could be permitted to make bugs inaccessible to
+users of both groups "AccessA" and "AccessB". Then, the "Support Group" could be permitted to publish
+bugs relevant to all users in a third product (let's call it "Product Common") that is read-only
+to anyone outside the "Support Group". In this way the "Support Group" could control bugs that should be seen by both groups.
 That configuration would be:
 
 ----
-
 Product A:
 AccessA: ENTRY, MANDATORY/MANDATORY
 Support: SHOWN/NA
@@ -2364,29 +2370,23 @@ AccessB: ENTRY, MANDATORY/MANDATORY
 Support: SHOWN/NA
 Product Common:
 Support: ENTRY, DEFAULT/MANDATORY, CANEDIT
-
 ----
 
-Make a Product Read Only
+.Make a Product Read Only
 
 Sometimes a product is retired and should no longer have
 new bugs filed against it (for example, an older version of a software
 product that is no longer supported). A product can be made read-only
-by creating a group called "readonly" and adding products to the
-group as needed:
+by creating a group called "readonly" and adding products to the group as needed:
 
 ----
-
 Product A:
 ReadOnly: ENTRY, NA/NA, CANEDIT
-
 ----
 
 [NOTE]
-====
 For more information on Groups outside of how they relate to products
 see <<groups,Groups and Group Security>>.
-====
 
 [[components]]
 === Components
