@@ -1599,7 +1599,7 @@ sub execute
 {
     my $self = shift;
     my $dbh = tied(%$self)->{Database}->{Driver}->{ChildHandles};
-    $dbh->[$#$dbh]->log_query(tied(%$self)->{Statement}, [ @_ ]);
+    $dbh->[0]->log_query(tied(%$self)->{Statement}, [ @_ ]);
     return $self->SUPER::execute(@_);
 }
 
