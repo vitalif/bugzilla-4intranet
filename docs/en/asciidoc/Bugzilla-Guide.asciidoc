@@ -2391,57 +2391,47 @@ see <<groups,Groups and Group Security>>.
 [[components]]
 === Components
 
-Components are subsections of a Product. E.g. the computer game
-you are designing may have a "UI"
+Components are subsections of a Product. E.g. the computer game you are designing may have a "UI"
 component, an "API" component, a "Sound System" component, and a
 "Plugins" component, each overseen by a different programmer. It
 often makes sense to divide Components in Bugzilla according to the
-natural divisions of responsibility within your Product or
-company.
+natural divisions of responsibility within your Product or company.
 
-Each component has a default assignee and (if you turned it on in the parameters),
-a QA Contact. The default assignee should be the primary person who fixes bugs in
-that component. The QA Contact should be the person who will ensure
-these bugs are completely fixed. The Assignee, QA Contact, and Reporter
-will get email when new bugs are created in this Component and when
-these bugs change. Default Assignee and Default QA Contact fields only
-dictate the
-__default assignments__;
-these can be changed on bug submission, or at any later point in
-a bug's life.
+Each component has name, description (which can contain some "safe" HTML text),
+open/closed state ('Open for bug entry'), optional wiki URL that overrides
+global and per-product settings, and default values for some bug fields:
+
+* 'Default Assignee', the primary person who fixes bugs in the component.
+* 'Default QA Contact' (effective only if the QA Contact field is enabled),
+  the person who usually ensures these bugs are completely fixed.
+* 'Default CC List', people that is subscribed to bugs in this component by default.
+* Default values for fields configured to have component-dependent default values
+  ('Target Milestone' is a such field by default).
+* If you have any fields that depend on component in any other way, you can also
+  configure these per-component dependencies from the component edit form.
 
 To create a new Component:
 
-. Select the "Edit components" link
-from the "Edit product" page
-
-. Select the "Add" link in the bottom right.
-
-. Fill out the "Component" field, a
-short "Description", the
-"Default Assignee", "Default CC List"
-and "Default QA Contact" (if enabled).
-The "Component Description" field may contain a
-limited subset of HTML tags. The "Default Assignee"
-field must be a login name already existing in the Bugzilla database.
+. Select the 'Edit components' link from the 'Edit product' page.
+. Select the 'Add' link in the bottom right.
+. Fill out the form and press 'Add Component'.
 
 [[versions]]
 === Versions
 
 Versions are the revisions of the product, such as "Flinders
 3.1", "Flinders 95", and "Flinders 2000". Version is not a multi-select
-field; the usual practice is to select the earliest version known to have
-the bug.
+field; the usual practice is to select the earliest version known to have the bug.
 
 To create and edit Versions:
 
-. From the "Edit product" screen, select "Edit Versions"
+. From the "Edit product" screen, select "Edit Versions".
+. Click the "Add" link in the bottom right, or click the name of one of existing versions.
+. Enter the name of the Version. This field takes text only. Then click the "Add" button.
 
-. You will notice that the product already has the default
-version "undefined". Click the "Add" link in the bottom right.
+Versions are always sorted using the "version sort" comparison.
 
-. Enter the name of the Version. This field takes text only.
-Then click the "Add" button.
+Old versions may be deactivated if you don't want them to appear in the bug entry form anymore.
 
 [[milestones]]
 === Milestones
@@ -2451,11 +2441,8 @@ example, you have a bug that you plan to fix for your 3.0 release, it
 would be assigned the milestone of 3.0.
 
 [NOTE]
-====
 Milestone options will only appear for a Product if you turned
-on the "usetargetmilestone" parameter in the "Bug Fields" tab of the
-"Parameters" page.
-====
+on the 'Target Milestone' field in the 'Bug Fields' page on the Administration screen.
 
 To create new Milestones, and set Default Milestones:
 
@@ -2464,11 +2451,13 @@ To create new Milestones, and set Default Milestones:
 . Select "Add" in the bottom right corner.
 
 . Enter the name of the Milestone in the "Milestone" field. You
-can optionally set the "sortkey", which is a positive or negative
-number (-32768 to 32767) that defines where in the list this particular
-milestone appears. This is because milestones often do not
-occur in alphanumeric order For example, "Future" might be
-after "Release 1.2". Select "Add".
+  can optionally set the "sortkey", which is a positive or negative
+  number that defines where in the list this particular
+  milestone appears. This is because milestones often do not
+  occur in alphanumeric order For example, "Future" might be
+  after "Release 1.2". Select "Add".
+
+Just like versions, old milestones may also be deactivated.
 
 [[flags-overview]]
 === Flags
