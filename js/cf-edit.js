@@ -42,7 +42,8 @@ function onChangeType()
     document.getElementById('add_to_deps_row').style.display
         = type_field.value == constants.FIELD_TYPE_BUG_ID ? '' : 'none';
     var u = document.getElementById('nullable');
-    u.disabled = type_field.value != constants.FIELD_TYPE_SINGLE_SELECT;
+    u.disabled = type_field.value == constants.FIELD_TYPE_MULTI_SELECT ||
+        type_field.value == constants.FIELD_TYPE_BUG_ID_REV;
     if (u.disabled)
         u.checked = false;
     u = type_field.value == constants.FIELD_TYPE_EXTURL;
