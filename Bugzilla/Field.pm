@@ -1317,7 +1317,7 @@ sub run_create_validators
 
     # Check default value
     if ($type == FIELD_TYPE_SINGLE_SELECT || $type == FIELD_TYPE_MULTI_SELECT ||
-        $type == FIELD_TYPE_BUG_ID || $type == FIELD_TYPE_BUG_ID_REV)
+        $type == FIELD_TYPE_BUG_ID_REV)
     {
         $params->{default_value} = undef;
     }

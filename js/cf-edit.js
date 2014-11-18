@@ -22,6 +22,10 @@ function onChangeType()
         document.getElementById('value_field_row').style.display = 'none';
         document.getElementById('default_value_row').style.display = '';
     }
+    document.getElementById('default_value_row').style.display =
+        type_field.value == constants.FIELD_TYPE_BUG_ID_REV ||
+        type_field.value == constants.FIELD_TYPE_SINGLE_SELECT ||
+        type_field.value == constants.FIELD_TYPE_MULTI_SELECT ? 'none' : '';
     var rev_value_field = document.getElementById('bug_id_rev_value_field_id');
     if (type_field.value == constants.FIELD_TYPE_BUG_ID_REV)
     {
