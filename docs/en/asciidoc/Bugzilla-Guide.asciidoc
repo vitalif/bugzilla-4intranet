@@ -2739,114 +2739,173 @@ of the excluded type. If another flag type with the same name exists in the excl
 product/component, Bugzilla changes all existing flags to that type. If you just
 'disable' the flag, Bugzilla does not delete and does not retarget existing flags.
 
-[[keywords]]
-=== Keywords
+=== Bug Fields
 
-The administrator can define keywords which can be used to tag and
-categorise bugs. For example, the keyword "regression" is commonly used.
-A company might have a policy stating all regressions
-must be fixed by the next release - this keyword can make tracking those
-bugs much easier.
+In Bugzilla4Intranet, it is not only possible to create Custom Fields for bugs,
+but it's also possible to tweak some properties of standard ones. For example,
+enabling/disabling fields like Alias, Classification and et cetera is done
+using the "Disabled" property of these fields, not via the 'use*' parameters
+like in the original Bugzilla.
 
-Keywords are global, rather than per-product. If the administrator changes
-a keyword currently applied to any bugs, the keyword cache must be rebuilt
-using the <<sanitycheck,Sanity Check>> script. Currently keywords can not
-be marked obsolete to prevent future usage.
+Both custom and normal fields are accessible from the 'Administration -> Bug Fields' page.
 
-Keywords can be created, edited or deleted by clicking the "Keywords"
-link in the admin page. There are two fields for each keyword - the keyword
-itself and a brief description. Once created, keywords can be selected
-and applied to individual bugs in that bug's "Details" section.
-
-[[custom-fields]]
-=== Custom Fields
-
-The release of Bugzilla 3.0 added the ability to create Custom Fields.
 Custom Fields are treated like any other field - they can be set in bugs
 and used for search queries. Administrators should keep in mind that
 adding too many fields can make the user interface more complicated and
 harder to use. Custom Fields should be added only when necessary and with
 careful consideration.
 
-[TIP]
-====
-Before adding a Custom Field, make sure that Bugzilla can not already
+TIP: Before adding a Custom Field, make sure that Bugzilla can not already
 do the desired behavior. Many Bugzilla options are not enabled by
 default, and many times Administrators find that simply enabling
 certain options that already exist is sufficient.
-====
 
-Administrators can manage Custom Fields using the
-"Custom Fields" link on the Administration page. The Custom
-Fields administration page displays a list of Custom Fields, if any exist,
-and a link to "Add a new custom field".
+==== Tweaking Standard Fields
 
-[[add-custom-fields]]
+You can tweak the behaviour of standard Bugzilla fields in various ways: enable/disable them,
+set default values, allow or deny empty value, or even make some of them depend on other fields.
+
+For example, you can enable/disable Alias, Classification, Platform, Operating System,
+QA Contact, Target Milestone, Status Whiteboard and See Also fields.
+
+To change properties of a standard field, select it in the table under the 'Standard fields'
+heading. You can change any property shown on the field form; properties are hidden
+if it is not possible to edit them.
+
+==== Field Properties
+
+Name::
+    The name of the field in the database, used internally. This name
+    must begin with "cf_" for custom fields to prevent confusion with
+    standard fields. If "cf_" is omitted, it will be automatically added
+    to the name entered.
+
+Title::
+    A brief string which is used as the label for the Custom Field.
+    That is the string that users will see, and should be short and explicit.
+    For standard fields, the description does not really affect the displayed field label.
+
+Sortkey::
+    Integer that determines in which order Custom Fields are displayed in the user
+    interface when viewing bugs and bug history, and in the e-mail notification messages.
+    Fields with lower values are displayed first.
+
+Type::
++
+--
+The type of field. You can choose type when creating a custom field, and you can't
+change it when the field already exists. There are several types available:
+
+Free Text::
+    A single line edit field for entering free text. Maximum length of values of such fields is 255 characters.
+Large Text Box::
+    A multiple line box (textarea) for entering free text. Values of such fields may be up to several megabytes long.
+Numeric::
+    A field that allows only numeric (decimal floating point) values.
+Drop Down::
+    A list box where only one option can be selected.
+    After creating this field, it must be edited to add the selection options. See
+    <<edit-values-list,Viewing/Editing legal values>> for information about editing legal values.
+Multiple-Selection Box::
+    A list box where multiple options can be selected.
+    After creating this field, it must be edited to add the selection options,
+    just like the 'Drop Down' fields.
+Date/Time::
+    A date field. This field appears with a calendar widget for choosing the date.
+Bug ID::
+    A field that is a reference to bug. Besides just appearing in the search form,
+    Bug ID fields also allow to use properties of the bug they reference to in searches.
+    For example, if there is a Bug ID field named "External Bug", the search form will also
+    have "External Bug Summary", "External Bug Status" and similar as options.
+Bug ID reverse::
+    A pseudo-field that shows back-references for an existing Bug ID field.
+    Only one "reverse" field may be created for a single Bug ID field; you must
+    specify that Bug ID field in the "Direct Bug ID field" editbox while creating
+    a "reverse" field. +
+    For example, for an existing Bug ID field named "External Bug", the reverse field
+    should be named "Internal Bugs" (not just "bug" because multiple bugs may reference
+    to a single bug as a value of the "External Bug" field).
+External URL::
+    A field that links to a URL generated from a given template by replacing "$1" with
+    the field value. For example, you may use this type to reference to a single bug in
+    an external bugtracker; for the case of Bugzilla4Intranet GitHub issues you should
+    specify "https://github.com/vitalif/bugzilla-4intranet/issues/$1" URL template.
+--
+
+Deps::
+    Effective only for 'Bug ID' fields, this property specifies if the field value should be
+    automatically added to the bug dependencies. You may choose "Add field value to blocked"
+    or "Add field value to blockers" here.
+
+URL::
+    Only for 'External URL' fields, this property specifies URL template used in the field.
+
+Displayed in bugmail for new bugs::
+    A flag (checkbox) that determines whether the value set on this field should appear in
+    the "New Bug" bugmail when the bug is filed.
+
+Is copied into the cloned bug::
+    A flag (checkbox) that determines whether the value of this field should be copied
+    to the cloned bugs.
+
+Is disabled::
+    A flag (checkbox) that determines whether this field should be displayed and used at all.
+    Disabled Custom Fields are hidden from the UI. You must disable Custom Fields before
+    deleting them.
+
+Default value::
+    The global default value for this field. This, for example, replaces old 'defaultpriority',
+    'defaultseverity' and similar properties of the original Bugzilla. The default value
+    can only be set after creating the field and filling the legal values for selectbox fields.
+
+Allow empty value::
+    A flag (checkbox) that determines whether it is possible to leave this field empty in
+    newly created and edited bugs. Note that multiple-selection boxes always allow empty values,
+    and because "reverse" bug ID fields don't really store any data, it's also impossible
+    to make them nullable or non-nullable.
+
+Also there are some properties that specify field dependencies. You can make any field
+depend on other select or multi-select field in various ways:
+
+Show/hide the field depending on the value of::
+    After you specify another field here (for example, Product), you'll be able to enable or disable
+    the field you are editing for every value of that field (for example, per Product).
+
+Allow empty value depending on the value of::
+    This dependency allows you to enable or disable empty value of edited field for each value
+    of field selected as the dependency. Requires the "Allow empty value" property enabled.
+
+Clone field depending on the value of::
+    This dependency allows you to enable or disable copying of edited field value for each value
+    of field selected as the dependency. Requires the "Is copied into the cloned bug" property enabled.
+
+Make default value dependent on the value of::
+    This dependency allows you to choose different default values for different values
+    of field selected as the dependency. Default values only have effect on the bug creation form.
+
+Field that controls the values that appear in this field::
+    This dependency allows you to have different legal values for different values
+    of field selected as the dependency.
+
+NOTE: A common usage of dependencies is to make field properties depend on Product or Component. However,
+any select or multi-select field, including custom ones, may be used as the dependency field.
+
 ==== Adding Custom Fields
 
-To add a new Custom Field, click the "Add a new custom field" link. This
-page displays several options for the new field, described below.
+To add a new Custom Field, click the "Add a new custom field" link, fill the form and press "Create".
 
-The following attributes must be set for each new custom field:
+WARNING: Creating most fields implies database schema modifications which can take some time on
+big bug databases. During that time your Bugzilla4Intranet will look "hung up" for users.
+However, online creation won't result in any runtime errors, as in the original Bugzilla, so
+it's usually possible to create the new fields without long downtime.
 
-* _Name:_
-The name of the field in the database, used internally. This name
-MUST begin with "cf_" to prevent confusion with
-standard fields. If this string is omitted, it will
-be automatically added to the name entered.
-
-* _Description:_
-A brief string which is used as the label for this Custom Field.
-That is the string that users will see, and should be
-short and explicit.
-
-* _Type:_
-The type of field to create. There are
-several types available:
-
-** Large Text Box: A multiple line box for entering free text.
-** Free Text: A single line box for entering free text.
-** Multiple-Selection Box: A list box where multiple options
-can be selected. After creating this field, it must be edited
-to add the selection options. See <<edit-values-list,Viewing/Editing legal values>> for information about
-editing legal values.
-** Drop Down: A list box where only one option can be selected.
-After creating this field, it must be edited to add the
-selection options. See
-<<edit-values-list,Viewing/Editing legal values>> for information about
-editing legal values.
-** Date/Time: A date field. This field appears with a
-calendar widget for choosing the date.
-
-* _Sortkey:_
-Integer that determines in which order Custom Fields are
-displayed in the User Interface, especially when viewing a bug.
-Fields with lower values are displayed first.
-
-* _Can be set on bug creation:_
-Boolean that determines whether this field can be set on
-bug creation. If not selected, then a bug must be created
-before this field can be set. See <<bugreports,Filing Bugs>>
-for information about filing bugs.
-
-* _Displayed in bugmail for new bugs:_
-Boolean that determines whether the value set on this field
-should appear in bugmail when the bug is filed. This attribute
-has no effect if the field cannot be set on bug creation.
-
-* _Is obsolete:_
-Boolean that determines whether this field should
-be displayed at all. Obsolete Custom Fields are hidden.
-
-[[edit-custom-fields]]
 ==== Editing Custom Fields
 
 As soon as a Custom Field is created, its name and type cannot be
 changed. If this field is a drop down menu, its legal values can
 be set as described in <<edit-values-list,Viewing/Editing legal values>>. All
-other attributes can be edited as described above.
+other attributes can be edited just like during creation.
 
-[[delete-custom-fields]]
 ==== Deleting Custom Fields
 
 Only custom fields which are marked as obsolete, and which never
@@ -2860,25 +2919,58 @@ to hide it from the user interface entirely.
 [[edit-values]]
 === Legal Values
 
-Since Bugzilla 2.20 RC1, legal values for Operating Systems, platforms,
-bug priorities and severities can be edited from the User Interface
-directly. This means that it is no longer required to manually edit
-_localconfig_. Starting with Bugzilla 2.23.3,
-the list of valid resolutions can be customized from the same interface.
-Since Bugzilla 3.1.1 the list of valid bug statuses can be customized
-as well.
+In Bugzilla4Intranet, legal values for all standard select fields
+(Severity, Priority, OS, Platform, Status and Resolution) can be customized
+from the field administration UI directly.
 
 [[edit-values-list]]
 ==== Viewing/Editing legal values
 
-Editing legal values requires "admin" privileges.
-Select "Legal Values" from the Administration page. A list of all
+Editing legal values requires being a member of the 'editvalues' system group.
+
+Select 'Field Values' from the Administration page. A list of all
 fields, both system fields and Custom Fields, for which legal values
 can be edited appears. Click a field name to edit its legal values.
 
 There is no limit to how many values a field can have, but each value
-must be unique to that field. The sortkey is important to display these
-values in the desired order.
+must be unique to that field.
+
+All legal values have 3 properties:
+
+Name:: Value name. In Bugzilla4Intranet, maximum name length is 255 characters for all fields.
+Sortkey:: Used to sort values. Values with smaller numbers are displayed first.
+Enabled for bugs:: Used to remove old values from the UI while keeping them in the database.
+
+Values of some fields also have additional properties:
+
+* Bug Statuses have several semantic flags:
++
+--
+Is open:: Specifies if a bug in this state hasn't been fixed yet.
+Is it a confirmed state:: For open states, specifies if a bug in this state is confirmed.
+    By default, this is off only for the UNCONFIRMED state.
+Is it an assigned state:: Specifies if a bug in this state has someone working on it.
+    There should only one assigned state.
+
+These flags are used by Bugzilla4Intranet to work with bug statuses correctly regardless of
+their names.
+--
+* Values of the OS and Platform fields have an additional property named 'User Agent Regexp'
+  which is used to guess the value based on HTTP User-Agent header sent by the user browser.
+  As always, these are Perl regexes and you can edit them if you want to change the guessed values.
+* Keywords have the description in addition to just name.
+
+If the field values of which you are editing has value dependency field ('Field that controls the
+values that appear in this field') there will be also a 'Only appears when ... is set to:' multiple-selection
+box on the field value edit form. You can use it to enable/disable the value for specific values of the
+dependency field.
+
+If any other field depends on the one values of which you are editing, the value form will also contain
+checkboxes or inputs allowing to edit the dependent properties for the value you are editing.
+
+NOTE: This is usually more convenient to edit dependent properties and values from the
+dependency value page instead of the page of dependent value, for example, edit the set of values
+enabled for a specific product from that product's page.
 
 [[edit-values-delete]]
 ==== Deleting legal values
@@ -2893,6 +2985,20 @@ following two conditions are respected:
 If any of these conditions is not respected, the value cannot be deleted.
 The only way to delete these values is to reassign bugs to another value
 and to set another value as default for the field.
+
+=== Keywords
+
+The administrator can define keywords which can be used to tag and
+categorise bugs. For example, the keyword "regression" is commonly used.
+A company might have a policy stating all regressions must be fixed by the
+next release - this keyword can make tracking those bugs much easier.
+
+Keywords are global by default, but you may configure them to depend on product
+or on another select field by setting the value dependency field from the Bug Fields UI.
+
+In Bugzilla4Intranet, keywords are more similar to tags: if a user specifies a non-existing
+keyword, Bugzilla asks him to enter a description for it, and the new keyword is created
+automatically afterwards.
 
 [[bug_status_workflow]]
 === Bug Status Workflow
