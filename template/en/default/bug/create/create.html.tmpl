@@ -88,6 +88,7 @@ var close_status_array = [
     <td>
       <b><label class="required" for="component"><a href="describecomponents.cgi?product=[% product.name | url_quote %]">Component</a></label>:</b>
       <select id="component" name="component" aria-required="true" class="required">
+        <option value="">---</option>
         [%- FOREACH c = product.active_components %]
           <option id="v[% c.id %]_component" value="[% c.name | html %]"
             [% " selected=\"selected\"" IF c.name == default.component %]>

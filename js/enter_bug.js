@@ -61,6 +61,7 @@ function component_change()
         last_cc = form.cc.value = hash_join(new_cc);
 
         document.getElementById('comp_desc').innerHTML = c.description;
+        document.getElementById('comp_desc').style.color = '';
 
         if (form.qa_contact)
         {
@@ -85,6 +86,11 @@ function component_change()
         }
 
         last_component = selectedName;
+    }
+    else
+    {
+        document.getElementById('comp_desc').innerHTML = 'Choose a component to see its description.';
+        document.getElementById('comp_desc').style.color = 'red';
     }
 }
 

@@ -171,6 +171,7 @@ function handleControlledField(controlled_id, is_initial_editform)
             {
                 nullable = checkValueVisibility(getSelectedIds(m.null_field), field_metadata[m.null_field]['null'][controlled_id]);
             }
+            nullable = nullable || controlled_id == 'component' && document.forms['Create'];
             if (nullable)
             {
                 bz_createOptionInSelect(controlled, '---', '');
