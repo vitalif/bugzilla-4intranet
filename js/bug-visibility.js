@@ -28,17 +28,40 @@ function initControlledFields()
     reflowFieldColumns();
 }
 
-function initControlledField(i)
+function initControlledField(id)
 {
-    var f = document.getElementById(i);
-    if (f && document.forms['Create'] && field_metadata[i].default_value)
+    var f = document.getElementById(id);
+    if (f && document.forms['Create'] && field_metadata[id].default_value)
     {
+        // Check if anything is selected initially on the entry form
+        var copt = getSelectedValues(f);
+        delete copt[''];
+        var nonempty = false;
+        for (var i in copt)
+        {
+            nonempty = true;
+        }
         // Select global default value before selecting dependent ones
-        f._oldDefault = setFieldValue(f, field_metadata[i].default_value);
+        if (!nonempty)
+        {
+            f._oldDefault = setFieldValue(f, field_metadata[id].default_value);
+        }
+        else
+        {
+            f._oldDefault = field_metadata[id].default_value;
+            if (f.nodeName == 'SELECT')
+            {
+                f._oldDefault = f._oldDefault.split(',');
+            }
+            else
+            {
+                f._oldDefault = [ f._oldDefault ];
+            }
+        }
     }
     if (!f || f.nodeName != 'INPUT' || f.type != 'hidden')
     {
-        handleControlledField(i, !document.forms['Create']);
+        handleControlledField(id, !document.forms['Create']);
     }
     if (f)
     {
@@ -185,7 +208,7 @@ function handleControlledField(controlled_id, is_initial_editform)
         }
     }
     // Select and/or remember default value
-    if (m.default_field && document.getElementById(m.default_field))
+    if (m.default_field && document.getElementById(m.default_field) && 0)
     {
         var diff = false;
         if (controlled._oldDefault)

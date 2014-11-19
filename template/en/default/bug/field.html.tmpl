@@ -206,11 +206,16 @@
           </option>
         [% END %]
         [% IF NOT value_found %]
-          [% value = bug.get_object(field.name) %]
-          [% IF value %]
-            [% FOR v = value %]
-              <option selected="selected" value="[% v.name | html %]" id="v[% v.id | html %]_[% field.name | html %]">[% v.name | html %]</option>
+          [% IF bug.id %]
+            [% value = bug.get_object(field.name) %]
+            [% IF value %]
+              [% FOR v = value %]
+                <option selected="selected" value="[% v.name | html %]" id="v[% v.id | html %]_[% field.name | html %]">[% v.name | html %]</option>
+              [% END %]
             [% END %]
+          [% ELSE %]
+            [%# Possible only on the entry form %]
+            <option selected="selected" value="[% value_name | html %]">[% value_name | html %]</option>
           [% END %]
         [% END %]
       </select>
