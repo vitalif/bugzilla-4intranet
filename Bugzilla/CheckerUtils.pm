@@ -119,7 +119,7 @@ sub alert
         $dbh->bz_rollback_to_savepoint;
         if (!Bugzilla->request_cache->{checkers_hide_error})
         {
-            show_checker_errors([ $bug ]);
+            show_checker_errors(freeze_failed_checkers([ $bug ]));
         }
     }
     return $bug->{passed_checkers};
