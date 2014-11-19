@@ -3924,16 +3924,27 @@ sub _make_fieldvaluecontrol
 
     if ($pre_null_fieldvaluecontrol)
     {
-        my $rows = $dbh->selectcol_arrayref(
-            "SELECT f.id FROM fielddefs f LEFT JOIN fieldvaluecontrol c ON c.field_id=f.id AND c.value_id=0".
-            " WHERE f.visibility_field_id IS NOT NULL AND c.visibility_value_id IS NULL"
-        );
-        if (@$rows)
+        my $rows;
+        for ([ FLAG_VISIBLE, 'visibility_field', 'visible' ],
+            [ FLAG_NULLABLE, 'null_field_id', 'nullable' ])
         {
-            print "WARNING: The following fields have non-empty visibility field, but no visibility values in your DB:\n";
-            print "  ".Bugzilla->get_field($_)->description."\n" for @$rows;
-            print "They will be invisible in the new setup. Clear visibility field or fill visibility values for them.\n";
+            my ($flag, $dep, $depinfo) = @$_;
+            $rows = $dbh->selectcol_arrayref(
+                "SELECT f.id FROM fielddefs f LEFT JOIN fieldvaluecontrol c ON c.field_id=f.id AND c.value_id=$flag".
+                " WHERE f.${dep}_id IS NOT NULL AND c.visibility_value_id IS NULL"
+            );
+            for (@$rows)
+            {
+                my $f = Bugzilla->get_field($_);
+                print "Making field '".$f->description."' $depinfo for all values of controlling field '".
+                    $f->$dep->description."'.\n";
+                $dbh->do(
+                    "INSERT INTO fieldvaluecontrol (field_id, value_id, visibility_value_id)".
+                    " VALUES ".join(", ", map { "($f->{id}, $flag, ".$_->id.")" } @{ $f->value_field->legal_values })
+                );
+            }
         }
+        Bugzilla->refresh_cache_fields;
         for my $f (Bugzilla->get_fields({ obsolete => 0 }))
         {
             if ($f->value_field_id && $f->type != FIELD_TYPE_BUG_ID_REV)
