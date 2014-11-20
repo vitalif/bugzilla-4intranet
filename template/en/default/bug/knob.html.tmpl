@@ -107,7 +107,7 @@ addListener('resolution', 'change', showDuplicateItem);
 addListener('dup_id_discoverable_action', 'click', function() {
   setResolutionToDuplicate('[% Param('duplicate_or_move_bug_status') | js %]');
 });
-addListener(window, 'load', function() {
+onDomReady(function() {
   showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
 });
 </script>
