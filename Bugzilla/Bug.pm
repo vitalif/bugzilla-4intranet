@@ -1748,7 +1748,7 @@ sub _set_alias
 {
     my ($self, $alias) = @_;
     $alias = trim($alias);
-    return undef if Bugzilla->get_field('alias')->enabled;
+    return undef if !Bugzilla->get_field('alias')->enabled;
     return $self->{alias} = undef if !$alias;
 
     # Make sure the alias isn't too long.
