@@ -42,19 +42,11 @@ sub restrict_my_activity
 }
 
 # Date handling
-sub date_adjust_down
+sub date_adjust
 {
-    my ($year, $month, $day) = @_;
+    my ($year, $month, $day, $by) = @_;
     my $d = DateTime->new(year => $year, month => $month, day => $day);
-    $d->subtract(days => 1);
-    return ($d->year, $d->month, $d->day);
-}
-
-sub date_adjust_up
-{
-    my ($year, $month, $day) = @_;
-    my $d = DateTime->new(year => $year, month => $month, day => $day);
-    $d->add(days => 1);
+    $d->add(days => $by);
     return ($d->year, $d->month, $d->day);
 }
 
@@ -68,49 +60,25 @@ sub split_by_month
     my (undef, undef, undef, $sd, $sm, $sy, undef) = strptime($start_date);
     my (undef, undef, undef, $ed, $em, $ey, undef) = strptime($end_date);
 
-    # Find out how many months fit between the two dates so we know
-    # how many times we loop.
-    my $yd = $ey - $sy;
-    my $md = 12 * $yd + $em - $sm;
-    # If the end day is smaller than the start day, last interval is not a whole month.
-    if ($sd > $ed)
+    my @months;
+
+    # These +1 and +1900 are a result of strptime's bizarre semantics
+    my $end_date = sprintf("%04d-%02d-%02d", $ey+1900, $em+1, $ed);
+    my $d = DateTime->new(year => $sy+1900, month => $sm+1, day => $sd);
+    my ($prev, $cur);
+    $prev = sprintf("%04d-%02d-%02d", $d->year, $d->month, $d->day);
+    while (1)
     {
-        $md -= 1;
-    }
-
-    my (@months, $sub_start, $sub_end);
-    # This +1 and +1900 are a result of strptime's bizarre semantics
-    my $year = $sy + 1900;
-    my $month = $sm + 1;
-
-    # Keep the original date, when the date will be changed in the adjust_date.
-    my $sd_tmp = $sd;
-    my $month_tmp = $month;
-    my $year_tmp = $year;
-
-    # This section handles only the whole months.
-    for (my $i=0; $i < $md; $i++)
-    {
-        # Start of interval is adjusted up: 31.2. -> 1.3.
-        ($year_tmp, $month_tmp, $sd_tmp) = date_adjust_up($year, $month, $sd);
-        $sub_start = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
-        $month += 1;
-        if ($month == 13)
+        $d->add(months => 1);
+        $cur = sprintf("%04d-%02d-%02d", $d->year, $d->month, $d->day);
+        if ($cur gt $end_date)
         {
-            $month = 1;
-            $year += 1;
+            push @months, [ $prev, $end_date ];
+            last;
         }
-        # End of interval is adjusted down: 31.2 -> 28.2.
-        ($year_tmp, $month_tmp, $sd_tmp) = date_adjust_down($year, $month, $sd - 1);
-        $sub_end = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
-        push @months, [$sub_start, $sub_end];
+        push @months, [ $prev, $cur ];
+        $prev = $cur;
     }
-
-    # This section handles the last (unfinished) month.
-    $sub_end = sprintf("%04d-%02d-%02d", $ey + 1900, $em + 1, $ed);
-    ($year_tmp, $month_tmp, $sd_tmp) = date_adjust_up($year, $month, $sd);
-    $sub_start = sprintf("%04d-%02d-%02d", $year_tmp, $month_tmp, $sd_tmp);
-    push @months, [$sub_start, $sub_end];
 
     return @months;
 }
@@ -132,7 +100,7 @@ sub sqlize_dates
         # we need to add one day to end_date to catch stuff done today
         # do not forget to adjust date if it was the last day of month
         my (undef, undef, undef, $ed, $em, $ey, undef) = strptime($end_date);
-        ($ey, $em, $ed) = date_adjust_up($ey+1900, $em+1, $ed+1);
+        ($ey, $em, $ed) = date_adjust($ey+1900, $em+1, $ed+1, 1);
         $end_date = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
         $date_bits .= " AND longdescs.bug_when < ?";
         push @date_values, $end_date;
@@ -290,7 +258,7 @@ if ($do_report)
         if ($end_date)
         {
             my (undef, undef, undef, $ed, $em, $ey, undef) = strptime($end_date);
-            ($ey, $em, $ed) = date_adjust_up($ey+1900, $em+1, $ed+1);
+            ($ey, $em, $ed) = date_adjust($ey+1900, $em+1, $ed+1, 1);
             my $end_date2 = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
             $sql .= " AND bug_when<?";
             trick_taint($end_date2);
