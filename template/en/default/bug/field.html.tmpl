@@ -213,7 +213,7 @@
                 <option selected="selected" value="[% v.name | html %]" id="v[% v.id | html %]_[% field.name | html %]">[% v.name | html %]</option>
               [% END %]
             [% END %]
-          [% ELSE %]
+          [% ELSIF value_name.length %]
             [%# Possible only on the entry form %]
             <option selected="selected" value="[% value_name | html %]">[% value_name | html %]</option>
           [% END %]
