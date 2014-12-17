@@ -53,7 +53,7 @@
         [% END %]
           <li>
             [% '<span class="separator">| </span>' IF print_pipe %]
-            <a href="fill-day-worktime.cgi" class="shared">TodayWorktime</a></li>
+            <a href="fill-day-worktime.cgi" class="shared">TodayWorktime</a>
           </li>
         [% new_line = print_pipe %]
         [% print_pipe = 0 %]
@@ -69,7 +69,8 @@
                      [% q.user.id FILTER url_quote %]"
                class="shared"
                title="Shared by [% q.user.identity FILTER html %]"
-               >[% q.name FILTER html FILTER no_break %]</a></li>
+               >[% q.name FILTER html FILTER no_break %]</a>
+          </li>
           [% print_pipe = 1 %]
         [% END %]
       </ul>
@@ -82,8 +83,8 @@
         <li class="label">Saved Reports:</li>
         [% FOREACH r = user.reports %]
           <li>[% '<span class="separator">| </span>' IF print_pipe %]
-          <a href="report.cgi?[% r.query FILTER html %]&amp;saved_report_id=
-                  [%~ r.id FILTER uri %]">[% r.name FILTER html %]</a></li>
+            <a href="report.cgi?[% r.query FILTER html %]&amp;saved_report_id=[% r.id FILTER uri %]">[% r.name FILTER html %]</a>
+          </li>
           [% print_pipe = 1 %]
         [% END %]
       </ul>

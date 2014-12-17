@@ -35,9 +35,9 @@
         onsubmit="if (this.quicksearch.value == '')
                   { alert('Please enter one or more search terms first.');
                     return false; } return true;">
-    <input class="txt quicksearch" [% IF qs_suffix == "top" %] tabindex=[% quicksearch_tabindex || 1 %] [% END %] type="text" id="quicksearch_[% qs_suffix %]" name="quicksearch" value="[% quicksearch | html %]" />
-    <input class="btn" type="submit" value="Search" 
-           id="find_[% qs_suffix %]">
+    <input class="txt quicksearch" [% IF qs_suffix == "top" %] tabindex="[% quicksearch_tabindex || 1 %]" [% END %]
+        type="text" id="quicksearch_[% qs_suffix %]" name="quicksearch" value="[% quicksearch | html %]" />
+    <input class="btn" type="submit" value="Search" id="find_[% qs_suffix %]" />
     [%-# Work around FF bug: keep this on one line %]</form>
   <a href="page.cgi?id=quicksearch.html" title="Quicksearch Help">[?]</a></li>
 
@@ -78,7 +78,6 @@
       [% ELSE %]
         [%+ user.login FILTER html %]
       [% END %]
-    [%-# Work around FF bug: keep this on one line %]</li>
     </li>
   [% ELSE %]
 

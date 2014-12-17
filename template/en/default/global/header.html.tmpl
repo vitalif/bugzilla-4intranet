@@ -66,8 +66,8 @@
   # set header's default value here only if it is undefined. %]
 [% IF !header.defined %][% header = title %][% END %]
 
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     [% Hook.process("start") %]
     <title>[% title %]</title>
@@ -96,7 +96,7 @@
     [% FOREACH style_url = style_urls %]
       <link href="[% style_url FILTER html %]"
             rel="stylesheet"
-            type="text/css">
+            type="text/css" />
     [% END %]
     <!--[if lte IE 7]>
       [%# Internet Explorer treats [if IE] HTML comments as uncommented.
@@ -119,7 +119,7 @@
         <link href="[% style_url FILTER html %]"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
               title="[% lc_messages.setting_descs.standard FILTER html %]"
-              type="text/css">
+              type="text/css" />
       [% END %]
       <!--[if lte IE 7]>
       [%# Internet Explorer treats [if IE] HTML comments as uncommented.
@@ -129,7 +129,7 @@
         <link href="skins/standard/IE-fixes.css"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
               title="[% lc_messages.setting_descs.standard FILTER html %]"
-              type="text/css">
+              type="text/css" />
       <![endif]-->
     [% END %]
 
@@ -147,7 +147,7 @@
         <link href="[% "skins/contrib/$contrib_skin" %]"
               rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
               title="[% contrib_skin FILTER html %]"
-              type="text/css">
+              type="text/css" />
       [% ELSE %]
         [%# 2nd skin variant: stylesheet set %]
         [% FOREACH style_url = style_urls %]
@@ -156,7 +156,7 @@
                                              "skins/contrib/$contrib_skin/") %]"
                   rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
                   title="[% contrib_skin FILTER html %]"
-                  type="text/css">
+                  type="text/css" />
           [% END %]
         [% END %]
         <!--[if lte IE 7]>
@@ -243,13 +243,13 @@
     [% IF atomlink %]
        <link rel="alternate"
              type="application/atom+xml" title="Atom feed"
-             href="[% atomlink FILTER html %]">
+             href="[% atomlink FILTER html %]" />
     [% END %]
 
     [%# Required for the 'Autodiscovery' feature in Firefox 2 and IE 7. %]
     <link rel="search" type="application/opensearchdescription+xml"
-                       title="[% terms.Bugzilla %]" href="./search_plugin.cgi">
-    <link rel="shortcut icon" href="images/favicon.ico" >
+                       title="[% terms.Bugzilla %]" href="./search_plugin.cgi" />
+    <link rel="shortcut icon" href="images/favicon.ico" />
     [% Hook.process("additional_header") %]
   </head>
 

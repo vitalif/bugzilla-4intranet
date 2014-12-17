@@ -121,13 +121,13 @@ addListener(window, 'load', onLoadActions);
       <td>
         <h1 id="welcome"> Welcome to [% terms.Bugzilla %]</h1>
         <div class="intro">[% Hook.process('intro') %]</div>
-        <a tabindex=2 id="enter_bug" class="bz_common_actions"
+        <a tabindex="2" id="enter_bug" class="bz_common_actions"
            href="enter_bug.cgi"><span>File [% terms.aBug %]</span></a>
 
-        <a tabindex=2 id="query" class="bz_common_actions"
+        <a tabindex="2" id="query" class="bz_common_actions"
            href="query.cgi"><span>Search</span></a>
 
-        <a tabindex=2 id="account" class="bz_common_actions"
+        <a tabindex="2" id="account" class="bz_common_actions"
           [% IF user.id %]
             href="userprefs.cgi"><span>User Preferences</span></a>
           [% ELSIF Param('createemailregexp')
@@ -141,11 +141,10 @@ addListener(window, 'load', onLoadActions);
         <form id="quicksearchForm" name="quicksearchForm" action="buglist.cgi"
               onsubmit="return checkQuicksearch(this);">
           <div>
-            <input tabindex=2 id="quicksearch_main" type="text" name="quicksearch" class="quicksearch_help_text"
+            <input tabindex="2" id="quicksearch_main" type="text" name="quicksearch" class="quicksearch_help_text"
               onfocus="quicksearchHelpText(this.id, 'hide');"
-              onblur="quicksearchHelpText(this.id, 'show');"
-            >
-            <input id="find" type="submit" value="Quick Search">
+              onblur="quicksearchHelpText(this.id, 'show');" />
+            <input id="find" type="submit" value="Quick Search" />
             <ul class="additional_links" id="quicksearch_links">
               <li>
                 <a href="page.cgi?id=quicksearch.html">Quick Search help</a>
