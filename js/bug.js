@@ -390,7 +390,6 @@ addListener(window, 'beforeunload', function(e)
         e = e || window.event;
         return (e.returnValue = 'Your comment will be lost. Leave page?');
     }
-    return '';
 });
 
 addListener(window, 'hashchange', function()
