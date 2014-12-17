@@ -105,24 +105,24 @@
     [% END %]
 
     [% IF value.controls_visibility_of_fields.size %]
-      <li>This value controls the visibility of the following fields:<br>
+      <li>This value controls the visibility of the following fields:<br />
         [% FOREACH field = value.controls_visibility_of_fields %]
           <a href="editfields.cgi?action=edit&name=[% field.name | url_quote %]">
             [%- field.description | html %]
-            ([% field.name | html %])</a><br>
+            ([% field.name | html %])</a><br />
         [% END %]
       </li>
     [% END %]
 
     [% IF value.controls_visibility_of_field_values.size %]
       <li>This value controls the visibility of the following values in
-        other fields:<br>
+        other fields:<br />
        [% FOREACH field_name = value.controls_visibility_of_field_values.keys %]
          [% FOREACH controlled = value.controls_visibility_of_field_values.${field_name} %]
            <a href="editvalues.cgi?action=edit&field=[% field_name | url_quote %]&value=[% controlled.name | url_quote %]">
              [% controlled.field.description | html %]
              ([% controlled.field.name | html %]):
-             [%+ controlled.name | html %]</a><br>
+             [%+ controlled.name | html %]</a><br />
          [% END %]
        [% END %]
       </li>

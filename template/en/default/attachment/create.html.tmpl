@@ -51,13 +51,13 @@
     <tr>
       <th>Obsoletes:</th>
       <td>
-        <em>(optional) Check each existing attachment made obsolete by your new attachment.</em><br>
+        <em>(optional) Check each existing attachment made obsolete by your new attachment.</em><br />
         [% IF attachments.size %]
           [% FOREACH attachment = attachments %]
             [% IF ((attachment.isprivate == 0) || user.is_insider) %]
               <input type="checkbox" id="[% attachment.id %]"
                    name="obsolete" value="[% attachment.id %]">
-              <a href="attachment.cgi?id=[% attachment.id %]&amp;action=edit">[% attachment.id %]: [% attachment.description FILTER html %]</a><br>
+              <a href="attachment.cgi?id=[% attachment.id %]&amp;action=edit">[% attachment.id %]: [% attachment.description FILTER html %]</a><br />
             [% END %]
           [% END %]
         [% ELSE %]
@@ -121,7 +121,7 @@
         </script>
 
         [% IF bug.check_can_change_field('dup_id', 0, 1) %]
-            <noscript><br> duplicate</noscript>
+            <noscript><br /> duplicate</noscript>
             <span id="duplicate_settings">of
                 <span id="dup_id_container" class="bz_default_hidden">
                 [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]
@@ -133,7 +133,7 @@
                 <noscript>[% bug.dup_id FILTER bug_link(bug.dup_id) FILTER none %]</noscript>
             [% END %]
         [% ELSIF bug.dup_id %]
-        <noscript><br> duplicate</noscript>
+        <noscript><br /> duplicate</noscript>
         <span id="duplicate_display">of 
             [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]</span>
         [% END %]
@@ -171,7 +171,7 @@
         <th>Privacy:</th>
         <td>
           <input type="checkbox" name="isprivate" id="isprivate"
-            value="1" onClick="updateCommentPrivacy(this)" />
+            value="1" onclick="updateCommentPrivacy(this)" />
           <label for="isprivate">
             Make attachment and comment private (visible only to members of
             the <strong>[% Param('insidergroup') FILTER html %]</strong>

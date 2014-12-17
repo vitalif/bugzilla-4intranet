@@ -133,7 +133,7 @@
     <td>
       [% IF product.versions.size > 0 %]
         [% FOREACH v = product.versions %]
-          [% v.name FILTER html %]<br>
+          [% v.name FILTER html %]<br />
         [% END %]
       [% ELSE %]
         none
@@ -156,7 +156,7 @@
       <td>
         [% IF product.milestones.size > 0 %]
           [% FOREACH m = product.milestones %]
-            [% m.name FILTER html %]<br>
+            [% m.name FILTER html %]<br />
           [% END %]
         [% ELSE %]
           none

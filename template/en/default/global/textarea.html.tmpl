@@ -50,5 +50,5 @@
           [% END %]
           cols="[% cols FILTER html %]"
           [% IF maxrows && user.settings.zoom_textareas.value == 'on' %]
-            onFocus="this.rows=[% maxrows FILTER html %]"
+            onfocus="this.rows=[% maxrows FILTER html %]"
           [% END %]>[% defaultcontent FILTER html %]</textarea>

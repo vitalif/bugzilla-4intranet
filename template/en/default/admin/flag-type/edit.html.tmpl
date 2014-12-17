@@ -70,7 +70,7 @@
     <tr>
       <th>Name:</th>
       <td>
-        a short name identifying this type<br>
+        a short name identifying this type<br />
         <input type="text" name="name" value="[% type.name FILTER html %]"
                size="50" maxlength="50">
       </td>
@@ -79,7 +79,7 @@
     <tr>
       <th>Description:</th>
       <td>
-        a comprehensive description of this type<br>
+        a comprehensive description of this type<br />
         [% INCLUDE global/textarea.html.tmpl
           name           = 'description'
           minrows        = 4
@@ -99,7 +99,7 @@
         <table>
           <tr>
             <td style="vertical-align: top;">
-              <b>Product/Component:</b><br>
+              <b>Product/Component:</b><br />
               <select name="product" onchange="selectProduct(this, this.form.component, null, null, '__Any__');">
                 <option value="">__Any__</option>
                 [% FOREACH prod = products %]
@@ -107,7 +107,7 @@
                           [% "selected" IF type.product.name == prod.name %]>
                           [% prod.name FILTER html %]</option>
                 [% END %]
-              </select><br>
+              </select><br />
               <select name="component">
                 <option value="">__Any__</option>
                 [% FOREACH comp = components %]
@@ -115,17 +115,17 @@
                           [% "selected" IF type.component.name == comp %]>
                           [% comp FILTER html %]</option>
                 [% END %]
-              </select><br>
+              </select><br />
               <input type="submit" name="categoryAction-include" value="Include">
               <input type="submit" name="categoryAction-exclude" value="Exclude">
             </td>
             <td style="vertical-align: top;">
-              <b>Inclusions:</b><br>
+              <b>Inclusions:</b><br />
               [% html_select('inclusion_to_remove', '', type.inclusions, '', { multiple => '1', size => '7' }) %]
               <input type="submit" name="categoryAction-removeInclusion" value="Remove Inclusion">
             </td>
             <td style="vertical-align: top;">
-              <b>Exclusions:</b><br>
+              <b>Exclusions:</b><br />
               [% html_select('exclusion_to_remove', '', type.exclusions, '', { multiple => '1', size => '7' }) %]
               <input type="submit" name="categoryAction-removeExclusion" value="Remove Exclusion">
             </td>
@@ -140,7 +140,7 @@
         a number between 1 and 32767 by which this type will be sorted
         when displayed to users in a list; ignore if you don't care
         what order the types appear in or if you want them to appear
-        in alphabetical order<br>
+        in alphabetical order<br />
         <input type="text" name="sortkey" value="[% type.sortkey || 1 | html %]" size="5" maxlength="5">
       </td>
     </tr>
@@ -173,7 +173,7 @@
           Note that the configured emailsuffix
           <kbd>[% Param('emailsuffix') %]</kbd> will <em>not</em> be appended
           to these addresses, so you should add it explicitly if so desired.
-        [% END %]<br>
+        [% END %]<br />
         <input type="text" name="cc_list" value="[% type.cc_list_str FILTER html %]" size="80" maxlength="200">
       </td>
     </tr>
@@ -202,7 +202,7 @@
       <th>Grant Group:</th>
       <td>
         the group allowed to grant/deny flags of this type
-        (to allow all users to grant/deny these flags, select no group)<br>
+        (to allow all users to grant/deny these flags, select no group)<br />
         [% PROCESS select selname = "grant_group_id" %]
       </td>
     </tr>
@@ -211,8 +211,8 @@
       <th>Request Group:</th>
       <td>
         if flags of this type are requestable, the group allowed to request them
-        (to allow all users to request these flags, select no group)<br>
-        Note that the request group alone has no effect if the grant group is not defined!<br>
+        (to allow all users to request these flags, select no group)<br />
+        Note that the request group alone has no effect if the grant group is not defined!<br />
         [% PROCESS select selname = "request_group_id" %]
       </td>
     </tr>

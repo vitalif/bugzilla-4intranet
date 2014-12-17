@@ -50,16 +50,6 @@
 
 [% tableheader = BLOCK %]
 <table class="bz_buglist sortable" cellspacing="0" cellpadding="4" width="100%">
-   [% IF template_format != "simple" %]
-   <tr>
-      [% i = lsearch(order_columns, 'bug_id') %]
-      <td><input type="button" value="Apply" id="usr_filter_submit" /></td>
-      [% FOREACH id = displaycolumns %]
-        [% column = columns.$id %]
-        [% PROCESS columnheaderfilter key=loop.count() %]
-      [% END %]
-  </tr>
-  [% END %]
   <thead>
     <tr class="bz_buglist_header bz_first_buglist_header">
       [% IF dotweak %]
@@ -115,6 +105,16 @@
       [% END %]
 
     </tr>
+    [% IF template_format != "simple" %]
+    <tr>
+      [% i = lsearch(order_columns, 'bug_id') %]
+      <td><input type="button" value="Apply" id="usr_filter_submit" /></td>
+      [% FOREACH id = displaycolumns %]
+        [% column = columns.$id %]
+        [% PROCESS columnheaderfilter key=loop.count() %]
+      [% END %]
+    </tr>
+    [% END %]
   </thead>
 [% END %]
 
@@ -144,6 +144,7 @@
         style="width: 1px; height: 1px; border: 0px; margin-top: -5px; display: block;" />
 
         <script type="text/javascript">
+        <!--
         var emptyOptions[% id %] = [];
         var filter_[% id %] = null;
         addListener(window, 'load', function() {
@@ -152,6 +153,7 @@
                 { emptyText: 'No keywords found', multipleDelimiter: "," }
             );
         });
+        //-->
         </script>
     <a href="javascript:void(0)" onclick="filter_[% id %].show(); return false;">Filter</a>
   </td>
@@ -280,6 +282,7 @@
 
 [% IF template_format != "simple" %]
 <script type="text/javascript">
+<!--
     addListener('usr_filter_submit', 'click', function (e) {
         var inputs = [ "bug_severity", "priority", "bug_status", "resolution" ];
         [% editqueryname = searchname OR defaultsavename OR '' %]
@@ -300,6 +303,7 @@
         }
         window.location.href = href;
     });
+//-->
 </script>
 [% END %]
 

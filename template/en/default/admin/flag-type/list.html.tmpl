@@ -153,9 +153,9 @@
                 <a href="buglist.cgi?bug_id=[% bug_list.unique.nsort.join(",") FILTER html %]">
                   [% bug_list.size FILTER html %] [%+ state_desc.$state FILTER html %]
                 </a>
-                <br>
+                <br />
               [% ELSE %]
-                0 [% state_desc.$state FILTER html %]<br>
+                0 [% state_desc.$state FILTER html %]<br />
               [% END %]
             [% END %]
           </td>

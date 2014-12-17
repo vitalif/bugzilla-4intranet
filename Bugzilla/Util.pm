@@ -479,7 +479,7 @@ sub wrap_comment # makeParagraphs
         }
         # But preserve single line breaks!
         $m[0] =~ s/\s+$//so;
-        $m[0] =~ s/\n/<br>/giso;
+        $m[0] =~ s/\n/<br \/>/giso;
         $text .= $m[0];
         if ($p)
         {

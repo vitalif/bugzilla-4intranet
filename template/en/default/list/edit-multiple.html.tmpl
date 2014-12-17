@@ -289,7 +289,7 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 [% IF user.is_insider %]
   <input type="checkbox" name="commentprivacy" value="1"
          id="newcommentprivacy"
-         onClick="updateCommentTagControl(this, form)"/>
+         onclick="updateCommentTagControl(this, form)"/>
    <label for="newcommentprivacy">
      Make comment private (visible only to members of the
      <strong>[% Param('insidergroup') FILTER html %]</strong> group)
@@ -313,12 +313,12 @@ document.write(' <input type="button" name="check_all" value="Check All" onclick
 
 [% IF groups.size > 0 %]
 
-  <b>Groups:</b><br>
+  <b>Groups:</b><br />
   <table border="1">
     <tr>
-      <th>Don't<br>change<br>this group<br>restriction</th>
-      <th>Remove<br>[% terms.bugs %]<br>from this<br>group</th>
-      <th>Add<br>[% terms.bugs %]<br>to this<br>group</th>
+      <th>Don't<br />change<br />this group<br />restriction</th>
+      <th>Remove<br />[% terms.bugs %]<br />from this<br />group</th>
+      <th>Add<br />[% terms.bugs %]<br />to this<br />group</th>
       <th>Group Name:</th>
     </tr>
 

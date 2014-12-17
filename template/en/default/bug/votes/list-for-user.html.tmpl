@@ -59,7 +59,7 @@
     </font>
   </p>
 [% ELSE %]
-  <br>
+  <br />
 [% END %]
 
 [% IF products.size %]
@@ -132,8 +132,8 @@
           <td colspan="3">[% product.total %] vote
             [% "s" IF product.total != 1 %] used out of [% product.maxvotes %]
             allowed.
-            <br>
-            <br>
+            <br />
+            <br />
           </td>
         </tr>
       [% END %]
@@ -143,8 +143,8 @@
       <input type="submit" value="Change My Votes" id="change"> or 
       <a href="buglist.cgi?bug_id=[% all_bug_ids.join(",") FILTER url_quote %]">view all
         as [% terms.bug %] list</a>
-      <br>
-      <br>
+      <br />
+      <br />
       To change your votes,
       [% IF multivoteproduct %]
         type in new numbers (using zero to mean no votes)

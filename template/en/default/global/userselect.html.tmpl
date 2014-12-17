@@ -28,7 +28,7 @@
   [% IF size %] size="[% size | html %]" [% END %]
   [% IF style %] style="[% style | html %]" [% END %]
 />
-<script language="JavaScript">
+<script type="text/javascript">
 [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
 new SimpleAutocomplete("[% id | js %]",
   function(h) { userAutocomplete(h, [% custom_userlist ? json(custom_userlist) : "null" %], [% Param('usemenuforusers') ? 1 : 0 %]); },

@@ -33,7 +33,7 @@
   %]
 
   [% IF bug.resolution OR bug.check_can_change_field('resolution', bug.resolution, 1) %]
-    <noscript><br>resolved&nbsp;as&nbsp;</noscript>
+    <noscript><br />resolved&nbsp;as&nbsp;</noscript>
   [% END %]
 
   <span id="resolution_settings">
@@ -51,7 +51,7 @@
   &nbsp;(<a href="/buglist.cgi?query_format=advanced&product=[% bug.product FILTER uri %]&bug_status=[% bug.bug_status_obj.name FILTER uri %]" target="_blank" id="search_link_bug_status" class="search-link">search</a>)
 
   [% IF bug.check_can_change_field('dup_id', 0, 1) %]
-    <noscript><br> duplicate</noscript>
+    <noscript><br /> duplicate</noscript>
     <span id="duplicate_settings">of
       <span id="dup_id_container" class="bz_default_hidden">
         [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]

@@ -281,7 +281,7 @@
   [% ELSIF san_tag == "whines_obsolete_target_alert" %]
     [% FOREACH schedule = schedules %]
       Non-existent [% (type == constants.MAILTO_USER) ? "user" : "group" FILTER html %]
-      [%+ schedule.1 FILTER html %] for whine schedule [% schedule.0 FILTER html %]<br>
+      [%+ schedule.1 FILTER html %] for whine schedule [% schedule.0 FILTER html %]<br />
     [% END %]
 
   [% ELSIF san_tag == "whines_obsolete_target_fix" %]

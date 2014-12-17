@@ -171,7 +171,7 @@
   </select> &nbsp;
   новое&nbsp;значение:&nbsp;<input type="text" name="except_field_X_value" id="except_field_X_value" value="" /> (пусто=любое)
  </div>
-<script language="JavaScript">
+<script type="text/javascript">
 var fieldids = { '':'' [% FOR f = my_fielddefs %],"[% f.name | js %]": [% loop.count %][% END %] };
 var except_field_index = 0;
 function showhide_allowdeny()

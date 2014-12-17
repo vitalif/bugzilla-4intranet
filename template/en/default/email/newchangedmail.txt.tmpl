@@ -163,7 +163,7 @@ body { font-family: Segoe UI, sans-serif; }
 <a style="font-size: 120%;" href="[%+ urlbase %]show_bug.cgi?id=[% bug.id %]
   [%- IF new_comments AND new_comments.size > 0 %]#c[% new_comments.0.count %][% END %]">Bug [% bug.id %] - [% bug.short_desc | html %]</a>
 [% END %]
-<br><span style="font-size: 90%">(prod:[% bug.product | html %].[% bug.component | html %], pri:
+<br /><span style="font-size: 90%">(prod:[% bug.product | html %].[% bug.component | html %], pri:
 [%- bug.priority_obj.name | html %], sev:[% bug.bug_severity_obj.name %], miles:[% bug.target_milestone_obj.name | html %])</span>
 </p>
 

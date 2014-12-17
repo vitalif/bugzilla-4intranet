@@ -241,7 +241,7 @@
                   <td>
                     <a href="attachment.cgi?id=[% attachment.id %]">
                       [% attachment.description | html %]
-                    </a>[% "<br>" IF not loop.last() %]
+                    </a>[% "<br />" IF not loop.last() %]
                   </td>
                   <td>
                     [% IF attachment.flags.size == 0 %]
@@ -263,7 +263,7 @@
             [% FOREACH attachment = bug.attachments %]
               <a href="attachment.cgi?id=[% attachment.id %]">
                 [% attachment.description | html %]
-              </a>[% "<br>" IF not loop.last() %]
+              </a>[% "<br />" IF not loop.last() %]
             [% END %]
           [% END %]
         </td>
@@ -342,7 +342,7 @@
               [%+ flag.type.name | html | no_break %][% flag.status %]
               [%+ IF flag.status == "?" && flag.requestee %]
                 ([% flag.requestee.nick | html %])
-              [% END %]<br>
+              [% END %]<br />
             [% END %]
           [% END %]
         </td>

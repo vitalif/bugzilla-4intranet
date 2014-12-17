@@ -58,14 +58,14 @@ var queryform = "reportform"
 
   <tr>
     <td valign="middle" align="center">
-      <b>Vertical Axis:</b><br>
+      <b>Vertical Axis:</b><br />
       [% PROCESS select name = 'y_axis_field' %]
     </td>
     <td width="150" height="150">
       <table border="1" width="100%">
         <tr>
           <td align="center" valign="middle" height="150">
-            <b>Multiple Tables:</b><br>
+            <b>Multiple Tables:</b><br />
             [% PROCESS select name = 'z_axis_field' %]
           </td>
         </tr>
@@ -78,7 +78,7 @@ var queryform = "reportform"
 
 [% PROCESS search/form.html.tmpl %]
 
-<br>
+<br />
 <input type="submit" id="[% button_name FILTER css_class_quote %]"
        value="[% button_name FILTER html %]">
 <input type="hidden" name="format" value="table">

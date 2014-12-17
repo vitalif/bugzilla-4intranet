@@ -144,7 +144,7 @@
 
 </form>
 
-<script language="JavaScript">
+<script type="text/javascript">
 var period_times = { [% FOREACH bug = bugs %][% IF NOT loop.first %],[% END %]'[% bug.bug_id %]':[% bug.interval_time || 0 %][% END %] };
 var period_times_sorted;
 function divide_hours_click()

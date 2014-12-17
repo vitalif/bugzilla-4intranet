@@ -66,7 +66,7 @@
               (<em>deleted</em>)
             [% END %]
 
-            <br>
+            <br />
             <a href="#attach_[% attachment.id %]"
                title="Go to the comment associated with the attachment">
               [%- attachment.attached FILTER time %]</a>,
@@ -85,7 +85,7 @@
                 [%+ flag.type.name FILTER html FILTER no_break %][% flag.status %]
                 [%+ IF flag.status == "?" && flag.requestee %]
                   ([% flag.requestee.nick FILTER html %])
-                [% END %]<br>
+                [% END %]<br />
               [% END %]
             [% END %]
           </td>

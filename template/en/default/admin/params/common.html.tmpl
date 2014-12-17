@@ -66,7 +66,7 @@
         </script>
         <input id="input_[% param.name FILTER html %]" size="80"
                name="[% param.name FILTER html %]"
-               value="[% Param(param.name) FILTER html %]"><br>
+               value="[% Param(param.name) FILTER html %]"><br />
         <script type="text/javascript"><!--
           document.write("<\/span>");
         // -->
@@ -98,13 +98,13 @@
             '    <\/td>' +
             '    <td style="vertical-align: bottom">' +
             '      <button type="button"' +
-            '              onClick="sortedList_moveItem(\'[% param.name FILTER html %]\', -1, \'[% sortlist_separator %]\');">&uarr;<\/button>' +
+            '              onclick="sortedList_moveItem(\'[% param.name FILTER html %]\', -1, \'[% sortlist_separator %]\');">&uarr;<\/button>' +
             '    <\/td>' +
             '  <\/tr>' +
             '  <tr>' +
             '    <td style="vertical-align: top">' +
             '      <button type="button"' +
-            '              onClick="sortedList_moveItem(\'[% param.name FILTER html %]\', +1, \'[% sortlist_separator %]\');">&darr;<\/button>' +
+            '              onclick="sortedList_moveItem(\'[% param.name FILTER html %]\', +1, \'[% sortlist_separator %]\');">&darr;<\/button>' +
             '    <\/td>' +
             '  <\/tr>' +
             '<\/table>');

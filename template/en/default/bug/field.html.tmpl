@@ -64,7 +64,7 @@
   <div class="bug_field" id="field_container_[% field.name | html %]">
 [% END %]
   [% IF NOT no_tds OR use_divs %]
-    <label [% IF editable %]for="[% field.name | html %]"[% END %]>
+    <label [% IF editable && field.type != constants.FIELD_TYPE_BUG_ID_REV %]for="[% field.name | html %]"[% END %]>
     [% IF desc_url %]
       <a href="[% desc_url | html %]">
     [% ELSIF !field.custom %]
@@ -298,11 +298,12 @@
 [% END %]
 
 [% BLOCK search_link %]
-  <a href="buglist.cgi?query_format=advanced&product=[% bug.product | uri %]
-    [%- IF field.name != 'product' %]&
+  <a href="buglist.cgi?query_format=advanced&product=[% bug.product | uri -%]
+    [%- IF field.name != 'product' -%]&
       [%- IF field.type == constants.FIELD_TYPE_DATETIME -%]
-        type0-1-0=greaterthaneq&field0-1-0=[% field.name %]&field0-0-0=[% field.name %]&value0-1-0=[% bug.${field.name}.substr(0,10) | uri -%]
-        +00%3A00%3A00&type0-0-0=lessthaneq&value0-0-0=[% bug.${field.name}.substr(0,10) | uri %]+23%3A59%3A59
+        [%%]type0-1-0=greaterthaneq&field0-1-0=[% field.name %]&field0-0-0=[% field.name %]&value0-1-0=
+        [%- bug.${field.name}.substr(0,10) | uri -%]+00%3A00%3A00&type0-0-0=lessthaneq&value0-0-0=
+        [%- bug.${field.name}.substr(0,10) | uri -%]+23%3A59%3A59
       [%- ELSIF field.type == constants.FIELD_TYPE_BUG_ID_REV -%]
         [%- field.name %]=[% bug.${field.name}.join(' ') | uri -%]
       [%- ELSIF field.type == constants.FIELD_TYPE_SINGLE_SELECT -%]

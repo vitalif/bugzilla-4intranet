@@ -50,7 +50,7 @@
 
 <div class="bz_query_head" align="center">
   <span class="bz_query_timestamp">
-    <b>[% currenttime FILTER time('%a %b %e %Y %T %Z') FILTER html %]</b><br>
+    <b>[% currenttime FILTER time('%a %b %e %Y %T %Z') FILTER html %]</b><br />
   </span>
 
   [% IF debug %]
@@ -83,7 +83,7 @@
 [%# Preceding Status Line                                                    #%]
 [%############################################################################%]
 
-<script language="JavaScript">
+<script type="text/javascript">
 function showbugcomma()
 {
   document.getElementById('showbugcommacmd').style.display = 'none';
@@ -99,7 +99,7 @@ function showbugcomma()
   [% END %]
 </div>
 <div id="bugcomma" style="display: none; margin: 0 0 8px 0">
-  Bug ID list: <input type="text" readonly="true" value="[% buglist.join(" ") %]" size="100" />
+  Bug ID list: <input type="text" readonly="readonly" value="[% buglist.join(" ") %]" size="100" />
 </div>
 
 [%############################################################################%]
@@ -165,23 +165,23 @@ function showbugcomma()
   <div class="buglist-navbar" style="border-bottom-width: 0">
     <form method="post" action="show_bug.cgi">
       [% FOREACH id = buglist %]
-        <input type="hidden" name="id" value="[% id | html %]">
+        <input type="hidden" name="id" value="[% id | html %]" />
       [% END %]
-      <input type="hidden" name="format" value="multiple">
-      <input type="submit" id="long_format" value="Long Format">
+      <input type="hidden" name="format" value="multiple" />
+      <input type="submit" id="long_format" value="Long Format" />
     </form>
     <form method="post" action="show_bug.cgi">
-        <input type="hidden" name="ctype" value="xml">
+      <input type="hidden" name="ctype" value="xml" />
       [% FOREACH id = buglist %]
-        <input type="hidden" name="id" value="[% id | html %]">
+        <input type="hidden" name="id" value="[% id | html %]" />
       [% END %]
-        <input type="hidden" name="excludefield" value="attachmentdata">
-        <input type="submit" value="XML" id="xml">
+      <input type="hidden" name="excludefield" value="attachmentdata" />
+      <input type="submit" value="XML" id="xml" />
     </form>
   [% IF user.is_timetracker %]
     <form method="post" action="summarize_time.cgi">
-      <input type="hidden" name="id" value="[% buglist_joined | html %]">
-      <input type="submit" id="timesummary" value="Time Summary">
+      <input type="hidden" name="id" value="[% buglist_joined | html %]" />
+      <input type="submit" id="timesummary" value="Time Summary" />
     </form>
   [% END %]
   </div>
@@ -246,13 +246,13 @@ function showbugcomma()
   [% ELSE %]
   <div class="buglist-navbar" style="border-bottom-width: 0">
     <form method="get" action="buglist.cgi">
-      <input type="submit" id="remember" value="Remember search"> as
+      <input type="submit" id="remember" value="Remember search" /> as
       <input type="hidden" name="newquery"
-             value="[% urlquerypart | html %][% "&order=$qorder" | html IF order %]">
-      <input type="hidden" name="cmdtype" value="doit">
-      <input type="hidden" name="remtype" value="asnamed">
+             value="[% urlquerypart | html %][% "&order=$qorder" | html IF order %]" />
+      <input type="hidden" name="cmdtype" value="doit" />
+      <input type="hidden" name="remtype" value="asnamed" />
       <input type="text" id="save_newqueryname" name="newqueryname" size="20"
-             value="[% defaultsavename | html %]">
+             value="[% defaultsavename | html %]" />
     </form>
   </div>
   [% END %]

@@ -106,10 +106,10 @@
 
   <table class="grant_table">
     <tr>
-      <th class="one">Groups That Are a Member of This Group<br>
+      <th class="one">Groups That Are a Member of This Group<br />
         (&quot;Users in <var>X</var> are automatically in  
          [%+ group.name FILTER html %]&quot;)</th>
-      <th>Groups That This Group Is a Member Of<br>
+      <th>Groups That This Group Is a Member Of<br />
         (&quot;If you are in [% group.name FILTER html %], you are 
          automatically also in...&quot;)</th>
     </tr>
@@ -133,12 +133,12 @@
     </tr>
     <tr>
       <th class="one">
-        Groups That Can Grant Membership in This Group<br>
+        Groups That Can Grant Membership in This Group<br />
         (&quot;Users in <var>X</var> can add other users to 
          [%+ group.name FILTER html %]&quot;)
 
       </th>
-     <th>Groups That This Group Can Grant Membership In<br>
+     <th>Groups That This Group Can Grant Membership In<br />
        (&quot;Users in [% group.name FILTER html %] can add users to...&quot;)
      </th>
     </tr>
@@ -159,11 +159,11 @@
     <table class="grant_table">
       <tr>
         <th class="one">
-          Groups That Can See This Group<br>
+          Groups That Can See This Group<br />
           (&quot;Users in <var>X</var> can see users in
            [%+ group.name FILTER html %]&quot;)
         </th>
-       <th>Groups That This Group Can See<br>
+       <th>Groups That This Group Can See<br />
          (&quot;Users in [% group.name FILTER html %] can see users in...&quot;)
        </th>
       </tr>
@@ -241,9 +241,9 @@ for [% terms.bug %] restrictions.
 [% BLOCK select_pair %]
   <table class="select_pair">
     <tr>
-      <th><label for="[% "${name}_add" FILTER html %]">Add<br>
+      <th><label for="[% "${name}_add" FILTER html %]">Add<br />
         (select to add)</label></th>
-      <th><label for="[% "${name}_remove" FILTER html %]">Current<br>
+      <th><label for="[% "${name}_remove" FILTER html %]">Current<br />
         (select to remove)</label></th>
     </tr>
     <tr>

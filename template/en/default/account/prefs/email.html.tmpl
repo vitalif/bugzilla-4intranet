@@ -278,7 +278,7 @@ preferences for <u>their</u> relationship to the [% terms.bug %]
 <hr />
 
 <p>
-  <a name="watching_you" id="watching_you">Users watching you</a>:<br>
+  <a name="watching_you" id="watching_you">Users watching you</a>:<br />
 [% IF watchers.size %]
 </p>
 <p>
@@ -299,7 +299,7 @@ preferences for <u>their</u> relationship to the [% terms.bug %]
   <input size="60" name="new_watchers" id="new_watchers" value="" />
 </p>
 
-<script type="text/javascript" language="JavaScript">
+<script type="text/javascript">
 [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
 new SimpleAutocomplete("new_watchedusers",
   function(h) { userAutocomplete(h, null); },

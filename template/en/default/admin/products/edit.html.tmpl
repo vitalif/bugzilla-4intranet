@@ -57,7 +57,7 @@
             [% ELSE %]
               <font color="red">description missing</font>
             [% END %]
-            <br>
+            <br />
           [% END %]
         [% ELSE %]
           <font color="red">missing</font>
@@ -72,7 +72,7 @@
         [%- IF product.versions.size -%]
           [% FOREACH v = product.versions %]
             [% v.name FILTER html %]
-            <br>
+            <br />
           [% END %]
         [% ELSE %]
           missing
@@ -89,7 +89,7 @@
           [%- IF product.milestones.size -%]
             [%- FOREACH m = product.milestones -%]
               [% m.name FILTER html %]
-            <br>
+            <br />
             [% END %]
           [% ELSE %]
             missing
@@ -126,7 +126,7 @@
             [% ELSE %]
               DISABLED
             [% END %]
-            <br>
+            <br />
           [% END %]
         [% ELSE %]
           no groups

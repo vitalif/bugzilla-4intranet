@@ -151,12 +151,12 @@
   <hr>
 
   <p>Checking existing votes in this product for anybody who now
-  has too many votes for [% terms.abug %]...<br>
+  has too many votes for [% terms.abug %]...<br />
   [% IF changes.too_many_votes.size %]
     [% FOREACH detail = changes.too_many_votes %]
       &rarr;removed votes for [% terms.bug %] <a href="show_bug.cgi?id=
      [%- detail.id FILTER url_quote %]">
-     [%- detail.id FILTER html %]</a> from [% detail.name FILTER html %]<br>
+     [%- detail.id FILTER html %]</a> from [% detail.name FILTER html %]<br />
     [% END %]
   [% ELSE %]
     &rarr;there were none.
@@ -164,12 +164,12 @@
   </p>
 
   <p>Checking existing votes in this product for anybody
-  who now has too many total votes...<br>
+  who now has too many total votes...<br />
   [% IF changes.too_many_total_votes.size %]
     [% FOREACH detail = changes.too_many_total_votes %]
       &rarr;removed votes for [% terms.bug %] <a href="show_bug.cgi?id=
      [%- detail.id FILTER url_quote %]">
-     [%- detail.id FILTER html %]</a> from [% detail.name FILTER html %]<br>
+     [%- detail.id FILTER html %]</a> from [% detail.name FILTER html %]<br />
     [% END %]
   [% ELSE %]
     &rarr;there were none.
@@ -177,7 +177,7 @@
   </p>
 
   <p>Checking unconfirmed [% terms.bugs %] in this product for any which now have
-  sufficient votes...<br>
+  sufficient votes...<br />
   [% IF changes.confirmed_bugs.size %]
     &rarr;[% changes.confirmed_bugs.size %] [% terms.bugs %] confirmed.
   [% ELSE %]

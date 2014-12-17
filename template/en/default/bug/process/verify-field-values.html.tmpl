@@ -40,14 +40,14 @@
     <p>These groups are not legal for the '[% product.name FILTER html %]'
     product or you are not allowed to restrict [% terms.bugs %] to these groups.
     [%+ terms.Bugs %] will no longer be restricted to these groups and may become
-    public if no other group applies:<br>
+    public if no other group applies:<br />
     [% FOREACH group = old_groups %]
       <input type="checkbox" id="bit-[% group.id FILTER html %]"
              name="bit-[% group.id FILTER html %]" disabled="disabled" value="1">
       <label for="bit-[% group.id FILTER html %]">
         [% group.name FILTER html %]: [% group.description FILTER html %]
       </label>
-      <br>
+      <br />
     [% END %]
     </p>
   [% END %]
@@ -70,7 +70,7 @@
 
   [% IF optional_groups.size %]
     <p>These groups are optional. You can decide to restrict [% terms.bugs %] to
-    one or more of the following groups:<br>
+    one or more of the following groups:<br />
     [% FOREACH group = optional_groups %]
       <input type="hidden" name="defined_bit-[% group.group.id FILTER html %]"
              value="1">
@@ -84,21 +84,21 @@
       <label for="bit-[% group.group.id FILTER html %]">
         [% group.group.name FILTER html %]: [% group.group.description FILTER html %]
       </label>
-      <br>
+      <br />
     [% END %]
     </p>
   [% END %]
 
   [% IF mandatory_groups.size %]
     <p>These groups are mandatory and [% terms.bugs %] will be automatically
-    restricted to these groups:<br>
+    restricted to these groups:<br />
     [% FOREACH group = mandatory_groups %]
       <input type="checkbox" id="bit-[% group.group.id FILTER html %]" checked="checked"
              name="bit-[% group.group.id FILTER html %]" value="1" disabled="disabled">
       <label for="bit-[% group.group.id FILTER html %]">
         [% group.group.name FILTER html %]: [% group.group.description FILTER html %]
       </label>
-      <br>
+      <br />
     [% END %]
     </p>
   [% END %]

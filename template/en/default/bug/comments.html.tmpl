@@ -112,7 +112,7 @@
           <input type="checkbox"
                  name="isprivate_[% comment.id %]" value="1"
                  id="isprivate_[% comment.id %]"
-                 onClick="updateCommentPrivacy(this, [% comment.id %])"
+                 onclick="updateCommentPrivacy(this, [% comment.id %])"
                  [% " checked=\"checked\"" IF comment.is_private %] />
           <label for="isprivate_[% comment.id %]">Private</label>
         </div>
@@ -134,7 +134,7 @@
       <span class="bz_comment_user">
         <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
           title="[% comment.author.identity | html %]">
-          <img src="[% comment.author.gravatar_url('s=40&d=' _ urlbase _ '/images/noavatar40.png') %]" />
+          <img src="[% comment.author.gravatar_url('s=40&d=' _ urlbase _ '/images/noavatar40.png') %]" alt="img" />
         </a>
       </span>
       [% END %]

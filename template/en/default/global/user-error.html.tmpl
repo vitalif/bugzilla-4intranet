@@ -705,11 +705,11 @@
   [% title = "File Too Large" %]
   The file you are trying to attach is [% filesize FILTER html %]
   kilobytes (KB) in size. Attachments cannot be more than
-  [%+ Param('maxattachmentsize') %] KB. <br>
+  [%+ Param('maxattachmentsize') %] KB. <br />
   We recommend that you store your attachment elsewhere
   and then insert the URL to it in a comment, or in the URL field
   for this [% terms.bug %].
-  <br>Alternately, if your attachment is an image, you could convert
+  <br />Alternately, if your attachment is an image, you could convert
   it to a compressible format like JPG or PNG and try again.
 [% END %]
 
@@ -1285,7 +1285,7 @@
                        'components.html' => 'Creating a component'} %]
   Sorry, the product <em>[% product.name FILTER html %]</em>
   has to have at least one component in order for you to
-  enter [% terms.abug %] into it.<br>
+  enter [% terms.abug %] into it.<br />
   [% IF user.in_group("editcomponents", product.id) %]
     <a href="editcomponents.cgi?action=add&amp;product=[% product.name FILTER url_quote %]">Create
     a new component</a>.
@@ -1368,7 +1368,7 @@
   [% admindocslinks = {'versions.html' => 'Defining versions'} %]
   Sorry, the product <em>[% product.name FILTER html %]</em>
   has to have at least one version in order for you to
-  enter [% terms.abug %] into it.<br>
+  enter [% terms.abug %] into it.<br />
   [% IF user.in_group("editcomponents", product.id) %]
     <a href="editversions.cgi?action=add&amp;product=[% product.name FILTER url_quote %]">Create
     a new version</a>.
@@ -1809,7 +1809,7 @@
   [% ELSE %]
     There are [% dependency_count FILTER none %] open [% terms.bugs %] which
     have unresolved dependencies.
-    <br>
+    <br />
     [% FOREACH bug = dependencies %]
       [% terms.Bug %]# <a href="show_bug.cgi?id=[% bug.bug_id FILTER none %]">[% bug.bug_id FILTER none %]</a>
       has [% bug.dependencies FILTER html %] open
@@ -1819,7 +1819,7 @@
         dependencies.
       [% END %]
       (<a href="showdependencytree.cgi?id=[% bug.bug_id FILTER none %]&amp;hide_resolved=1">Dependency
-      Tree</a>)<br>
+      Tree</a>)<br />
     [% END %]
   [% END %]
 [% END %]
