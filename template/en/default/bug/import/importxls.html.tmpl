@@ -153,7 +153,7 @@ function checkColumns()
         <select id="t_[% field | html %]" name="t_[% field | html %]" style="[% IF name_tr.${field} %]display: none; width: 90px[% ELSE %]width: 150px[% END %]">
             <option value="">Don&apos;t map: [% field | html %]</option>
         [% FOR f = import_fields %]
-            <option value="[% f | html %]" [% IF name_tr.$field == f %] selected[% SET found = 1 %][% END %]>[% import_field_descs.$f | html %]</option>
+            <option value="[% f | html %]" [% IF name_tr.$field == f %] selected="selected"[% SET found = 1 %][% END %]>[% import_field_descs.$f | html %]</option>
         [% END %]
         </select>
     </td>

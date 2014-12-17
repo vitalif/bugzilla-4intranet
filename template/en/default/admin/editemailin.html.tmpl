@@ -33,7 +33,7 @@
 <tr><td>E-mail address:</td><td><input style="width: 250px" type="text" name="email" value="[% email FILTER html %]" /></td></tr>
 <tr><td>Field:</td><td><select name="field" style="width: 250px">
 [% FOR f IN field_descs.keys.sort %]
-<option value="[% f FILTER html %]"[% IF curfield == f %] selected[% END %]>[% field_descs.${f} FILTER html %]</option>
+<option value="[% f FILTER html %]"[% IF curfield == f %] selected="selected"[% END %]>[% field_descs.${f} FILTER html %]</option>
 [% END %]
 </select></td></tr>
 <tr><td>Value:</td><td><input type="text" style="width: 250px" name="value" value="[% value FILTER html %]" /></td></tr>

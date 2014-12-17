@@ -123,7 +123,7 @@
             [% SET vs = f.restricted_legal_values(this_value.product_id) %]
           [% END %]
           [% FOR v = vs %]
-            <option value="[% v.id %]"[% " selected" IF cur_default.${v.id} %]>[% v.name | html %]</option>
+            <option value="[% v.id %]"[% ' selected="selected"' IF cur_default.${v.id} %]>[% v.name | html %]</option>
           [% END %]
         </select>
       [% ELSIF f.type == constants.FIELD_TYPE_TEXTAREA %]

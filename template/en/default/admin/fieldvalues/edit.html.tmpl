@@ -109,7 +109,7 @@
         <td colspan="2">
           <select name="visibility_value_id" id="visibility_value_id" multiple="multiple" size="15" style="width: 400px">
             [% IF field.value_field.nullable %]
-            <option value="0"[% IF field.is_value_enabled(value.id, 0) %] selected[% END %]>---</option>
+            <option value="0"[% IF field.is_value_enabled(value.id, 0) %] selected="selected"[% END %]>---</option>
             [% END %]
             [% FOREACH field_value = field.value_field.legal_values %]
               [% IF field.visibility_field_id != field.value_field_id || field.has_visibility_value(field_value.id) %]

@@ -100,7 +100,7 @@
           onclick="edit_wtonly(this, [% comment.id %])" />
         <select class="cmt_wtonly" id="wtonly_[% comment.id %]" style="display: none">
           <option value="0">normal</option>
-          <option value="1"[% " selected" IF wt_only %]>worktime-only</option>
+          <option value="1"[% ' selected="selected"' IF wt_only %]>worktime-only</option>
         </select>
       [% END %]
       </span>

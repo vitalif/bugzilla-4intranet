@@ -62,7 +62,7 @@
                   onchange="toggleRequesteeField(this);"
                   class="flag_select flag_type-[% type.id %]">
             [% FOR st = flag.statuses %]
-              <option value="[% st | html %]" [% "selected" IF flag.status == st %]>[% st | html %]</option>
+              <option value="[% st | html %]"[% ' selected="selected"' IF flag.status == st %]>[% st | html %]</option>
             [% END %]
           </select>
         </td>
@@ -127,11 +127,11 @@
               class="flag_select flag_type-[% type.id %]">
         <option value="X"></option>
         [% IF type.is_requestable && user.can_request_flag(type) %]
-          <option value="?" [% " selected" IF type.default_value == "?" %]>?</option>
+          <option value="?"[% ' selected="selected"' IF type.default_value == "?" %]>?</option>
         [% END %]
         [% IF user.can_set_flag(type) %]
-          <option value="+" [% " selected" IF type.default_value == "+" %]>+</option>
-          <option value="-" [% " selected" IF type.default_value == "-" %]>-</option>
+          <option value="+"[% ' selected="selected"' IF type.default_value == "+" %]>+</option>
+          <option value="-"[% ' selected="selected"' IF type.default_value == "-" %]>-</option>
         [% END %]
       </select>
     </td>

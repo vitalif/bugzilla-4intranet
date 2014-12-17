@@ -271,7 +271,7 @@ sub css_class_quote
 {
     my ($toencode) = (@_);
     $toencode =~ s#[ /]#_#g;
-    $toencode =~ s/([^a-zA-Z0-9_\-.])/uc sprintf("&#x%x;",ord($1))/eg;
+    $toencode =~ s/([^a-zA-Z0-9_\-.])/sprintf("&#x%x;",ord($1))/eg;
     return $toencode;
 }
 

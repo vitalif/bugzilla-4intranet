@@ -194,7 +194,7 @@ var constants = {
           <select name="default_value" style="width: 400px" [% "multiple size=3" IF field.type == constants.FIELD_TYPE_MULTI_SELECT %]>
             <option value="">---</option>
             [% FOREACH v = field.legal_values %]
-            <option value="[% v.id | html %]"[% " selected" IF field.default_value_hash.${v.id} %]>[% v.name | html %]</option>
+            <option value="[% v.id | html %]"[% ' selected="selected"' IF field.default_value_hash.${v.id} %]>[% v.name | html %]</option>
             [% END %]
           </select>
           [% ELSE %]
@@ -349,7 +349,7 @@ var constants = {
       <select style="width: 400px" id="visibility_value_id"
         name="visibility_value_id" size="7" multiple="multiple">
         [% IF field.visibility_field.nullable %]
-        <option value="0"[% IF vis.0 %] selected[% END %]>---</option>
+        <option value="0"[% IF vis.0 %] selected="selected"[% END %]>---</option>
         [% END %]
         [% FOREACH value = field.visibility_field.legal_values %]
           <option value="[% value.id | html %]"[% ' selected="selected"' IF vis && vis.${value.id} %]>
@@ -371,7 +371,7 @@ var constants = {
       <select style="width: 400px" id="null_visibility_values"
         name="null_visibility_values" size="7" multiple="multiple">
         [% IF field.null_field.nullable %]
-        <option value="0"[% IF null.0 %] selected[% END %]>---</option>
+        <option value="0"[% IF null.0 %] selected="selected"[% END %]>---</option>
         [% END %]
         [% FOREACH value = field.null_field.legal_values %]
           [% IF field.null_field_id != field.visibility_field_id || !vis || vis.${value.id} %]
@@ -395,7 +395,7 @@ var constants = {
       <select style="width: 400px" id="clone_visibility_values"
         name="clone_visibility_values" size="7" multiple="multiple">
         [% IF field.clone_field.nullable %]
-        <option value="0"[% IF clone.0 %] selected[% END %]>---</option>
+        <option value="0"[% IF clone.0 %] selected="selected"[% END %]>---</option>
         [% END %]
         [% FOREACH value = field.clone_field.legal_values %]
           [% IF field.clone_field_id != field.visibility_field_id || !vis || vis.${value.id} %]

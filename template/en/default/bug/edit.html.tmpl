@@ -991,8 +991,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
   [% IF bug.check_can_change_field(inputname, 0, 1) %]
     <input id="[% inputname %]" name="[% inputname %]" class="text_input"
       value="[% val FILTER html %]"[% " size=\"$size\"" IF size %]
-      [% " maxlength=\"$maxlength\"" IF maxlength %]
-      [% " spellcheck=\"$spellcheck\"" IF spellcheck %] />
+      [% " maxlength=\"$maxlength\"" IF maxlength %] />
   [% ELSE %]
     [% IF size && val.length > size %]
       <span title="[% val FILTER html %]">
