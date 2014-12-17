@@ -134,11 +134,11 @@ from '[% product.name FILTER html %]' product
   <p>Do you really want to delete this component?</p>
   
   <form method="post" action="editcomponents.cgi">
-  <input type="submit" id="delete" value="Yes, delete">
-  <input type="hidden" name="action" value="delete">
-  <input type="hidden" name="product" value="[% product.name FILTER html %]">
-  <input type="hidden" name="component" value="[% comp.name FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="submit" id="delete" value="Yes, delete" />
+  <input type="hidden" name="action" value="delete" />
+  <input type="hidden" name="product" value="[% product.name FILTER html %]" />
+  <input type="hidden" name="component" value="[% comp.name FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
   </form>
 
 [% END %]

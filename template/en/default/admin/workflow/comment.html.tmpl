@@ -74,7 +74,7 @@
               title="From [% status.name FILTER html %] to [% new_status.name FILTER html %]">
             <input type="checkbox" name="c_[% status.id %]_[% new_status.id %]"
                    id="c_[% status.id %]_[% new_status.id %]" onclick="toggle_cell(this)"
-              [% " checked='checked'" IF workflow.${status.id}.${new_status.id} %]>
+              [% " checked='checked'" IF workflow.${status.id}.${new_status.id} %] />
           </td>
         [% ELSE %]
           <td class="checkbox-cell forbidden">&nbsp;</td>
@@ -85,9 +85,9 @@
 </table>
 
 <p align="center">
-  <input type="hidden" name="action" value="update_comment">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="submit" value="Commit Changes"> -
+  <input type="hidden" name="action" value="update_comment" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type="submit" value="Commit Changes" /> -
   <a href="editworkflow.cgi?action=edit_comment">Cancel Changes</a> -
   <a href="editworkflow.cgi">View Current Workflow</a>
 </p>

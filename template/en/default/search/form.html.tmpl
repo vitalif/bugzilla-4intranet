@@ -27,7 +27,7 @@
 
 [% SET checkwidths = [] %]
 
-<input type="hidden" name="query_format" value="[% query_format FILTER html %]">
+<input type="hidden" name="query_format" value="[% query_format FILTER html %]" />
 
 [%# *** Summary *** %]
 
@@ -38,7 +38,7 @@
     </th>
     <td>
       <input name="content" size="40" id="content"
-             value="[% default.content.0 FILTER html %]">
+             value="[% default.content.0 FILTER html %]" />
     </td>
   </tr>
 
@@ -49,12 +49,12 @@
     <td>[% html_select('short_desc_type', default.short_desc_type.0, text_types, lc_messages.operator_descs) %]</td>
     <td>
       <input name="short_desc" id="short_desc" size="40"
-             value="[% default.short_desc.0 FILTER html %]">
+             value="[% default.short_desc.0 FILTER html %]" />
     </td>
     <td>
       [% IF button_name %]
         <input type="submit" id="[% button_name FILTER css_class_quote %]_top"
-               value="[% button_name FILTER html %]">
+               value="[% button_name FILTER html %]" />
       [% END %]
     </td>
   </tr>
@@ -160,7 +160,7 @@
       </td>
       <td>
         <input name="keywords" id="keywords" size="40"
-               value="[% default.keywords.0 FILTER html %]">
+               value="[% default.keywords.0 FILTER html %]" />
       </td>
     </tr>
   [% END %]
@@ -173,9 +173,9 @@
       </th>
       <td>
         from <input name="deadlinefrom" id="deadlinefrom" size="10" maxlength="10"
-                    value="[% default.deadlinefrom.0 FILTER html %]">
+                    value="[% default.deadlinefrom.0 FILTER html %]" />
         to <input name="deadlineto" id="deadlineto" size="10" maxlength="10"
-                  value="[% default.deadlineto.0 FILTER html %]">
+                  value="[% default.deadlineto.0 FILTER html %]" />
       </td>
       <td>
         <small>(YYYY-MM-DD or relative dates)</small>
@@ -342,7 +342,7 @@
     </td>
     <td>
       <input type="text" name="bug_id" id="bug_id"
-             value="[% default.bug_id.0 FILTER html %]" size="20">
+             value="[% default.bug_id.0 FILTER html %]" size="20" />
     </td>
   </tr>
   <tr>
@@ -388,7 +388,7 @@
   <dt>and <label for="chfieldvalue">the new value was</label>:</dt>
   <dd>
     <input name="chfieldvalue" id="chfieldvalue"
-           size="20" value="[% default.chfieldvalue.0 FILTER html %]">
+           size="20" value="[% default.chfieldvalue.0 FILTER html %]" />
   </dd>
 </dl>
 

@@ -32,18 +32,18 @@
 </p>
 
 <form action="votes.cgi" method="post">
-    <input type="hidden" name="action" value="vote">
-  <input type="hidden" name="token" value="[% issue_hash_token(['vote']) FILTER html %]"> 
+    <input type="hidden" name="action" value="vote" />
+  <input type="hidden" name="token" value="[% issue_hash_token(['vote']) FILTER html %]" /> 
   <p>
-    <input type="radio" name="delete_all_votes" value="1">
+    <input type="radio" name="delete_all_votes" value="1" />
     Yes, delete all my votes
   </p>
   <p>
-    <input type="radio" name="delete_all_votes" value="0" checked="checked">
+    <input type="radio" name="delete_all_votes" value="0" checked="checked" />
     No, go back and review my votes
   </p>
   <p>
-    <input type="submit" id="vote" value="Submit">
+    <input type="submit" id="vote" value="Submit" />
   </p>
 </form>
 

@@ -70,12 +70,12 @@
 
 <form action="attachment.cgi" method="POST">
   <label for="reason">Reason of the deletion:</label>
-  <input type="text" id="reason" name="reason" value="" size="80" maxlength="200">
+  <input type="text" id="reason" name="reason" value="" size="80" maxlength="200" />
   <br />
-  <input type="submit" value="Yes, delete" id="delete">
-  <input type="hidden" name="action" value="delete">
-  <input type="hidden" name="id" value="[% a.id FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="submit" value="Yes, delete" id="delete" />
+  <input type="hidden" name="action" value="delete" />
+  <input type="hidden" name="id" value="[% a.id FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
 </form>
 
 <p>

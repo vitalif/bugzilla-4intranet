@@ -64,8 +64,8 @@
 
 [% IF products.size %]
   <form name="voting_form" method="post" action="votes.cgi">
-    <input type="hidden" name="action" value="vote">
-    <input type="hidden" name="token" value="[% issue_hash_token(['vote']) FILTER html %]">
+    <input type="hidden" name="action" value="vote" />
+    <input type="hidden" name="token" value="[% issue_hash_token(['vote']) FILTER html %]" />
     <table cellspacing="4">
       <tr>
         <td></td>
@@ -108,10 +108,10 @@
               [% IF canedit %]
                 [% IF product.onevoteonly %]
                   <input type="checkbox" name="[% bug.id %]" value="1"
-                    [% " checked" IF bug.count %] id="bug_[% bug.id %]">
+                    [% " checked" IF bug.count %] id="bug_[% bug.id %]" />
                 [% ELSE %]
                   <input name="[% bug.id %]" value="[% bug.count %]"
-                         size="2" id="bug_[% bug.id %]">
+                         size="2" id="bug_[% bug.id %]" />
                 [% END %]
               [% ELSE %]
                 [% bug.count %]
@@ -140,7 +140,7 @@
     </table>
 
     [% IF canedit %]
-      <input type="submit" value="Change My Votes" id="change"> or 
+      <input type="submit" value="Change My Votes" id="change" /> or 
       <a href="buglist.cgi?bug_id=[% all_bug_ids.join(",") FILTER url_quote %]">view all
         as [% terms.bug %] list</a>
       <br />

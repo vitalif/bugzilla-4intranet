@@ -47,7 +47,7 @@
         <td>
           <noscript>
             <input type="submit" name="action-edit" value="Update --&gt;"
-                   id="action-edit">
+                   id="action-edit" />
           </noscript>
         </td>
         
@@ -57,19 +57,19 @@
         
       <td valign="top" name="name">
         <input type="text" name="name" maxlength="64" 
-               value="[% default.name.0 FILTER html %]" size="25">
+               value="[% default.name.0 FILTER html %]" size="25" />
       </td>
 
       <td valign="top">
         <span style="font-weight: bold;">Run every</span> &nbsp;
         <input type="text" size="2" name="frequency"
-               value="[% (default.frequency.0 OR 7) FILTER html %]">
+               value="[% (default.frequency.0 OR 7) FILTER html %]" />
         <span style="font-weight: bold;">&nbsp;day(s)</span><br />
         [%# Change 'admin' here and in Series.pm, or remove the check
             completely, if you want to change who can make series public. %]
         [% IF user.in_group('admin') %]      
           <input type="checkbox" name="public" value="1"
-                 [%+ "checked='checked'" IF default.public.0 %]>
+                 [%+ "checked='checked'" IF default.public.0 %] />
           <span style="font-weight: bold;">Visible to all<br />
           (within group restrictions)</span> 
         [% END %]
@@ -79,18 +79,18 @@
     <tr>
       <td>
         <input type="text" style="width: 100%" name="newcategory" 
-               maxlength="64" value="[% default.newcategory.0 FILTER html %]">
+               maxlength="64" value="[% default.newcategory.0 FILTER html %]" />
       </td>
         <td></td>
       <td>
         <input type="text" style="width: 100%" name="newsubcategory"
                maxlength="64" 
-               value="[% default.newsubcategory.0 FILTER html %]">
+               value="[% default.newsubcategory.0 FILTER html %]" />
       </td>
       <td></td>
       <td>
         <input type="submit" name="submit-button" id="submit-button"
-               value="[% button_name FILTER html %]">
+               value="[% button_name FILTER html %]" />
       </td>
     </tr>
   </tbody>

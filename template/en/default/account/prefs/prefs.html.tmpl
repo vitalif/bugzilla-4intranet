@@ -83,14 +83,14 @@
 
 [% IF current_tab.saveable %]
   <form name="userprefsform" method="post" action="userprefs.cgi">
-    <input type="hidden" name="tab" value="[% current_tab.name %]">
-    <input type="hidden" name="token" value="[% token FILTER html %]">
+    <input type="hidden" name="tab" value="[% current_tab.name %]" />
+    <input type="hidden" name="token" value="[% token FILTER html %]" />
 [% END %]
 
 [% PROCESS "account/prefs/${current_tab.name}.html.tmpl" IF current_tab.name.defined %]
 
 [% IF current_tab.saveable %]
-    <input type="hidden" name="dosave" value="1">
+    <input type="hidden" name="dosave" value="1" />
 
     [% UNLESS dont_show_button %]
     <p><input type="submit" id="update" value="Submit Changes" /></p>

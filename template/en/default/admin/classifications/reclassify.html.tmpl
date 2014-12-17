@@ -64,8 +64,8 @@
       </select></td>
 
       <td align="center">
-        <input type=submit value="     Add &gt;&gt;  " name="add_products"><br /><br />
-        <input type=submit value="&lt;&lt; Remove" name="remove_products">
+        <input type=submit value="     Add &gt;&gt;  " name="add_products" /><br /><br />
+        <input type=submit value="&lt;&lt; Remove" name="remove_products" />
       </td>
 
       <td valign="middle" rowspan=2>
@@ -79,9 +79,9 @@
     </tr>
   </table>
 
-  <input type=hidden name="action" value="reclassify">
-  <input type=hidden name="classification" value="[% classification.name FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type=hidden name="action" value="reclassify" />
+  <input type=hidden name="classification" value="[% classification.name FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
 </form>
 
 [% PROCESS admin/classifications/footer.html.tmpl %]

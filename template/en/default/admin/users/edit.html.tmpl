@@ -123,7 +123,7 @@
   <input type="submit" id="update" value="Save Changes" />
   <input type="hidden" name="userid" value="[% otheruser.id %]" />
   <input type="hidden" name="action" value="update" />
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
   [% INCLUDE listselectionhiddenfields %]
 
   or <a href="editusers.cgi?action=activity&amp;userid=[% otheruser.id %]"

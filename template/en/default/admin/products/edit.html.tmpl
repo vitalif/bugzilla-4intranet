@@ -141,10 +141,10 @@
   </table>
   
   <input type="hidden" name="product_old_name" 
-        value="[% product.name FILTER html %]">
-  <input type="hidden" name="action" value="update">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="submit" name="submit" value="Save Changes">
+        value="[% product.name FILTER html %]" />
+  <input type="hidden" name="action" value="update" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type="submit" name="submit" value="Save Changes" />
 </form>
   
 [% PROCESS "admin/products/footer.html.tmpl"

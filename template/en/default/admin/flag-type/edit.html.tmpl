@@ -51,20 +51,20 @@
 %]
 
 <form method="post" action="editflagtypes.cgi">
-  <input type="hidden" name="action" value="[% action %]">
-  <input type="hidden" name="id" value="[% type.id FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="hidden" name="target_type" value="[% type.target_type FILTER html %]">
+  <input type="hidden" name="action" value="[% action %]" />
+  <input type="hidden" name="id" value="[% type.id FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type="hidden" name="target_type" value="[% type.target_type FILTER html %]" />
   [% FOREACH category = type.inclusions.keys %]
-    <input type="hidden" name="inclusions" value="[% category FILTER html %]">
+    <input type="hidden" name="inclusions" value="[% category FILTER html %]" />
   [% END %]
   [% FOREACH category = type.exclusions.keys %]
-    <input type="hidden" name="exclusions" value="[% category FILTER html %]">
+    <input type="hidden" name="exclusions" value="[% category FILTER html %]" />
   [% END %]
 
   [%# Add a hidden button at the top of the form so that the user pressing "return"
     # really submit the form, as expected. %]
-  <input type="submit" id="commit" value="Submit" style="display: none;">
+  <input type="submit" id="commit" value="Submit" style="display: none;" />
 
   <table id="form" cellspacing="0" cellpadding="4" border="0">
     <tr>
@@ -72,7 +72,7 @@
       <td>
         a short name identifying this type<br />
         <input type="text" name="name" value="[% type.name FILTER html %]"
-               size="50" maxlength="50">
+               size="50" maxlength="50" />
       </td>
     </tr>
 
@@ -116,18 +116,18 @@
                           [% comp FILTER html %]</option>
                 [% END %]
               </select><br />
-              <input type="submit" name="categoryAction-include" value="Include">
-              <input type="submit" name="categoryAction-exclude" value="Exclude">
+              <input type="submit" name="categoryAction-include" value="Include" />
+              <input type="submit" name="categoryAction-exclude" value="Exclude" />
             </td>
             <td style="vertical-align: top;">
               <b>Inclusions:</b><br />
               [% html_select('inclusion_to_remove', '', type.inclusions, '', { multiple => '1', size => '7' }) %]
-              <input type="submit" name="categoryAction-removeInclusion" value="Remove Inclusion">
+              <input type="submit" name="categoryAction-removeInclusion" value="Remove Inclusion" />
             </td>
             <td style="vertical-align: top;">
               <b>Exclusions:</b><br />
               [% html_select('exclusion_to_remove', '', type.exclusions, '', { multiple => '1', size => '7' }) %]
-              <input type="submit" name="categoryAction-removeExclusion" value="Remove Exclusion">
+              <input type="submit" name="categoryAction-removeExclusion" value="Remove Exclusion" />
             </td>
           </tr>
         </table>
@@ -141,7 +141,7 @@
         when displayed to users in a list; ignore if you don't care
         what order the types appear in or if you want them to appear
         in alphabetical order<br />
-        <input type="text" name="sortkey" value="[% type.sortkey || 1 | html %]" size="5" maxlength="5">
+        <input type="text" name="sortkey" value="[% type.sortkey || 1 | html %]" size="5" maxlength="5" />
       </td>
     </tr>
 
@@ -149,7 +149,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_active" name="is_active"
-               [% " checked" IF type.is_active || !type.is_active.defined %]>
+               [% " checked" IF type.is_active || !type.is_active.defined %] />
         <label for="is_active">active (flags of this type appear in the UI and can be set)</label>
       </td>
     </tr>
@@ -158,7 +158,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_requestable" name="is_requestable"
-               [% " checked" IF type.is_requestable || !type.is_requestable.defined %]>
+               [% " checked" IF type.is_requestable || !type.is_requestable.defined %] />
         <label for="is_requestable">requestable (users can ask for flags of this type to be set)</label>
       </td>
     </tr>
@@ -174,7 +174,7 @@
           <kbd>[% Param('emailsuffix') %]</kbd> will <em>not</em> be appended
           to these addresses, so you should add it explicitly if so desired.
         [% END %]<br />
-        <input type="text" name="cc_list" value="[% type.cc_list_str FILTER html %]" size="80" maxlength="200">
+        <input type="text" name="cc_list" value="[% type.cc_list_str FILTER html %]" size="80" maxlength="200" />
       </td>
     </tr>
 
@@ -182,7 +182,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_requesteeble" name="is_requesteeble"
-               [% " checked" IF type.is_requesteeble || !type.is_requesteeble.defined %]>
+               [% " checked" IF type.is_requesteeble || !type.is_requesteeble.defined %] />
         <label for="is_requesteeble">specifically requestable (users can ask specific other users
           to set flags of this type as opposed to just asking the wind)</label>
       </td>
@@ -192,7 +192,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_multiplicable" name="is_multiplicable"
-               [% " checked" IF type.is_multiplicable || !type.is_multiplicable.defined %]>
+               [% " checked" IF type.is_multiplicable || !type.is_multiplicable.defined %] />
         <label for="is_multiplicable">multiplicable (multiple flags of this type can be set on
           the same [% typeLabelLowerSingular %])</label>
       </td>
@@ -223,7 +223,7 @@
         <input type="submit" id="save" value="
           [%- IF (last_action == "enter" || last_action == "copy") %]Create
           [%- ELSE %]Save Changes
-          [%- END %]">
+          [%- END %]" />
       </td>
     </tr>
 

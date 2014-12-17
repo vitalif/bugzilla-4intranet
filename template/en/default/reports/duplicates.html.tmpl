@@ -59,21 +59,21 @@
 <h3><a name="params">Change Parameters</a></h3>
 
 <form method="get" action="duplicates.cgi">
-  <input type="hidden" name="sortby" value="[% sortby FILTER html %]">
-  <input type="hidden" name="reverse" value="[% reverse FILTER html %]">
-  <input type="hidden" name="bug_id" value="[% bug_ids_string FILTER html %]">
+  <input type="hidden" name="sortby" value="[% sortby FILTER html %]" />
+  <input type="hidden" name="reverse" value="[% reverse FILTER html %]" />
+  <input type="hidden" name="bug_id" value="[% bug_ids_string FILTER html %]" />
   <table>
     <tr>
       <td>When sorting or restricting, work with:</td>
       <td>
         <input type="radio" name="sortvisible" id="entirelist" value="0"
-          [% ' checked="checked"' IF NOT sortvisible %]>
+          [% ' checked="checked"' IF NOT sortvisible %] />
         <label for="entirelist">
           entire list
         </label>
         <br />
         <input type="radio" name="sortvisible" id="visiblelist" value="1"
-          [% ' checked="checked"' IF sortvisible %]>
+          [% ' checked="checked"' IF sortvisible %] />
         <label for="visiblelist">
           currently visible list
         </label>
@@ -94,7 +94,7 @@
       <td><label for="maxrows">Max rows:</label></td>
       <td>
         <input size="4" name="maxrows" id="maxrows" 
-               value="[% maxrows FILTER html %]">
+               value="[% maxrows FILTER html %]" />
       </td>
     </tr>
 
@@ -104,7 +104,7 @@
       </td>
       <td>
         <input size="4" name="changedsince" id="changedsince"
-               value="[% changedsince FILTER html %]"> days
+               value="[% changedsince FILTER html %]" /> days
       </td>
     </tr>
 
@@ -116,19 +116,19 @@
       </td>
       <td>
         <input type="checkbox" name="openonly" id="openonly" value="1"
-          [% ' checked="checked"' IF openonly %]>
+          [% ' checked="checked"' IF openonly %] />
       </td>
     </tr>
 
   </table>
 
-  <input type="submit" id="change" value="Change">
+  <input type="submit" id="change" value="Change" />
 </form>
 
 <form method="post" action="buglist.cgi">
-  <input type="hidden" name="bug_id" value="[% bug_ids_string FILTER html %]">
+  <input type="hidden" name="bug_id" value="[% bug_ids_string FILTER html %]" />
   Or just give this to me as a <input type="submit" id="list" 
-                                      value="[% terms.bug %] list">.
+                                      value="[% terms.bug %] list" />.
   (Note: the order may not be the same.)
 </form>
 

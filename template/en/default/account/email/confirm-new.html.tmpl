@@ -31,8 +31,8 @@
 </p>
 
 <form id="confirm_account_form" method="post" action="token.cgi">
-  <input type="hidden" name="t" value="[% token FILTER html %]">
-  <input type="hidden" name="a" value="confirm_new_account">
+  <input type="hidden" name="t" value="[% token FILTER html %]" />
+  <input type="hidden" name="a" value="confirm_new_account" />
   <table>
     <tr>
       <th align="right">Email Address:</th>
@@ -40,22 +40,22 @@
     </tr>
     <tr>
       <th align="right"><small><i>(OPTIONAL)</i></small> <label for="realname">Real Name</label>:</th>
-      <td><input type="text" id="realname" name="realname" value=""></td>
+      <td><input type="text" id="realname" name="realname" value="" /></td>
     </tr>
     <tr>
       <th align="right"><label for="passwd1">Type your password</label>:</th>
       <td>
-        <input type="password" id="passwd1" name="passwd1" value="">
+        <input type="password" id="passwd1" name="passwd1" value="" />
         (minimum [% constants.USER_PASSWORD_MIN_LENGTH FILTER none %] characters)
       </td>
     </tr>
     <tr>
       <th align="right"><label for="passwd2">Confirm your password</label>:</th>
-      <td><input type="password" id="passwd2" name="passwd2" value=""></td>
+      <td><input type="password" id="passwd2" name="passwd2" value="" /></td>
     </tr>
     <tr>
       <th align="right">&nbsp;</th>
-      <td><input type="submit" id="confirm" value="Send"></td>
+      <td><input type="submit" id="confirm" value="Send" /></td>
     </tr>
   </table>
 </form>
@@ -71,9 +71,9 @@
 </p>
 
 <form id="cancel_account_form" method="post" action="token.cgi">
-  <input type="hidden" name="t" value="[% token FILTER html %]">
-  <input type="hidden" name="a" value="cancel_new_account">
-  <input type="submit" id="confirm" value="Cancel Account">
+  <input type="hidden" name="t" value="[% token FILTER html %]" />
+  <input type="hidden" name="a" value="cancel_new_account" />
+  <input type="submit" id="confirm" value="Cancel Account" />
 </form>
 
 [% PROCESS global/footer.html.tmpl %]

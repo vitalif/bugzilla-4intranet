@@ -73,10 +73,10 @@ var queryform = "reportform"
       <br />
         <b>Plot Data Sets:</b><br />
         <input type="radio" name="cumulate" value="0"
-        [% " checked" IF default.cumulate.0 != "1" %]>
+        [% " checked" IF default.cumulate.0 != "1" %] />
         Individually<br />
         <input type="radio" name="cumulate" value="1"
-        [% " checked" IF default.cumulate.0 == "1" %]>
+        [% " checked" IF default.cumulate.0 == "1" %] />
         Stacked
     </td>
     <td width="150" height="150">
@@ -101,7 +101,7 @@ var queryform = "reportform"
         <input type="radio" name="format"
                value="[% chart_format.name FILTER html %]"
                onchange="chartTypeChanged()"
-          [% " checked" IF default.chart_format.0 == chart_format.name %]>
+          [% " checked" IF default.chart_format.0 == chart_format.name %] />
           [% chart_format.description FILTER html %]<br />
       [% END %]
     </td>
@@ -116,7 +116,7 @@ var queryform = "reportform"
       <label for="x_labels_vertical"><b>Vertical labels:</b></label>
       <input type="checkbox" name="x_labels_vertical" id="x_labels_vertical"
              value="1"
-         [% " checked" IF default.x_labels_vertical.0 == "1" %]>
+         [% " checked" IF default.x_labels_vertical.0 == "1" %] />
      </td>
     <td>
     </td>
@@ -129,8 +129,8 @@ var queryform = "reportform"
 
 <br />
 <input type="submit" id="[% button_name FILTER css_class_quote %]"
-       value="[% button_name FILTER html %]">
-<input type="hidden" name="action" value="wrap">
+       value="[% button_name FILTER html %]" />
+<input type="hidden" name="action" value="wrap" />
 <hr />
 
 [% PROCESS "search/boolean-charts.html.tmpl" %]

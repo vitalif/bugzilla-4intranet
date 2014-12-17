@@ -37,8 +37,8 @@ for "crash secure SSL flash".
 </p>
 
 <form name="queryform" method="get" action="buglist.cgi">
-<input type="hidden" name="query_format" value="specific">
-<input type="hidden" name="order" value="relevance desc">
+<input type="hidden" name="query_format" value="specific" />
+<input type="hidden" name="order" value="relevance desc" />
 
 <table>
   <tr>
@@ -96,7 +96,7 @@ for "crash secure SSL flash".
     </td>
     <td>
       <input name="content" size="40" id="content"
-             value="[% default.content.0 FILTER html %]">
+             value="[% default.content.0 FILTER html %]" />
       <script type="text/javascript"> <!--
           document.forms['queryform'].content.focus();
       // -->
@@ -108,13 +108,13 @@ for "crash secure SSL flash".
     <td>
 
       [% IF Param('specific_search_allow_empty_words') %]
-        <input type="submit" id="search" value="Search">
+        <input type="submit" id="search" value="Search" />
       [% ELSE %]
         <input type="submit" id="search" value="Search"
              onclick="if (this.form.content.value == '')
                       {alert('The Words field cannot be empty. You have to ' +
                              'enter at least one word in your search criteria.');
-                       return false;} return true;">
+                       return false;} return true;" />
       [% END %]
     </td>
   </tr>

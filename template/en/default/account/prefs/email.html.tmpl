@@ -58,8 +58,8 @@ function SetCheckboxes(setting) {
   }
 }
 
-document.write('<input type="button" value="Enable All Mail" onclick="SetCheckboxes(true); return false;">\n');
-document.write('<input type="button" value="Disable All Mail" onclick="SetCheckboxes(false); return false;">\n');
+document.write('<input type="button" value="Enable All Mail" onclick="SetCheckboxes(true); return false;" />\n');
+document.write('<input type="button" value="Disable All Mail" onclick="SetCheckboxes(false); return false;" />\n');
 // -->
 </script>
 
@@ -263,7 +263,7 @@ preferences for <u>their</u> relationship to the [% terms.bug %]
     <option value="[% w.login | html %]">[% w.identity | html %]</option>
     [% END %]
   </select> <br />
-  <input type="checkbox" id="remove_watched_users" name="remove_watched_users" value="1">
+  <input type="checkbox" id="remove_watched_users" name="remove_watched_users" value="1" />
   <label for="remove_watched_users">Remove selected users from my watch list</label>
 [% ELSE %]
   You are currently not watching any users.

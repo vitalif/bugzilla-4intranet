@@ -31,20 +31,20 @@
       <p>
       [% IF param.type == "t" %]
         <input type="text" size="80" name="[% param.name FILTER html %]"
-               id="[% param.name FILTER html %]" value="[% Param(param.name) FILTER html %]">
+               id="[% param.name FILTER html %]" value="[% Param(param.name) FILTER html %]" />
       [% ELSIF param.type == "p" %]
         <input type="password" size="80" name="[% param.name FILTER html %]"
                id="[% param.name FILTER html %]" value="[% Param(param.name) FILTER html %]"
-               autocomplete="off">
+               autocomplete="off" />
       [% ELSIF param.type == "l" %]
         <textarea name="[% param.name FILTER html %]" id="[% param.name FILTER html %]"
                   rows="10" cols="80">[% Param(param.name) FILTER html %]</textarea>
       [% ELSIF param.type == "b" %]
         <input type="radio" name="[% param.name FILTER html %]" id="[% param.name FILTER html %]-on"
-               value=1 [% "checked=\"checked\"" IF Param(param.name) %]>
+               value=1 [% "checked=\"checked\"" IF Param(param.name) %] />
         <label for="[% param.name FILTER html %]-on">On</label>
         <input type="radio" name="[% param.name FILTER html %]" id="[% param.name FILTER html %]-off"
-               value=0 [% "checked=\"checked\"" IF !Param(param.name) %]>
+               value=0 [% "checked=\"checked\"" IF !Param(param.name) %] />
         <label for="[% param.name FILTER html %]-off">Off</label>
       [% ELSIF param.type == "m" %]
         [% boxSize = 5 %]
@@ -66,7 +66,7 @@
         </script>
         <input id="input_[% param.name FILTER html %]" size="80"
                name="[% param.name FILTER html %]"
-               value="[% Param(param.name) FILTER html %]"><br />
+               value="[% Param(param.name) FILTER html %]" /><br />
         <script type="text/javascript"><!--
           document.write("<\/span>");
         // -->

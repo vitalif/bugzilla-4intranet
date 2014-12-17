@@ -52,11 +52,11 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
 <form id="form_bug_edit" name="changeform" method="post" action="process_bug.cgi" enctype="multipart/form-data"
     onsubmit="return changeform_onsubmit()" onkeypress="return ctrlEnter(event||window.event,this)">
 
-  <input type="hidden" name="delta_ts" value="[% bug.delta_ts %]">
-  <input type="hidden" name="longdesclength" value="[% bug.comments.size %]">
-  <input type="hidden" name="id" value="[% bug.bug_id %]">
-  <input type="hidden" name="token" value="[% issue_hash_token([bug.id, bug.delta_ts]) FILTER html %]">
-  <input type="hidden" name="force_work_time" value="1">
+  <input type="hidden" name="delta_ts" value="[% bug.delta_ts %]" />
+  <input type="hidden" name="longdesclength" value="[% bug.comments.size %]" />
+  <input type="hidden" name="id" value="[% bug.bug_id %]" />
+  <input type="hidden" name="token" value="[% issue_hash_token([bug.id, bug.delta_ts]) FILTER html %]" />
+  <input type="hidden" name="force_work_time" value="1" />
 
   [% SET use_divs = 1 %]
   [% SET no_tds = 1 %]
@@ -362,7 +362,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
              size => 30
         %]
         <br />
-        <input type="checkbox" id="set_default_assignee" name="set_default_assignee" value="1">
+        <input type="checkbox" id="set_default_assignee" name="set_default_assignee" value="1" />
         <label id="set_default_assignee_label" for="set_default_assignee">Reset Assignee to default</label>
       </div>
       <script type="text/javascript">
@@ -401,7 +401,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
             emptyok => 1
         %]
         <br />
-        <input type="checkbox" id="set_default_qa_contact" name="set_default_qa_contact" value="1">
+        <input type="checkbox" id="set_default_qa_contact" name="set_default_qa_contact" value="1" />
         <label for="set_default_qa_contact" id="set_default_qa_contact_label">Reset QA Contact to default ([% bug.component_obj.default_qa_contact.login | html %])</label>
       </div>
       <script type="text/javascript">
@@ -625,12 +625,12 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
             bug.check_can_change_field("cclist_accessible", 0, 1)
           %]
           [% IF user_can_edit_accessible %]
-            <input type="hidden" name="defined_cclist_accessible" value="1">
+            <input type="hidden" name="defined_cclist_accessible" value="1" />
           [% END %]
           <input type="checkbox" value="1"
                  name="cclist_accessible" id="cclist_accessible"
                  [% " checked" IF bug.cclist_accessible %]
-                 [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %]>
+                 [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %] />
           <label for="cclist_accessible">Allow CC List users to view this [% terms.bug %]</label>
         </div>
         <p class="instructions">
@@ -813,7 +813,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
       [% IF bug.check_can_change_field(dep.fieldname, 0, 1) %]
         <input name="[% dep.fieldname %]" id="[% dep.fieldname %]"
                class="text_input"
-               value="[% bug.${dep.fieldname}.join(', ') %]">
+               value="[% bug.${dep.fieldname}.join(', ') %]" />
       [% END %]
     </span>
 
@@ -873,7 +873,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
         <input name="estimated_time" id="estimated_time"
                value="[% PROCESS formattimeunit
                                  time_unit=bug.estimated_time %]"
-               size="6">
+               size="6" />
       </td>
       <td>
         [% PROCESS formattimeunit
@@ -883,13 +883,13 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
         [% PROCESS formattimeunit time_unit=bug.actual_time %] +
         <input name="work_time" id="work_time"
                value="0" size="3"
-               onchange="adjustRemainingTime();" onkeyup="adjustRemainingTime();">
+               onchange="adjustRemainingTime();" onkeyup="adjustRemainingTime();" />
       </td>
       <td>
         <input name="remaining_time" id="remaining_time"
                value="[% PROCESS formattimeunit
                                  time_unit=bug.remaining_time %]"
-               size="6" onchange="updateRemainingTime();" onkeyup="updateRemainingTime();">
+               size="6" onchange="updateRemainingTime();" onkeyup="updateRemainingTime();" />
       </td>
       <td>
         [% PROCESS calculatepercentage act=bug.actual_time
@@ -900,7 +900,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
       </td>
        <td>
          <input name="deadline" id="deadline" value="[% bug.deadline %]"
-                size="10" maxlength="10"><br />
+                size="10" maxlength="10" /><br />
          <script type="text/javascript">
            Calendar.set('deadline');
          </script>

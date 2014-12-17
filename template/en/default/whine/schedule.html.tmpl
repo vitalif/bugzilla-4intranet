@@ -76,9 +76,9 @@
 [%# This hidden submit button must be here to set default behavior when
     the user presses return on a form input field #%]
 <input type="submit" value="Update / Commit" name="commit"
-       style="display: none;" id="commit">
-<input type="hidden" name="update" value="1">
-<input type="hidden" name="token" value="[% token FILTER html %]">
+       style="display: none;" id="commit" />
+<input type="hidden" name="update" value="1" />
+<input type="hidden" name="token" value="[% token FILTER html %]" />
 
 [% FOREACH event = events %]
 
@@ -173,16 +173,16 @@
                     of reading the database to tell if a field has changed %]
 
                 <input type="hidden" value="[% schedule.day FILTER html %]"
-                       name="orig_day_[% schedule.id %]">
+                       name="orig_day_[% schedule.id %]" />
                 <input type="hidden" value="[% schedule.time FILTER html %]"
-                       name="orig_time_[% schedule.id %]">
+                       name="orig_time_[% schedule.id %]" />
                 [% PROCESS day_field val=schedule.day %]
                 [% PROCESS time_field val=schedule.time %]
               </td>
               <td align="left">
                 [% IF mail_others %]
                   <input type="hidden" name="orig_mailto_type_[% schedule.id %]"
-                         value="[% schedule.mailto_type FILTER html %]">
+                         value="[% schedule.mailto_type FILTER html %]" />
                   <select name="mailto_type_[% schedule.id %]">
                     <option value="0" [% IF schedule.mailto_type == 0 %]
                                         selected
@@ -192,15 +192,15 @@
                                       [% END %]>Group</option>
                   </select>
                   <input type="hidden" name="orig_mailto_[% schedule.id %]"
-                         value="[% schedule.mailto FILTER html %]">
+                         value="[% schedule.mailto FILTER html %]" />
                   <input type="text" name="mailto_[% schedule.id %]"
-                         value="[% schedule.mailto FILTER html %]" size="30">
+                         value="[% schedule.mailto FILTER html %]" size="30" />
                 [% END %]
               </td>
               <td align="left">
                 <input type="submit" value="Remove"
                        name="remove_schedule_[% schedule.id %]"
-                       id="remove_schedule_[% schedule.id %]">
+                       id="remove_schedule_[% schedule.id %]" />
               </td>
             </tr>
           [% END %]
@@ -209,7 +209,7 @@
             <td colspan="3">
               <input type="submit" value="Add a new schedule"
                      name="add_schedule_[% event.key %]"
-                     id="add_schedule_[% event.key %]">
+                     id="add_schedule_[% event.key %]" />
             </td>
           </tr>
         </table>
@@ -255,34 +255,34 @@
             <tr>
               <td align="left">
                 <input type="text" name="query_sort_[% query.id %]"
-                       size="3" value="[% query.sort %]">
+                       size="3" value="[% query.sort %]" />
                 <input type="hidden" value="[% query.sort %]"
-                       name="orig_query_sort_[% query.id %]">
+                       name="orig_query_sort_[% query.id %]" />
               </td>
               <td align="left">
                 <input type="hidden" value="[% query.name FILTER html %]"
-                       name="orig_query_name_[% query.id %]">
+                       name="orig_query_name_[% query.id %]" />
                 [% PROCESS query_field thisquery=query.name %]
               </td>
               <td align="left">
                 <input type="hidden" value="[% query.title FILTER html %]"
-                       name="orig_query_title_[% query.id %]">
+                       name="orig_query_title_[% query.id %]" />
                 <input type="text" name="query_title_[% query.id %]"
                        size="50" value="[% query.title FILTER html %]"
-                       maxlength="64">
+                       maxlength="64" />
               </td>
               <td align="left">
                 <input type="hidden" value="[% query.onemailperbug FILTER html %]"
-                       name="orig_query_onemailperbug_[% query.id %]">
+                       name="orig_query_onemailperbug_[% query.id %]" />
                 <input type="checkbox" [% IF query.onemailperbug == 1 %] checked [% END %]
                        id="query_onemailperbug_[% query.id %]"
-                       name="query_onemailperbug_[% query.id %]">
+                       name="query_onemailperbug_[% query.id %]" />
                 <label for="query_onemailperbug_[% query.id %]">One message per [% terms.bug %]</label>
               </td>
               <td align="right">
                 <input type="submit" value="Remove"
                        name="remove_query_[% query.id %]"
-                       id="remove_query_[% query.id %]">
+                       id="remove_query_[% query.id %]" />
               </td>
             </tr>
 
@@ -292,7 +292,7 @@
             <td colspan="3">
               <input type="submit" value="Add a new query"
                      name="add_query_[% event.key %]"
-                     id="add_query_[% event.key %]">
+                     id="add_query_[% event.key %]" />
             </td>
           </tr>
         </table>
@@ -312,7 +312,7 @@
 [% END %]
 
 <p align="left">
-  <input type="submit" value="Add a new event" name="add_event" id="add_event">
+  <input type="submit" value="Add a new event" name="add_event" id="add_event" />
 </p>
 
 </form>

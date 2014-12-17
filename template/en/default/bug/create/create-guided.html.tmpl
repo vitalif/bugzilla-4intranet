@@ -102,25 +102,25 @@ function PutDescription() {
 
 [%# All bugs opened inside the past six months %]
   <form action="buglist.cgi" method="get" target="somebugs">
-    <input type="hidden" name="format" value="simple">
-    <input type="hidden" name="order" value="relevance desc">
-    <input type="hidden" name="bug_status" value="__all__">
-    <input type="hidden" name="product" value="[% product.name FILTER html %]">
+    <input type="hidden" name="format" value="simple" />
+    <input type="hidden" name="order" value="relevance desc" />
+    <input type="hidden" name="bug_status" value="__all__" />
+    <input type="hidden" name="product" value="[% product.name FILTER html %]" />
     [% IF product.name == "Firefox" OR 
           product.name == "Thunderbird" OR 
           product.name == "Mozilla Application Suite" OR
           product.name == "Camino" %]
-      <input type="hidden" name="product" value="Core">
-      <input type="hidden" name="product" value="Toolkit">
-      <input type="hidden" name="product" value="PSM">
-      <input type="hidden" name="product" value="NSPR">
-      <input type="hidden" name="product" value="NSS">
+      <input type="hidden" name="product" value="Core" />
+      <input type="hidden" name="product" value="Toolkit" />
+      <input type="hidden" name="product" value="PSM" />
+      <input type="hidden" name="product" value="NSPR" />
+      <input type="hidden" name="product" value="NSS" />
     [% END %]      
-    <input type="hidden" name="chfieldfrom" value="-6m">
-    <input type="hidden" name="chfieldto" value="Now">
-    <input type="hidden" name="chfield" value="[Bug creation]">
-    <input type="text" name="content" size="40">
-    <input type="submit" id="search" value="Search">
+    <input type="hidden" name="chfieldfrom" value="-6m" />
+    <input type="hidden" name="chfieldto" value="Now" />
+    <input type="hidden" name="chfield" value="[Bug creation]" />
+    <input type="text" name="content" size="40" />
+    <input type="submit" id="search" value="Search" />
   </form>
 
 <p>
@@ -142,13 +142,13 @@ function PutDescription() {
 </p>
 
 <form method="post" action="post_bug.cgi">
-  <input type="hidden" name="format" value="guided">
-  <input type="hidden" name="assigned_to" value="">
+  <input type="hidden" name="format" value="guided" />
+  <input type="hidden" name="assigned_to" value="" />
   <input type="hidden" name="priority"
-         value="[% default.priority FILTER html %]">
+         value="[% default.priority FILTER html %]" />
   <input type="hidden" name="version"
-         value="[% default.version FILTER html %]">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+         value="[% default.version FILTER html %]" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
 
 <table valign="top" cellpadding="5" cellspacing="5" border="0">
 
@@ -157,7 +157,7 @@ function PutDescription() {
       <b>Product</b>
     </td>
     <td valign="top">
-      <input type="hidden" name="product" value="[% product.name FILTER html %]">
+      <input type="hidden" name="product" value="[% product.name FILTER html %]" />
       [% product.name FILTER html %]
     </td>
   </tr>
@@ -250,7 +250,7 @@ function PutDescription() {
       <b>Build Identifier</b>
     </td>
     <td valign="top">
-      <input type="text" size="80" name="buildid" value="[% buildid FILTER html %]">
+      <input type="text" size="80" name="buildid" value="[% buildid FILTER html %]" />
       <p>
         This should identify the exact version of the product you were using.  
         If the above field is blank or you know it is incorrect, copy the 
@@ -267,7 +267,7 @@ function PutDescription() {
       <b>URL</b>
     </td>
     <td valign="top">
-      <input type="text" size="80" name="bug_file_loc" value="http://">
+      <input type="text" size="80" name="bug_file_loc" value="http://" />
       <p>
         URL that demonstrates the problem you are seeing (optional).<br />
         <b>IMPORTANT</b>: if the problem is with a broken web page, you need
@@ -283,7 +283,7 @@ function PutDescription() {
     </td>
     <td valign="top">
       <input type="text" size="80" name="short_desc" id="short_desc" 
-             maxlength="255" spellcheck="true">
+             maxlength="255" spellcheck="true" />
       <p>
         A sentence which summarises the problem.
         Please be descriptive and use lots of keywords.
@@ -481,7 +481,7 @@ function PutDescription() {
    onclick="if (this.form.comment.value == '')
    { alert('Please enter some details about this [% terms.bug %].');
      this.form.comment.focus();
-     return false; } return true;">
+     return false; } return true;" />
 </p>
 
 <p>

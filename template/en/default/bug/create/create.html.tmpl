@@ -141,7 +141,7 @@ var close_status_array = [
       [% IF user.is_insider %]
       <p>
         <input type="checkbox" id="commentprivacy" name="commentprivacy"
-          [% " checked=\"checked\"" IF commentprivacy %]>
+          [% " checked=\"checked\"" IF commentprivacy %] />
         <label for="commentprivacy">
           Make description private (visible only to members of the 
           <strong>[% Param('insidergroup') | html %]</strong> group)
@@ -216,7 +216,7 @@ var close_status_array = [
       [% FOREACH g = group %]
         <input type="checkbox" id="bit-[% g.bit %]"
           name="bit-[% g.bit %]" value="1"
-          [% " checked=\"checked\"" IF g.checked %]>
+          [% " checked=\"checked\"" IF g.checked %] />
           <label for="bit-[% g.bit %]">[% g.description | html_light %]</label><br />
       [% END %]
     </td>
@@ -405,17 +405,17 @@ var close_status_array = [
   [% END %]
   <tr>
     <th>Depends on:</th>
-    <td><input name="dependson" accesskey="d" value="[% default.dependson | html %]"></td>
+    <td><input name="dependson" accesskey="d" value="[% default.dependson | html %]" /></td>
   </tr>
   <tr>
     <th>Blocks:</th>
-    <td><input name="blocked" accesskey="b" value="[% default.blocked | html %]"></td>
+    <td><input name="blocked" accesskey="b" value="[% default.blocked | html %]" /></td>
   </tr>
   [% IF user.is_timetracker %]
   <tr>
     <th>Estimated Hours:</th>
     <td>
-      <input name="estimated_time" size="6" maxlength="6" value="[% default.estimated_time | html %]">&nbsp;
+      <input name="estimated_time" size="6" maxlength="6" value="[% default.estimated_time | html %]" />&nbsp;
       <span style="white-space: nowrap">
         <b>Hours Worked:</b>
         <input name="work_time" id="work_time" value="[% default.work_time | html %]" size="6" maxlength="6" onchange="checkWorktime(this)" onkeyup="checkWorktime(this)" />
@@ -425,7 +425,7 @@ var close_status_array = [
   <tr>
     <th>Deadline:</th>
     <td>
-      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% default.deadline | html %]">
+      <input name="deadline" id="deadline" size="10" maxlength="10" value="[% default.deadline | html %]" />
       <small>(YYYY-MM-DD)</small>
       <script type="text/javascript">
         Calendar.set('deadline');

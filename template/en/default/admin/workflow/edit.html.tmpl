@@ -75,7 +75,7 @@
             <input type="checkbox" name="w_[% status.id %]_[% new_status.id %]"
                    id="w_[% status.id %]_[% new_status.id %]" onclick="toggle_cell(this)"
                    [%+ "checked='checked'" IF checked || mandatory %]
-                   [%+ "disabled='disabled'" IF mandatory %]>
+                   [%+ "disabled='disabled'" IF mandatory %] />
           </td>
         [% ELSE %]
           <td class="checkbox-cell forbidden">&nbsp;</td>
@@ -97,9 +97,9 @@
 </p>
 
 <p align="center">
-  <input type="hidden" name="action" value="update">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
-  <input type="submit" value="Commit Changes"> -
+  <input type="hidden" name="action" value="update" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type="submit" value="Commit Changes" /> -
   <a href="editworkflow.cgi">Cancel Changes</a> -
   <a href="editworkflow.cgi?action=edit_comment">View Comments Required on Status Transitions</a>
 </p>

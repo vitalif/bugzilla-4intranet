@@ -82,10 +82,10 @@ Interdiff of #[% oldid %] and #[% newid %] for [% terms.bug %] #[% bugid %]
       [% END %]
       </select>
       and this patch
-      <input type="submit" id="diff" value="Diff">
-      <input type="hidden" name="action" value="interdiff">
-      <input type="hidden" name="newid" value="[% attachid %]">
-      <input type="hidden" name="headers" value="[% headers FILTER html %]">
+      <input type="submit" id="diff" value="Diff" />
+      <input type="hidden" name="action" value="interdiff" />
+      <input type="hidden" name="newid" value="[% attachid %]" />
+      <input type="hidden" name="headers" value="[% headers FILTER html %]" />
     </form>
   [% END %]
   <br />
@@ -125,7 +125,7 @@ Interdiff of #[% oldid %] and #[% newid %] for [% terms.bug %] #[% bugid %]
     [% context = 3 %]
   [% END %]
   [%# textbox for context %]
-  <form style="display: inline" action="attachment.cgi"><input type="hidden" name="action" value="diff"><input type="hidden" name="id" value="[% attachid %]"><input type="hidden" name="collapsed" value="[% collapsed FILTER html %]"><input type="hidden" name="headers" value="[% headers FILTER html %]"><input type="text" name="context" value="[% context FILTER html %]" size="3"></form>)
+  <form style="display: inline" action="attachment.cgi"><input type="hidden" name="action" value="diff" /><input type="hidden" name="id" value="[% attachid %]" /><input type="hidden" name="collapsed" value="[% collapsed FILTER html %]" /><input type="hidden" name="headers" value="[% headers FILTER html %]" /><input type="text" name="context" value="[% context FILTER html %]" size="3" /></form>)
 [% END %]
 
 [% IF warning %]
@@ -146,6 +146,6 @@ Interdiff of #[% oldid %] and #[% newid %] for [% terms.bug %] #[% bugid %]
  
 [%# Restore Stuff %]
 <form name="checkboxform" action="attachment.cgi">
-<input type="checkbox" name="restore_indicator" style="display: none">
+<input type="checkbox" name="restore_indicator" style="display: none" />
 
 

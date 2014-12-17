@@ -38,7 +38,7 @@
    "relevance"    => "Relevance to full-text search",
 } %]
 
-<input type="hidden" name="cmdtype" value="doit">
+<input type="hidden" name="cmdtype" value="doit" />
 
 <p>
   <label for="order">Sort results by</label>:
@@ -53,24 +53,24 @@
 
 <p>
   <input type="submit" id="[% button_name FILTER html %]"
-         value="[% button_name FILTER html %]">
+         value="[% button_name FILTER html %]" />
   [% IF known_name %]
     [%# We store known_name in case the user add a boolean chart. %]
-    <input type="hidden" name="known_name" value="[% known_name FILTER html %]">
+    <input type="hidden" name="known_name" value="[% known_name FILTER html %]" />
 
     [%# The name of the existing query will be passed to buglist.cgi. %]
-    <input type="hidden" name="query_based_on" value="[% known_name FILTER html %]">
+    <input type="hidden" name="query_based_on" value="[% known_name FILTER html %]" />
   [% END %]
   [%# Preserve any custom column list that might be set. %]
   [% IF columnlist %]
-    <input type="hidden" name="columnlist" value="[% columnlist FILTER html %]">
+    <input type="hidden" name="columnlist" value="[% columnlist FILTER html %]" />
   [% END %]
 </p>
 
 <p>
   &nbsp;&nbsp;&nbsp;
   <input type="checkbox" id="remasdefault"
-         name="remtype" value="asdefault">
+         name="remtype" value="asdefault" />
   <label for="remasdefault">
     and remember these as my default search options
   </label>

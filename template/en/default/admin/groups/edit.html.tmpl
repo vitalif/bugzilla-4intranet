@@ -38,8 +38,8 @@
 %]
 
 <form method="post" action="editgroups.cgi">
-  <input type="hidden" name="action" value="postchanges">
-  <input type="hidden" name="group_id" value="[% group.id FILTER html %]">
+  <input type="hidden" name="action" value="postchanges" />
+  <input type="hidden" name="group_id" value="[% group.id FILTER html %]" />
 
   <table class="editgr_grinfo" cellpadding="4">
     <tr>
@@ -47,7 +47,7 @@
       <td>
         [% IF group.is_bug_group %]
           <input type="text" name="name" size="60" 
-                 value="[% group.name FILTER html %]">
+                 value="[% group.name FILTER html %]" />
         [% ELSE %]
           [% group.name FILTER html %]
         [% END %]
@@ -59,7 +59,7 @@
       <td>
         [% IF group.is_bug_group %]
           <input type="text" name="desc" size="70" 
-                 value="[% group.description FILTER html %]">
+                 value="[% group.description FILTER html %]" />
         [% ELSE %]
           [% group.description FILTER html %]
         [% END %]
@@ -70,7 +70,7 @@
       <th>User Regexp:</th>
       <td>
         <input type="text" name="regexp" size="40" 
-               value="[% group.user_regexp FILTER html %]">
+               value="[% group.user_regexp FILTER html %]" />
       </td>
     </tr>
 
@@ -83,7 +83,7 @@
       </th>
       <td>
         <input type="text" name="icon_url" size="70" maxlength="255"
-               value="[% group.icon_url FILTER html %]">
+               value="[% group.icon_url FILTER html %]" />
       </td>
     </tr>
 
@@ -92,7 +92,7 @@
         <th>Use For [% terms.Bugs %]:</th>
         <td>
           <input type="checkbox" name="isactive" 
-                 value="1" [% 'checked="checked"' IF group.is_active %]>
+                 value="1" [% 'checked="checked"' IF group.is_active %] />
         </td>
       </tr>
     [% END %]
@@ -182,8 +182,8 @@
   [% END %]
 
   <p>
-  <input type="submit" value="Update Group">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="submit" value="Update Group" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
   </p>
 </form>
   
@@ -198,14 +198,14 @@
   <fieldset>
     <legend>Remove all explicit memberships from users whose login names
       match the following regular expression:</legend>
-    <input type="text" size="20" name="regexp">
-    <input type="submit" value="Remove Memberships">
+    <input type="text" size="20" name="regexp" />
+    <input type="submit" value="Remove Memberships" />
 
     <p>If you leave the field blank, all explicit memberships in 
       this group will be removed.</p>
 
-    <input type="hidden" name="action" value="confirm_remove">
-    <input type="hidden" name="group_id" value="[% group.id FILTER html %]">
+    <input type="hidden" name="action" value="confirm_remove" />
+    <input type="hidden" name="group_id" value="[% group.id FILTER html %]" />
   </fieldset>
 </form>
 </td></tr></table>

@@ -67,11 +67,11 @@ You have the following choices:
 <ul>
   <li>
     <form method="post" action="process_bug.cgi">
-      <input type="hidden" name="delta_ts" value="[% bug.delta_ts FILTER html %]">
-      <input type="hidden" name="token" value="[% ARGS.token | html %]">
+      <input type="hidden" name="delta_ts" value="[% bug.delta_ts FILTER html %]" />
+      <input type="hidden" name="token" value="[% ARGS.token | html %]" />
       [% PROCESS "global/hidden-fields.html.tmpl"
           exclude="^Bugzilla_login|Bugzilla_password|delta_ts|token$" %]
-      <input type="submit" id="process" value="Submit my changes anyway">
+      <input type="submit" id="process" value="Submit my changes anyway" />
         This will cause conflicting changes to be overwritten with yours
         [% ", except for the added comment(s)" IF comments.size %].
     </form>
@@ -79,16 +79,16 @@ You have the following choices:
   [% IF ARGS.comment %]
     <li>
       <form method="post" action="process_bug.cgi">
-        <input type="hidden" name="id"             value="[% ARGS.id | html %]">
-        <input type="hidden" name="delta_ts"       value="[% bug.delta_ts | html %]">
-        <input type="hidden" name="comment"        value="[% ARGS.comment | html %]">
-        <input type="hidden" name="commentsilent"  value="[% ARGS.commentsilent | html %]">
-        <input type="hidden" name="work_time"      value="[% ARGS.work_time | html %]">
-        <input type="hidden" name="commentprivacy" value="[% ARGS.commentprivacy | html %]">
-        <input type="hidden" name="token"          value="[% ARGS.token | html %]">
+        <input type="hidden" name="id"             value="[% ARGS.id | html %]" />
+        <input type="hidden" name="delta_ts"       value="[% bug.delta_ts | html %]" />
+        <input type="hidden" name="comment"        value="[% ARGS.comment | html %]" />
+        <input type="hidden" name="commentsilent"  value="[% ARGS.commentsilent | html %]" />
+        <input type="hidden" name="work_time"      value="[% ARGS.work_time | html %]" />
+        <input type="hidden" name="commentprivacy" value="[% ARGS.commentprivacy | html %]" />
+        <input type="hidden" name="token"          value="[% ARGS.token | html %]" />
         [%# Double mid-air collision needs longdesclength in params! %]
-        <input type="hidden" name="longdesclength" value="[% comments.size | html %]">
-        <input type="submit" id="process_comment" value="Submit only my new comment">
+        <input type="hidden" name="longdesclength" value="[% comments.size | html %]" />
+        <input type="submit" id="process_comment" value="Submit only my new comment" />
       </form>
     </li>
   [% END %]

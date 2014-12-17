@@ -58,7 +58,7 @@
     Next, please take a moment to explain <label for="reason">why you are doing
     this:<br />
     <input type="text" id="reason" name="reason" size="80" maxlength="200"
-           value="[% reason_default FILTER html %]">
+           value="[% reason_default FILTER html %]" />
   </p>
 
   <p>
@@ -72,8 +72,8 @@
       Finally, enter <label for="Bugzilla_password">your [% terms.Bugzilla %]
       password</label>:
       <input type="hidden" name="Bugzilla_login" value="
-      [%- user.login FILTER html %]">
-      <input type="password" id="Bugzilla_password" name="Bugzilla_password" size="20">
+      [%- user.login FILTER html %]" />
+      <input type="password" id="Bugzilla_password" name="Bugzilla_password" size="20" />
       <br />
       This is done for two reasons.  First of all, it is done to reduce
       the chances of someone doing large amounts of damage using your
@@ -84,9 +84,9 @@
 
   <p>
     Click the button to begin the session:
-    <input type="submit" value="Begin Session">
-    <input type="hidden" name="action" value="begin-sudo">
-    <input type="hidden" name="token" value="[% token FILTER html %]">
+    <input type="submit" value="Begin Session" />
+    <input type="hidden" name="action" value="begin-sudo" />
+    <input type="hidden" name="token" value="[% token FILTER html %]" />
   </p>
 
 </form>

@@ -45,12 +45,12 @@
 
 <form method="post" action="attachment.cgi"
   onsubmit="normalizeComments();" onkeypress="return ctrlEnter(event||window.event,this)">
-  <input type="hidden" name="id" value="[% attachment.id %]">
-  <input type="hidden" name="action" value="update">
-  <input type="hidden" name="contenttypemethod" value="manual">
-  <input type="hidden" name="delta_ts" value="[% attachment.modification_time FILTER html %]">
+  <input type="hidden" name="id" value="[% attachment.id %]" />
+  <input type="hidden" name="action" value="update" />
+  <input type="hidden" name="contenttypemethod" value="manual" />
+  <input type="hidden" name="delta_ts" value="[% attachment.modification_time FILTER html %]" />
   [% IF user.id %]
-    <input type="hidden" name="token" value="[% issue_hash_token([attachment.id, attachment.modification_time]) FILTER html %]">
+    <input type="hidden" name="token" value="[% issue_hash_token([attachment.id, attachment.modification_time]) FILTER html %]" />
   [% END %]
 
   <table class="attachment_info" width="100%">
@@ -79,7 +79,7 @@
           <label for="filename">Filename:</label>
           <input type="text" size="20"  class="block[% editable_or_hide %]"
                  id="filename" name="filename"
-                 value="[% attachment.filename FILTER html %]">
+                 value="[% attachment.filename FILTER html %]" />
           [% IF !can_edit %]
             [%+ attachment.filename FILTER truncate(25) FILTER html %]
           [% END %]
@@ -89,7 +89,7 @@
           <label for="contenttypeentry">MIME Type:</label>
           <input type="text" size="20" class="block[% editable_or_hide %]"
                  id="contenttypeentry" name="contenttypeentry"
-                 value="[% attachment.contenttype FILTER html %]">
+                 value="[% attachment.contenttype FILTER html %]" />
           [% IF !can_edit %]
             [%+ attachment.contenttype FILTER truncate(25) FILTER html %]
           [% END %]
@@ -112,7 +112,7 @@
         <div id="attachment_ispatch">
           <input type="checkbox" id="ispatch" name="ispatch" value="1"
                  [%+ IF !can_edit %]class="bz_hidden_option"[% END %]
-                 [%+ 'checked="checked"' IF attachment.ispatch %]>
+                 [%+ 'checked="checked"' IF attachment.ispatch %] />
           [% IF can_edit %]
             <label for="ispatch">patch</label>
           [% ELSE %]
@@ -124,7 +124,7 @@
         <div id="attachment_isobsolete">
           <input type="checkbox" id="isobsolete" name="isobsolete" value="1"
                  [%+ IF !can_edit %]class="bz_hidden_option"[% END %]
-                 [%+ 'checked="checked"' IF attachment.isobsolete %]>
+                 [%+ 'checked="checked"' IF attachment.isobsolete %] />
           [% IF can_edit %]
             <label for="isobsolete">obsolete</label>
           [% ELSE %]
@@ -137,7 +137,7 @@
           <div id="attachment_isprivate">
             <input type="checkbox" id="isprivate" name="isprivate" value="1"
                    [%+ IF !can_edit %]class="bz_hidden_option"[% END %]
-                   [%+ 'checked="checked"' IF attachment.isprivate %]>
+                   [%+ 'checked="checked"' IF attachment.isprivate %] />
             [% IF can_edit %]
               <label for="isprivate">private (only visible to
                 <strong>[% Param('insidergroup') FILTER html %]</strong>)

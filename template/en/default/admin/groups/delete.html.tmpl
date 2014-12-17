@@ -56,7 +56,7 @@
 
     <br /><a href="editusers.cgi?action=list&amp;groupid=
                  [%- group.id FILTER url_quote %]&amp;grouprestrict=1">Show
-    me which users</a> - <label><input type="checkbox" name="removeusers">Remove
+    me which users</a> - <label><input type="checkbox" name="removeusers" />Remove
     all users from this group for me.</label></p>
   [% END %]
 
@@ -77,7 +77,7 @@
     <br /><a href="buglist.cgi?field0-0-0=bug_group&amp;type0-0-0=equals&amp;value0-0-0=
                  [%- group.name FILTER url_quote %]">Show me
     which [% terms.bugs %]</a> - 
-    <label><input type="checkbox" name="removebugs">Remove
+    <label><input type="checkbox" name="removebugs" />Remove
     all [% terms.bugs %] from this group restriction for me.</label></p>
 
     <p><b>NOTE:</b> It's quite possible to make confidential [% terms.bugs %]
@@ -130,7 +130,7 @@
       [% END %]
     </ul>
 
-    <p><label><input type="checkbox" name="unbind">Delete this group anyway,
+    <p><label><input type="checkbox" name="unbind" />Delete this group anyway,
       and remove these controls.</label></p>
   [% END %]
   
@@ -141,7 +141,7 @@
     <br /><a href="editflagtypes.cgi?action=list&amp;group=
                  [%- group.id FILTER url_quote %]">Show
     me which types</a> - 
-    <label><input type="checkbox" name="removeflags">Remove all
+    <label><input type="checkbox" name="removeflags" />Remove all
     flag types from this group for me.</label></p>
   [% END %]
 
@@ -175,10 +175,10 @@
   [% END %]
 
   <p>
-    <input type="submit" id="delete" value="Yes, delete">
-    <input type="hidden" name="action" value="delete">
-    <input type="hidden" name="group" value="[% group.id FILTER html %]">
-    <input type="hidden" name="token" value="[% token FILTER html %]">
+    <input type="submit" id="delete" value="Yes, delete" />
+    <input type="hidden" name="action" value="delete" />
+    <input type="hidden" name="group" value="[% group.id FILTER html %]" />
+    <input type="hidden" name="token" value="[% token FILTER html %]" />
   </p>
 </form>
 

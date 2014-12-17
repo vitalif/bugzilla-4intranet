@@ -69,12 +69,12 @@
   </p>
 
   <form method="post" action="quips.cgi">
-    <input type="hidden" name="action" value="add">
+    <input type="hidden" name="action" value="add" />
     <input type="hidden" name="token"
-           value="[% issue_hash_token(['create-quips']) | html %]">
-    <input size="80" name="quip">
+           value="[% issue_hash_token(['create-quips']) | html %]" />
+    <input size="80" name="quip" />
     <p>
-      <input type="submit" id="add" value="Add This Quip">
+      <input type="submit" id="add" value="Add This Quip" />
     </p>
   </form>
 [% ELSE %]
@@ -101,9 +101,9 @@
       entered quips are automatically approved.
     </p>
     <form name="editform" method="post" action="quips.cgi">
-      <input type="hidden" name="action" value="approve">
+      <input type="hidden" name="action" value="approve" />
       <input type="hidden" name="token"
-             value="[% issue_hash_token(['approve-quips']) | html %]">
+             value="[% issue_hash_token(['approve-quips']) | html %]" />
       <table class="admin_table">
         <thead><tr>
           <th>Quip</th>
@@ -124,10 +124,10 @@
             <td>
               <input type="hidden" name="defined_quipid_[% quipid | html %]"
                      id="defined_quipid_[% quipid | html %]"
-                     value="1">
+                     value="1" />
               <input type="checkbox" name="quipid_[% quipid | html %]"
                      id="quipid_[% quipid | html %]"
-                     [%- ' checked="checked"' IF quips.$quipid.approved %]>
+                     [%- ' checked="checked"' IF quips.$quipid.approved %] />
             </td>
           </tr>
         [% END %]
@@ -144,12 +144,12 @@
           }
         }
         document.write(' <input type="button" name="uncheck_all" '
-                      +'value="Uncheck All" onclick="SetCheckboxes(false);">');
+                      +'value="Uncheck All" onclick="SetCheckboxes(false);" />');
         document.write(' <input type="button" name="check_all" '
-                      +'value="Check All" onclick="SetCheckboxes(true);">');
+                      +'value="Check All" onclick="SetCheckboxes(true);" />');
         //--></script>
 
-      <input type="submit" id="update" value="Save Changes">
+      <input type="submit" id="update" value="Save Changes" />
       </p>
     </form>
     <br />

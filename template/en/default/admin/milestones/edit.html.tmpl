@@ -25,27 +25,27 @@
   <table border="0" cellpadding="4" cellspacing="0">
     <tr>
       <th class="field_label"><label for="milestone">Milestone:</label></th>
-      <td><input id="milestone" size="20" maxlength="20" name="milestone" value="[%- milestone.name | html %]"></td>
+      <td><input id="milestone" size="20" maxlength="20" name="milestone" value="[%- milestone.name | html %]" /></td>
     </tr>
     <tr>
       <th class="field_label"><label for="sortkey">Sortkey:</label></th>
-      <td><input id="sortkey" size="20" maxlength="20" name="sortkey" value="[%- milestone.sortkey | html %]"></td>
+      <td><input id="sortkey" size="20" maxlength="20" name="sortkey" value="[%- milestone.sortkey | html %]" /></td>
     </tr>
     [% IF milestone.id %]
     <tr>
       <th class="field_label"><label for="isactive">Enabled For [% terms.Bugs %]:</label></th>
-      <td><input id="isactive" name="isactive" type="checkbox" value="1" [% 'checked="checked"' IF milestone.isactive %]></td>
+      <td><input id="isactive" name="isactive" type="checkbox" value="1" [% 'checked="checked"' IF milestone.isactive %] /></td>
     </tr>
     [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=milestone.field this_value=milestone %]
     [% END %]
   </table>
 
-  <input type="submit" value="[% milestone.id ? "Save Changes" : "Add" %]">
-  <input type="hidden" name="action" value="[% milestone.id ? "update" : "new" %]">
-  <input type="hidden" name="product" value="[% product.name | html %]">
-  <input type="hidden" name="token" value="[% token | html %]">
+  <input type="submit" value="[% milestone.id ? "Save Changes" : "Add" %]" />
+  <input type="hidden" name="action" value="[% milestone.id ? "update" : "new" %]" />
+  <input type="hidden" name="product" value="[% product.name | html %]" />
+  <input type="hidden" name="token" value="[% token | html %]" />
   [% IF milestone.id %]
-  <input type="hidden" name="milestoneold" value="[% milestone.name | html %]">
+  <input type="hidden" name="milestoneold" value="[% milestone.name | html %]" />
   [% END %]
 </form>
 

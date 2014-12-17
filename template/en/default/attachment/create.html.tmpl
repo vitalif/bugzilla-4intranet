@@ -40,9 +40,9 @@
       enctype="multipart/form-data"
       onkeypress="return ctrlEnter(event||window.event,this)"
       onsubmit="return validateAttachmentForm(this)">
-  <input type="hidden" name="bugid" value="[% bug.bug_id %]">
-  <input type="hidden" name="action" value="insert">
-  <input type="hidden" name="token" value="[% token FILTER html %]">
+  <input type="hidden" name="bugid" value="[% bug.bug_id %]" />
+  <input type="hidden" name="action" value="insert" />
+  <input type="hidden" name="token" value="[% token FILTER html %]" />
 
   <table class="attachment_entry">
     [% PROCESS attachment/createformcontents.html.tmpl %]
@@ -56,7 +56,7 @@
           [% FOREACH attachment = attachments %]
             [% IF ((attachment.isprivate == 0) || user.is_insider) %]
               <input type="checkbox" id="[% attachment.id %]"
-                   name="obsolete" value="[% attachment.id %]">
+                   name="obsolete" value="[% attachment.id %]" />
               <a href="attachment.cgi?id=[% attachment.id %]&amp;action=edit">[% attachment.id %]: [% attachment.description FILTER html %]</a><br />
             [% END %]
           [% END %]
@@ -72,7 +72,7 @@
       <td>
         <em>If you want to assign this [% terms.bug %] to yourself,
             check the box below.</em><br />
-        <input type="checkbox" id="takebug" name="takebug" value="1">
+        <input type="checkbox" id="takebug" name="takebug" value="1" />
         <label for="takebug">take [% terms.bug %]</label>
       </td>
     </tr>
@@ -127,7 +127,7 @@
                 [% "${terms.bug} ${bug.dup_id}" FILTER bug_link(bug.dup_id) FILTER none %]
                 (<a href="#" id="dup_id_edit_action">edit</a>)
                 </span>
-                <input id="dup_id" name="dup_id" size="6" value="[% bug.dup_id FILTER html %]">
+                <input id="dup_id" name="dup_id" size="6" value="[% bug.dup_id FILTER html %]" />
             </span>
             [% IF bug.dup_id %]
                 <noscript>[% bug.dup_id FILTER bug_link(bug.dup_id) FILTER none %]</noscript>

@@ -10,7 +10,7 @@
 [% SET field_descs.group_ids = "Group ID's to grant automatically" %]
 
 <form method="post" action="?">
-<input type="hidden" name="do" value="1">
+<input type="hidden" name="do" value="1" />
 [% IF !mode_add %]
 <table class="editemin">
     <tr><th>Field</th><th>Value</th><th></th></tr>
@@ -28,7 +28,7 @@
 </table>
 <p><input type="submit" value="Save Changes" /> or <a href="?add=1">Add a new field value</a></p>
 [% ELSE %]
-<input type="hidden" name="add" value="1">
+<input type="hidden" name="add" value="1" />
 <table>
 <tr><td>E-mail address:</td><td><input style="width: 250px" type="text" name="email" value="[% email FILTER html %]" /></td></tr>
 <tr><td>Field:</td><td><select name="field" style="width: 250px">

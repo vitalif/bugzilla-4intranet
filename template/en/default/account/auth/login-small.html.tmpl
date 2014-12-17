@@ -76,7 +76,7 @@
     %]
       <input type="checkbox" id="Bugzilla_remember_[% qs_suffix %]"
              name="Bugzilla_remember" value="on" class="bz_remember"
-                 [%+ "checked" IF Param('rememberlogin') == "defaulton" %]>
+                 [%+ "checked" IF Param('rememberlogin') == "defaulton" %] />
       <label for="Bugzilla_remember_[% qs_suffix %]">Remember</label>
     [% END %]
     <input type="submit" name="GoAheadAndLogIn" value="Log in"
@@ -99,7 +99,7 @@
      onclick="return show_forgot_form('_[% qs_suffix %]')">Forgot Password</a>
   <form action="token.cgi" method="post" id="forgot_form_[% qs_suffix %]"
         class="mini_forgot bz_default_hidden">
-    <label>Login: <input type="text" name="loginname" size="20"></label>
+    <label>Login: <input type="text" name="loginname" size="20" /></label>
     <input id="forgot_button_[% qs_suffix %]" value="Reset Password"
            type="submit" />
     <input type="hidden" name="a" value="reqpw" />

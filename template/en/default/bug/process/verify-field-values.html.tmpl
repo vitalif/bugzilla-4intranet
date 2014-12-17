@@ -43,7 +43,7 @@
     public if no other group applies:<br />
     [% FOREACH group = old_groups %]
       <input type="checkbox" id="bit-[% group.id FILTER html %]"
-             name="bit-[% group.id FILTER html %]" disabled="disabled" value="1">
+             name="bit-[% group.id FILTER html %]" disabled="disabled" value="1" />
       <label for="bit-[% group.id FILTER html %]">
         [% group.name FILTER html %]: [% group.description FILTER html %]
       </label>
@@ -73,14 +73,14 @@
     one or more of the following groups:<br />
     [% FOREACH group = optional_groups %]
       <input type="hidden" name="defined_bit-[% group.group.id FILTER html %]"
-             value="1">
+             value="1" />
       <input type="checkbox" id="bit-[% group.group.id FILTER html %]"
              name="bit-[% group.group.id FILTER html %]"
              [%+ ((group.membercontrol == constants.CONTROLMAPDEFAULT && user.in_group(group.group.name))
                  || (group.othercontrol == constants.CONTROLMAPDEFAULT && !user.in_group(group.group.name))
                  || cgi.param("bit-$group.group.id") == 1) ?
                  'checked="checked"' : ''
-             %] value="1">
+             %] value="1" />
       <label for="bit-[% group.group.id FILTER html %]">
         [% group.group.name FILTER html %]: [% group.group.description FILTER html %]
       </label>
@@ -94,7 +94,7 @@
     restricted to these groups:<br />
     [% FOREACH group = mandatory_groups %]
       <input type="checkbox" id="bit-[% group.group.id FILTER html %]" checked="checked"
-             name="bit-[% group.group.id FILTER html %]" value="1" disabled="disabled">
+             name="bit-[% group.group.id FILTER html %]" value="1" disabled="disabled" />
       <label for="bit-[% group.group.id FILTER html %]">
         [% group.group.name FILTER html %]: [% group.group.description FILTER html %]
       </label>
@@ -104,7 +104,7 @@
   [% END %]
 [% END %]
 
-<input type="submit" id="change_product" value="Commit">
+<input type="submit" id="change_product" value="Commit" />
 
 </form>
 <hr />

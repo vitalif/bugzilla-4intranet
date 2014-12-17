@@ -43,7 +43,7 @@
     <tr>
       <th align="left">Component:</th>
       <td><input size="64" maxlength="64" name="component" value="
-      [%- comp.name FILTER html %]"></td>
+      [%- comp.name FILTER html %]" /></td>
     </tr>
     <tr>
       <th align="left">Description:</th>
@@ -138,7 +138,7 @@
   <input type="hidden" name="action" value="[% comp.id ? 'update' : 'new' %]" />
   <input type="hidden" name="product" value="[% product.name FILTER html %]" />
   <input type="hidden" name="token" value="[% token FILTER html %]" />
-  <input type="submit" value="[% comp.id ? 'Save Changes' : 'Add Component' %]">
+  <input type="submit" value="[% comp.id ? 'Save Changes' : 'Add Component' %]" />
   [% IF comp.id %]
     or <a href="editcomponents.cgi?action=del&amp;product=
        [%- product.name FILTER url_quote %]&amp;component=

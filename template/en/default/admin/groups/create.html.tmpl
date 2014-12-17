@@ -51,7 +51,7 @@
   </tr>
   <tr class="odd_row">
     <th align="left"><label for="icon_url">Icon URL:</label></th>
-    <td><input type="text" size="70" maxlength="255" id="icon_url" name="icon_url"></td>
+    <td><input type="text" size="70" maxlength="255" id="icon_url" name="icon_url" /></td>
   </tr>
   [% Hook.process('field') %]
   </table>
@@ -66,7 +66,7 @@
   <p>
     <input type="submit" id="create" value="Add" />
     <input type="hidden" name="action" value="new" />
-    <input type="hidden" name="token" value="[% token FILTER html %]">
+    <input type="hidden" name="token" value="[% token FILTER html %]" />
   </p>
 </form>
 
