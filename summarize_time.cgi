@@ -63,7 +63,7 @@ sub split_by_month
     my @months;
 
     # These +1 and +1900 are a result of strptime's bizarre semantics
-    my $end_date = sprintf("%04d-%02d-%02d", $ey+1900, $em+1, $ed);
+    $end_date = sprintf("%04d-%02d-%02d", $ey+1900, $em+1, $ed);
     my $d = DateTime->new(year => $sy+1900, month => $sm+1, day => $sd);
     my ($prev, $cur);
     $prev = sprintf("%04d-%02d-%02d", $d->year, $d->month, $d->day);
@@ -144,7 +144,7 @@ sub get_list
             " INNER JOIN profiles ON longdescs.who = profiles.userid".
             " INNER JOIN bugs ON bugs.bug_id = longdescs.bug_id".
             " WHERE longdescs.bug_id IN ($buglist) $date_bits".
-            " GROUP BY longdescs.bug_id, login_name, longdescs.bug_when" .
+            " GROUP BY longdescs.bug_id, login_name" .
             " HAVING SUM(work_time) != 0", {Slice => {}}, @$date_values
         );
         # What this loop does is to push data having the same key in an array.
