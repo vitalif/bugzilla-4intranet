@@ -70,11 +70,11 @@
       [% FOREACH new_status = statuses %]
         [% IF workflow.${status.id}.${new_status.id}.defined %]
           <td align="center" class="checkbox-cell
-              [% " checked" IF workflow.${status.id}.${new_status.id} %]"
+              [% ' checked="checked"' IF workflow.${status.id}.${new_status.id} %]"
               title="From [% status.name FILTER html %] to [% new_status.name FILTER html %]">
             <input type="checkbox" name="c_[% status.id %]_[% new_status.id %]"
                    id="c_[% status.id %]_[% new_status.id %]" onclick="toggle_cell(this)"
-              [% " checked='checked'" IF workflow.${status.id}.${new_status.id} %] />
+              [% ' checked="checked"' IF workflow.${status.id}.${new_status.id} %] />
           </td>
         [% ELSE %]
           <td class="checkbox-cell forbidden">&nbsp;</td>

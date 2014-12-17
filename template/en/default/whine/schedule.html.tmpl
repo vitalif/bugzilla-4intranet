@@ -125,7 +125,7 @@
     <td></td>
     <td colspan="2">
       <input type="checkbox" name="event_[% event.key %]_mailifnobugs"
-        id="event_[% event.key %]_mailifnobugs" [% IF event.value.mailifnobugs == 1 %]checked[% END %] />
+        id="event_[% event.key %]_mailifnobugs" [% ' checked="checked"' IF event.value.mailifnobugs == 1 %] />
       <label for="event_[% event.key %]_mailifnobugs">Send a message even if there are no [% terms.bugs %] in the search result</label>
     </td>
   </tr>
@@ -274,7 +274,7 @@
               <td align="left">
                 <input type="hidden" value="[% query.onemailperbug FILTER html %]"
                        name="orig_query_onemailperbug_[% query.id %]" />
-                <input type="checkbox" [% IF query.onemailperbug == 1 %] checked [% END %]
+                <input type="checkbox" [% ' checked="checked"' IF query.onemailperbug == 1 %]
                        id="query_onemailperbug_[% query.id %]"
                        name="query_onemailperbug_[% query.id %]" />
                 <label for="query_onemailperbug_[% query.id %]">One message per [% terms.bug %]</label>

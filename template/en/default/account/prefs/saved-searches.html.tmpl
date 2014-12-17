@@ -64,7 +64,7 @@
       <td>&nbsp;</td>
       <td>&nbsp;</td>
       <td align="center">
-        <input type="checkbox" name="showmybugslink" value="1" [% " checked" IF user.showmybugslink %] />
+        <input type="checkbox" name="showmybugslink" value="1" [% ' checked="checked"' IF user.showmybugslink %] />
       </td>
       [% IF may_share %]
         <td>&mdash;</td>
@@ -94,7 +94,7 @@
         </td>
         <td align="center">
           <input type="checkbox" name="link_in_footer_[% q.id | html %]"
-            value="1" alt="[% q.name | html %]" [% " checked" IF q.link_in_footer %] />
+            value="1" alt="[% q.name | html %]" [% ' checked="checked"' IF q.link_in_footer %] />
         </td>
         [% IF may_share %]
           <td>
@@ -166,7 +166,7 @@
         </td>
         <td align="center">
           <input type="checkbox" name="link_in_footer_[% q.id | html %]" value="1"
-            alt="[% q.name | html %]" [% " checked" IF q.link_in_footer %] />
+            alt="[% q.name | html %]" [% ' checked="checked"' IF q.link_in_footer %] />
         </td>
       </tr>
     [% END %]

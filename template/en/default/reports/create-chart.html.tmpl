@@ -223,7 +223,7 @@ function subcatSelected() {
         <td style="text-align: right; vertical-align: bottom;">
           <label for="cumulate"><b>Cumulate</b></label>:
           <input type="checkbox" name="cumulate" id="cumulate" value="1"
-          [% " checked" IF chart.cumulate %] />
+          [% ' checked="checked"' IF chart.cumulate %] />
         </td>
 
         <td></td>

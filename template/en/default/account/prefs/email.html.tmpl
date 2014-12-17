@@ -73,7 +73,7 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
     <td>
       [% prefname = "email-$constants.REL_ANY-$constants.EVT_FLAG_REQUESTED" %]
       <input type="checkbox" name="[% prefname %]" id="[% prefname %]"
-        value="1" [% " checked" IF mail.${constants.REL_ANY}.${constants.EVT_FLAG_REQUESTED} %] />
+        value="1" [% ' checked="checked"' IF mail.${constants.REL_ANY}.${constants.EVT_FLAG_REQUESTED} %] />
       <label for="[% prefname %]">Email me when someone asks me to set a flag</label>
     </td>
   </tr>
@@ -82,7 +82,7 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
     <td>
       [% prefname = "email-$constants.REL_ANY-$constants.EVT_REQUESTED_FLAG" %]
       <input type="checkbox" name="[% prefname %]" id="[% prefname %]"
-        value="1" [% " checked" IF mail.${constants.REL_ANY}.${constants.EVT_REQUESTED_FLAG} %] />
+        value="1" [% ' checked="checked"' IF mail.${constants.REL_ANY}.${constants.EVT_REQUESTED_FLAG} %] />
       <label for="[% prefname %]">Email me when someone sets a flag I asked for</label>
     </td>
   </tr>
@@ -207,7 +207,7 @@ document.write('<input type="button" value="Disable All Mail" onclick="SetCheckb
         <td align="center">
           <input type="checkbox" value="1"
             name="neg-email-[% relationship.id %]-[% event.id %]"
-            [% " checked" IF NOT mail.${relationship.id}.${event.id} %] />
+            [% ' checked="checked"' IF NOT mail.${relationship.id}.${event.id} %] />
         </td>
       [% END %]
       <td>

@@ -108,7 +108,7 @@
               [% IF canedit %]
                 [% IF product.onevoteonly %]
                   <input type="checkbox" name="[% bug.id %]" value="1"
-                    [% " checked" IF bug.count %] id="bug_[% bug.id %]" />
+                    [% ' checked="checked"' IF bug.count %] id="bug_[% bug.id %]" />
                 [% ELSE %]
                   <input name="[% bug.id %]" value="[% bug.count %]"
                          size="2" id="bug_[% bug.id %]" />

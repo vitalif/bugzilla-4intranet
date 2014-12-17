@@ -162,7 +162,7 @@ function checkColumns()
 <tbody id="bugz">
 [% FOR bug = data %]
 <tr id="bugz_[% bug.num | html %]">
-    <td><input type="checkbox" id="b_enabled_[% bug.num | html %]" name="b_enabled_[% bug.num | html %]" value="1" [% IF bug.enabled %]checked[% END %] /></td>
+    <td><input type="checkbox" id="b_enabled_[% bug.num | html %]" name="b_enabled_[% bug.num | html %]" value="1"[% ' checked="checked"' IF bug.enabled %] /></td>
     [% FOR field = fields %]
     [% SET v = bug.${field} | html %]
     [% IF v.match("\n") %]

@@ -168,13 +168,13 @@ var constants = {
         <th align="left">
           <label for="mailhead">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
         </th>
-        <td><input type="checkbox" id="mailhead" name="mailhead" value="1" [%- " checked" IF field.in_new_bugmail %] /></td>
+        <td><input type="checkbox" id="mailhead" name="mailhead" value="1" [%- ' checked="checked"' IF field.in_new_bugmail %] /></td>
       </tr>
       [% END %]
       [% IF !field.id || field.can_tweak('clone_bug') %]
       <tr>
         <th align="left"><label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label></th>
-        <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- " checked" IF field.clone_bug %] onclick="onChangeCloned()" /></td>
+        <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- ' checked="checked"' IF field.clone_bug %] onclick="onChangeCloned()" /></td>
       </tr>
       [% END %]
       [% IF !field.id || field.can_tweak('obsolete') %]
@@ -182,7 +182,7 @@ var constants = {
         <th align="left"><label for="obsolete">Is disabled:</label></th>
         <td>
           <input type="checkbox" id="obsolete" name="obsolete" value="1"
-            [%- " checked" IF field.obsolete %] />
+            [%- ' checked="checked"' IF field.obsolete %] />
         </td>
       </tr>
       [% END %]
@@ -208,7 +208,7 @@ var constants = {
         <th align="left"><label for="nullable">Allow empty value:</label></th>
         <td>
           <input type="checkbox" id="nullable" name="nullable" onclick="onChangeNullable()"
-            value="1" [%- " checked" IF field.nullable %] />
+            value="1" [%- ' checked="checked"' IF field.nullable %] />
         </td>
       </tr>
       [% END %]

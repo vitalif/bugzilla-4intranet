@@ -258,7 +258,7 @@
     <td>
       <input type="checkbox" name="emailassigned_to[% n %]"
              id="emailassigned_to[% n %]" value="1"
-             [% " checked" IF default.emailassigned_to.$n %] />
+             [% ' checked="checked"' IF default.emailassigned_to.$n %] />
       <label for="emailassigned_to[% n %]">
         the [% terms.bug %] assignee
       </label>
@@ -268,7 +268,7 @@
     <td>
       <input type="checkbox" name="emailreporter[% n %]"
              id="emailreporter[% n %]" value="1"
-             [% " checked" IF default.emailreporter.$n %] />
+             [% ' checked="checked"' IF default.emailreporter.$n %] />
       <label for="emailreporter[% n %]">
         the reporter
       </label>
@@ -279,7 +279,7 @@
     <td>
       <input type="checkbox" name="emailqa_contact[% n %]"
              id="emailqa_contact[% n %]" value="1"
-             [% " checked" IF default.emailqa_contact.$n %] />
+             [% ' checked="checked"' IF default.emailqa_contact.$n %] />
       <label for="emailqa_contact[% n %]">
         the QA contact
       </label>
@@ -290,7 +290,7 @@
     <td>
       <input type="checkbox" name="emailcc[% n %]"
              id="emailcc[% n %]" value="1"
-             [% " checked" IF default.emailcc.$n %] />
+             [% ' checked="checked"' IF default.emailcc.$n %] />
       <label for="emailcc[% n %]">
         a CC list member
       </label>
@@ -300,7 +300,7 @@
     <td>
         <input type="checkbox" name="emaillongdesc[% n %]"
                id="emaillongdesc[% n %]" value="1"
-               [% " checked" IF default.emaillongdesc.$n %] />
+               [% ' checked="checked"' IF default.emaillongdesc.$n %] />
       <label for="emaillongdesc[% n %]">
         a commenter
       </label>

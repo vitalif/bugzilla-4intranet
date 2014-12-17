@@ -149,7 +149,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_active" name="is_active"
-               [% " checked" IF type.is_active || !type.is_active.defined %] />
+               [% ' checked="checked"' IF type.is_active || !type.is_active.defined %] />
         <label for="is_active">active (flags of this type appear in the UI and can be set)</label>
       </td>
     </tr>
@@ -158,7 +158,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_requestable" name="is_requestable"
-               [% " checked" IF type.is_requestable || !type.is_requestable.defined %] />
+               [% ' checked="checked"' IF type.is_requestable || !type.is_requestable.defined %] />
         <label for="is_requestable">requestable (users can ask for flags of this type to be set)</label>
       </td>
     </tr>
@@ -182,7 +182,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_requesteeble" name="is_requesteeble"
-               [% " checked" IF type.is_requesteeble || !type.is_requesteeble.defined %] />
+               [% ' checked="checked"' IF type.is_requesteeble || !type.is_requesteeble.defined %] />
         <label for="is_requesteeble">specifically requestable (users can ask specific other users
           to set flags of this type as opposed to just asking the wind)</label>
       </td>
@@ -192,7 +192,7 @@
       <th>&nbsp;</th>
       <td>
         <input type="checkbox" id="is_multiplicable" name="is_multiplicable"
-               [% " checked" IF type.is_multiplicable || !type.is_multiplicable.defined %] />
+               [% ' checked="checked"' IF type.is_multiplicable || !type.is_multiplicable.defined %] />
         <label for="is_multiplicable">multiplicable (multiple flags of this type can be set on
           the same [% typeLabelLowerSingular %])</label>
       </td>

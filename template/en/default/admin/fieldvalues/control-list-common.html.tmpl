@@ -18,7 +18,7 @@
     <br />
   [% END %]
   <input type="checkbox" name="is_visible_[% f.name | html %]" id="is_visible_[% f.name | html %]" value="1"
-    [% " checked" IF f.has_visibility_value(this_value.id) %] />
+    [% ' checked="checked"' IF f.has_visibility_value(this_value.id) %] />
   <label for="is_visible_[% f.name | html %]">[% f.description | html %]</label>
 [% END %]
 [% IF any_field %]
@@ -63,7 +63,7 @@
       <br />
     [% END %]
     <input type="checkbox" name="is_nullable_[% f.name | html %]" id="is_nullable_[% f.name | html %]" value="1"
-      [% " checked" IF f.check_is_nullable(this_value.id) %] />
+      [% ' checked="checked"' IF f.check_is_nullable(this_value.id) %] />
     <label for="is_nullable_[% f.name | html %]">[% f.description | html %]</label>
   [% END %]
 [% END %]
@@ -87,7 +87,7 @@
       <br />
     [% END %]
     <input type="checkbox" name="is_cloned_[% f.name | html %]" id="is_cloned_[% f.name | html %]" value="1"
-      [% " checked" IF f.check_clone(this_value.id) %] />
+      [% ' checked="checked"' IF f.check_clone(this_value.id) %] />
     <label for="is_cloned_[% f.name | html %]">[% f.description | html %]</label>
   [% END %]
 [% END %]

@@ -616,8 +616,8 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
           [% END %]
           <input type="checkbox" value="1"
                  name="reporter_accessible" id="reporter_accessible"
-                 [% " checked" IF bug.reporter_accessible %]
-                 [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %] />
+                 [% ' checked="checked"' IF bug.reporter_accessible %]
+                 [% ' disabled="disabled"' UNLESS user_can_edit_accessible %] />
           <label for="reporter_accessible">Allow reporter to view this [% terms.bug %]</label>
         </div>
         <div>
@@ -629,8 +629,8 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
           [% END %]
           <input type="checkbox" value="1"
                  name="cclist_accessible" id="cclist_accessible"
-                 [% " checked" IF bug.cclist_accessible %]
-                 [% " disabled=\"disabled\"" UNLESS user_can_edit_accessible %] />
+                 [% ' checked="checked"' IF bug.cclist_accessible %]
+                 [% ' disabled="disabled"' UNLESS user_can_edit_accessible %] />
           <label for="cclist_accessible">Allow CC List users to view this [% terms.bug %]</label>
         </div>
         <p class="instructions">
