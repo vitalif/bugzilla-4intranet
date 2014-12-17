@@ -79,10 +79,11 @@
         [%+ user.login FILTER html %]
       [% END %]
     [%-# Work around FF bug: keep this on one line %]</li>
+    </li>
   [% ELSE %]
 
     [% PROCESS link_to_documentation %]
-    
+
     [% IF Param('createemailregexp')
           && user.authorizer.user_can_create_account %]
       <li id="new_account_container_[% qs_suffix %]">
