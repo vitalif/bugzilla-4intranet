@@ -34,6 +34,7 @@
 [% END %]
 
 <script type="text/javascript">
+<!--
 var user_settings = {
   'is_insider' : [% user.is_insider ? 1 : 0 %],
   'wants_worktime_reminder' : [% user.wants_worktime_reminder ? 1 : 0 %],
@@ -47,6 +48,7 @@ var bug_info = {
 };
 var fRemainingTime = [% bug.remaining_time %];
 var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
+//-->
 </script>
 
 <form id="form_bug_edit" name="changeform" method="post" action="process_bug.cgi" enctype="multipart/form-data"

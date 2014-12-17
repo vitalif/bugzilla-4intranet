@@ -30,6 +30,7 @@
 [% name = subcategory.${default.subcategory} %]
 
 <script type="text/javascript">
+<!--
 [%# This structure holds details of the series the user can select from. %]
 var series = {
 [% FOREACH c = category.keys.sort %]
@@ -90,6 +91,7 @@ function checkNewState() {
                      fm.action[1] && fm.action[1].checked == false);
   }
 }
+//-->
 </script>
 
 [%###########################################################################%]

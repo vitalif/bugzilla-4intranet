@@ -116,7 +116,9 @@
         value="[% value | html %]" />
 
       <script type="text/javascript">
+        <!--
         Calendar.set('[% field.name | js %]')
+        //-->
       </script>
     [% CASE constants.FIELD_TYPE_BUG_ID %]
       <span id="[% field.name | html %]_input_area">

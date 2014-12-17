@@ -82,6 +82,7 @@
     <input type="submit" name="GoAheadAndLogIn" value="Log in"
             id="log_in_[% qs_suffix %]" />
     <script type="text/javascript">
+      <!--
       mini_login_constants = {
         "login" : "login",
         "warning" : "You must set the login and password before logging in."
@@ -89,6 +90,7 @@
       onDomReady(function() {
         init_mini_login_form('_[% qs_suffix %]');
       });
+      //-->
     </script>
     <a href="#" onclick="return hide_mini_login_form('_[% qs_suffix %]')">[x]</a>
   </form>

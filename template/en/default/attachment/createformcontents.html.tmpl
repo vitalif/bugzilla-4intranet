@@ -99,9 +99,11 @@
     <label for="ispatch">patch</label><br /><br />
     [%# Reset this whenever the page loads so that the JS state is up to date %]
     <script type="text/javascript">
+      <!--
       addListener(window, 'load', function() {
         setContentTypeDisabledState(document.getElementById('ispatch').form);
       });
+      //-->
     </script>
 
     <em>Otherwise, choose a method for determining the content type.</em><br />

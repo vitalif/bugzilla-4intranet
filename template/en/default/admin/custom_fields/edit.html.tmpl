@@ -429,11 +429,13 @@ var constants = {
 </p>
 
 <script type="text/javascript">
+<!--
 onChangeNullable();
 onChangeCloned();
 [% IF !field.id %]
 onChangeType();
 [% END %]
+//-->
 </script>
 
 [% PROCESS global/footer.html.tmpl %]

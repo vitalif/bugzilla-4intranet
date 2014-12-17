@@ -73,6 +73,7 @@
 </div>
 
 <script type="text/javascript">
+<!--
 [%# FIXME Move close_status_array into "js resource data" %]
 var close_status_array = [
   [% SET i = 0 %]
@@ -110,4 +111,5 @@ addListener('dup_id_discoverable_action', 'click', function() {
 onDomReady(function() {
   showHideStatusItems('[% "is_duplicate" IF bug.dup_id %]', '[% bug.bug_status_obj.name | js %]');
 });
+//-->
 </script>

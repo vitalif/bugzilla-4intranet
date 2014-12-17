@@ -300,6 +300,7 @@ preferences for <u>their</u> relationship to the [% terms.bug %]
 </p>
 
 <script type="text/javascript">
+<!--
 [%-# FIXME: remove hardcoded i18n message, also from js/field.js::userAutocomplete() %]
 new SimpleAutocomplete("new_watchedusers",
   function(h) { userAutocomplete(h, null); },
@@ -307,6 +308,7 @@ new SimpleAutocomplete("new_watchedusers",
 new SimpleAutocomplete("new_watchers",
   function(h) { userAutocomplete(h, null); },
   { multipleDelimiter: ',', emptyText: 'No users found' });
+//-->
 </script>
 
 <hr />

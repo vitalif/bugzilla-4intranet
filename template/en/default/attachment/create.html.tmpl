@@ -103,6 +103,7 @@
         %]
         </span>
         <script type="text/javascript">
+        <!--
         [%# FIXME Move close_status_array into "js resource data" %]
         var close_status_array = [
           [% SET i = 0 %]
@@ -118,6 +119,7 @@
         addListener('bug_status', 'change', onchange_bug_status);
         addListener('resolution', 'change', showDuplicateItem);
         addListener(window, 'load', onchange_bug_status);
+        //-->
         </script>
 
         [% IF bug.check_can_change_field('dup_id', 0, 1) %]
