@@ -629,22 +629,20 @@ input.required, select.required, span.required_explanation {
 }
 
 .bz_comment_user a {
-    -moz-transition: all 0.25s linear 0s;
-    -webkit-transition: all 0.25s linear 0s;
-    transition: all 0.25s linear 0s;
-    transition: all 0.25s linear 0s;
+    -moz-transition: background 0.25s linear 0s;
+    -webkit-transition: background 0.25s linear 0s;
+    transition: background 0.25s linear 0s;
     color: #0095dd;
-    padding: 0px;
-    margin: 0px;
+    padding: 0;
+    margin: 0;
+    text-decoration: none;
 }
 
 .bz_comment_user a:hover {
-    -moz-transition: all 0.25s linear 0s;
-    -webkit-transition: all 0.25s linear 0s;
-    transition: all 0.25s linear 0s;
-    background: #fff;
-    border: none;
-    text-decoration: none;
+    -moz-transition: background 0.25s linear 0s;
+    -webkit-transition: background 0.25s linear 0s;
+    transition: background 0.25s linear 0s;
+    background-color: white;
 }
 
 .bz_comment_user .vcard {

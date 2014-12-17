@@ -133,7 +133,7 @@
 
       [%# FIXME: Mozilla skin is hardcoded :-( %]
       [% IF show_avatars == 1 %]
-      <span class="bz_comment_user">
+      <span class="bz_comment_time">
         <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
           title="[% comment.author.identity | html %]">
           <img src="[% comment.author.gravatar_url('s=40&d=' _ urlbase _ '/images/noavatar40.png') %]" alt="img" />

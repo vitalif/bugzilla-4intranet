@@ -45,6 +45,9 @@
     select[disabled] {
         background: #eee;
     }
+    img {
+        border-width: 0;
+    }
 /* global (end) */
 
 /* header (begin) */
