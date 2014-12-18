@@ -228,7 +228,7 @@ body { font-family: Segoe UI, sans-serif; }
 
   [%# ------ What Removed Added ------ %]
   <tr class="n">
-  <td valign="top"[% IF d.lines %] rowspan="[% d.lines.size %]"[% END %]>
+  <td valign="top"[% IF d.lines && d.lines.size %] rowspan="[% d.lines.size %]"[% END %]>
   [% IF d.fieldname == 'longdesc' %]
     <a href="[% urlbase %]show_bug.cgi?id=[% bugid %]#c[% d.comment_count %]">
     [% IF d.comment_count > 0 %]Comment #[% d.comment_count %][% ELSE %]Description[% END %]
