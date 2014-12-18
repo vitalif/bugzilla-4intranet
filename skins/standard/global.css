@@ -327,18 +327,15 @@ div#docslinks {
     padding: 1em 0;
 }
 
-.bz_comment_flash {
-    background: #ffc0d0;
-    -webkit-animation: bz_comment_flash 500ms;
-    animation: bz_comment_flash 500ms;
+.bz_comment_selected {
+    box-shadow: 0 0 2px 3px rgba(0, 0, 0, 0.2);
+    -moz-box-shadow: 0 0 2px 3px rgba(0, 0, 0, 0.2);
+    -webkit-box-shadow: 0 0 2px 3px rgba(0, 0, 0, 0.2);
 }
 
 .bz_comment_hours {
     margin-top: 8px;
 }
-
-@-webkit-keyframes bz_comment_flash { from { background: #ffc0d0; } to { background: inherit; } }
-@keyframes bz_comment_flash { from { background: #ffc0d0; } to { background: inherit; } }
 
 /** End Comment text **/
 

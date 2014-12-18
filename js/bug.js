@@ -392,24 +392,31 @@ addListener(window, 'beforeunload', function(e)
     }
 });
 
-addListener(window, 'hashchange', function()
+(function()
 {
-    var a = document.getElementsByName(window.location.hash.substr(1));
-    if (a.length)
+    var lastSel;
+    addListener(window, 'hashchange', function()
     {
-        a = a[0];
-        while (a && !/bz_comment($|\s)/.exec(a.className))
+        var a = document.getElementsByName(window.location.hash.substr(1));
+        if (a.length)
         {
-            a = a.parentNode;
+            a = a[0];
+            while (a && !/bz_comment($|\s)/.exec(a.className))
+            {
+                a = a.parentNode;
+            }
+            if (a)
+            {
+                if (lastSel)
+                {
+                    removeClass(lastSel, 'bz_comment_selected');
+                }
+                addClass(a, 'bz_comment_selected');
+                lastSel = a;
+            }
         }
-        if (a)
-        {
-            var oc = a.className.replace(' bz_comment_flash', '');
-            a.className += ' bz_comment_flash';
-            setTimeout(function() { a.className = oc; }, 500);
-        }
-    }
-});
+    });
+})();
 
 function showEditComment(comment_id)
 {

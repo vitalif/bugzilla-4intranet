@@ -576,14 +576,17 @@ input.required, select.required, span.required_explanation {
     background: #ffffff;
 }
 
-.bz_comment_flash .bz_comment_text {
-    background: #ffc0d0;
-    -webkit-animation: bz_comment_flash_text 500ms;
-    animation: bz_comment_flash_text 500ms;
+.bz_comment_selected {
+    box-shadow: none;
+    -moz-box-shadow: none;
+    -webkit-box-shadow: none;
 }
 
-@-webkit-keyframes bz_comment_flash_text { from { background: #ffc0d0; } to { background: #ffffff; } }
-@keyframes bz_comment_flash_text { from { background: #ffc0d0; } to { background: #ffffff; } }
+.bz_comment_selected .bz_comment_text {
+    box-shadow: 0 0 2px 3px rgba(0, 149, 221, 0.5);
+    -moz-box-shadow: 0 0 2px 3px rgba(0, 149, 221, 0.5);
+    -webkit-box-shadow: 0 0 2px 3px rgba(0, 149, 221, 0.5);
+}
 
 .bz_comment {
     margin: 0 0 20px;
