@@ -83,7 +83,7 @@ var close_status_array = [
 <tbody>
   <tr>
     <th rowspan="2" style="width: 10em; white-space: normal; word-wrap: break-word">
-      Product: <a href="buglist.cgi?product=[% product.name | uri %]&bug_status=OPEN">[% product.name | html %]</a>
+      Product: <a href="buglist.cgi?product=[% product.name | uri %]&amp;bug_status=OPEN">[% product.name | html %]</a>
     </th>
     <td>
       <b><label class="required" for="component"><a href="describecomponents.cgi?product=[% product.name | url_quote %]">Component</a></label>:</b>
@@ -231,6 +231,7 @@ var close_status_array = [
   [% INCLUDE custom_fields style = "min-width: 20em; max-width: 40em"
     cf = Bugzilla.active_custom_fields({ 'type' => constants.FIELD_TYPE_MULTI_SELECT }) %]
 
+</tbody>
 </table>
 
 </td><td>
@@ -313,18 +314,20 @@ var close_status_array = [
   </tr>
   [% END %]
   <tr><td colspan="2"><hr /></td></tr>
-  <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
-  <td>
-    [% INCLUDE global/userselect.html.tmpl
-      name => "assigned_to"
-      value => default.assigned_to
-      disabled => assigned_to_disabled
-      size => 20
-      style => 'width: 100%'
-      emptyok => 1
-    %]
-    <noscript>(Leave blank to assign to component's default assignee)</noscript>
-  </td>
+  <tr>
+    <th><a href="page.cgi?id=fields.html#assigned_to">Assign To</a>:</th>
+    <td>
+      [% INCLUDE global/userselect.html.tmpl
+        name => "assigned_to"
+        value => default.assigned_to
+        disabled => assigned_to_disabled
+        size => 20
+        style => 'width: 100%'
+        emptyok => 1
+      %]
+      <noscript>(Leave blank to assign to component's default assignee)</noscript>
+    </td>
+  </tr>
   [% IF Bugzilla.get_field('qa_contact').enabled %]
   <tr>
     <th>QA Contact:</th>

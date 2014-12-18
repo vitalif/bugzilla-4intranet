@@ -282,7 +282,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
       no_search_link = 1
       style = "width: auto"
       editable = bug.check_can_change_field('bug_severity', 0, 1) %]
-    <a href="buglist.cgi?query_format=advanced&product=[% bug.product | uri %]&bug_severity=[% bug.bug_severity_obj.name | uri %]"
+    <a href="buglist.cgi?query_format=advanced&amp;product=[% bug.product | uri %]&amp;bug_severity=[% bug.bug_severity_obj.name | uri %]"
       target="_blank" id="search_link_bug_severity" class="search-link">(search)</a>
     [% IF bug.use_votes %]
       <span id="votes_container">
@@ -496,7 +496,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
       [% IF chg %]
         [% IF val != '' %]
           [% FOREACH keyword = bug.keywords_obj %]
-            <a href="buglist.cgi?keywords=[% keyword.name | uri %]&keywords_type=allwords&query_format=advanced"
+            <a href="buglist.cgi?keywords=[% keyword.name | uri %]&amp;keywords_type=allwords&amp;query_format=advanced"
               target="_blank">[% keyword.name | html %]</a>
             [% ',' UNLESS loop.last %]
           [% END %]
@@ -1019,13 +1019,13 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
       [% IF look_in_viewvc || look_in_wiki %]
         Look for [% terms.Bug %] in:
         [% IF look_in_viewvc %]
-        <a href="[% look_in_viewvc %]?view=query&comment=bug[% bug.bug_id %]+[% bug.bug_id %]&comment_match=fulltext&querysort=date&date=all">CVS&SVN</a>
+        <a href="[% look_in_viewvc | html %]?view=query&amp;comment=bug[% bug.bug_id %]+[% bug.bug_id %]&amp;comment_match=fulltext&amp;querysort=date&amp;date=all">CVS&amp;SVN</a>
           [% IF look_in_wiki %]
           /
           [% END %]
         [% END %]
         [% IF look_in_wiki %]
-          <a href="[% look_in_wiki %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
+          <a href="[% look_in_wiki | html %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
         [% END %]
       [% END %]
     [% END %]

@@ -136,7 +136,7 @@
       <span class="bz_comment_time">
         <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
           title="[% comment.author.identity | html %]">
-          <img src="[% comment.author.gravatar_url('s=40&d=' _ urlbase _ '/images/noavatar40.png') %]" alt="img" />
+          <img src="[% comment.author.gravatar_url('s=40&d=' _ urlbase _ '/images/noavatar40.png') | html %]" alt="img" />
         </a>
       </span>
       [% END %]
@@ -179,7 +179,7 @@
       <span class="bz_comment_avatar">
         <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
           title="[% comment.author.identity | html %]">
-          <img src="[% comment.author.gravatar_url('s=80') %]"
+          <img src="[% comment.author.gravatar_url('s=80') | html %]"
             onerror="this.style.display='none'" />
         </a>
       </span>
