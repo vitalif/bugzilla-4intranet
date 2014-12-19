@@ -456,10 +456,11 @@ sub wrap_comment # makeParagraphs
     my $p;
     my $tmp;
     my $text = '';
+    my $block_tags = '(?:div|h[1-6]|center|ol|ul|li)';
     while ($input ne '')
     {
         # Convert double line breaks to new paragraphs
-        if ($input =~ m!\n\s*\n|(</?div[^<>]*>)!so)
+        if ($input =~ m!\n\s*\n|(</?$block_tags[^<>]*>)!so)
         {
             @m = (substr($input, 0, $-[0]), $1);
             $input = substr($input, $+[0]);
@@ -469,18 +470,22 @@ sub wrap_comment # makeParagraphs
             @m = ($input, '');
             $input = '';
         }
-        $m[0] =~ s/^\s*\n//s;
-        $m[0] =~ s/^([ \t]+)/$tmp = $1; s!\t!    !g; $tmp/emog;
-        $m[0] =~ s/(<[^<>]*>)|(  +)/$1 || ' '.('&nbsp;' x (length($2)-1))/ge;
-        if ($m[0] ne '' && !$p)
+        if ($m[0] ne '')
         {
-            $text .= '<p>';
-            $p = 1;
+            # FIXME Opera Presto has a bug with ul > li > p > br...
+            $m[0] =~ s/^\s*\n//s;
+            $m[0] =~ s/^([ \t]+)/$tmp = $1; s!\t!    !g; $tmp/emog;
+            $m[0] =~ s/(<[^<>]*>)|(  +)/$1 || ' '.('&nbsp;' x (length($2)-1))/ge;
+            if (!$p)
+            {
+                $text .= '<p>';
+                $p = 1;
+            }
+            # But preserve single line breaks!
+            $m[0] =~ s/\s+$//so;
+            $m[0] =~ s/\n/<br \/>/giso;
+            $text .= $m[0];
         }
-        # But preserve single line breaks!
-        $m[0] =~ s/\s+$//so;
-        $m[0] =~ s/\n/<br \/>/giso;
-        $text .= $m[0];
         if ($p)
         {
             $text .= '</p>';

@@ -242,36 +242,17 @@ sub quoteUrls
     my $count = 0;
     my $tmp;
 
-    my @hook_regexes;
     Bugzilla::Hook::process('bug_format_comment', {
         text => \$text,
         bug => $bug,
-        regexes => \@hook_regexes,
         comment => $comment,
     });
-
-    foreach my $re (@hook_regexes)
-    {
-        my ($match, $replace) = @$re{qw(match replace)};
-        if (ref($replace) eq 'CODE')
-        {
-            $text =~ s/$match/($things[$count++] = $replace->({ matches => [
-                $1, $2, $3, $4,
-                $5, $6, $7, $8,
-                $9, $10
-            ]})) && ("\0\0" . ($count-1) . "\0\0")/egx;
-        }
-        else
-        {
-            $text =~ s/$match/($things[$count++] = $replace) && ("\0\0" . ($count-1) . "\0\0")/egx;
-        }
-    }
 
     # Provide tooltips for full bug links (Bug 74355)
     my $urlbase_re = '(' . join('|', map { qr/$_/ }
         grep($_, Bugzilla->params->{urlbase}, Bugzilla->params->{sslbase})
     ) . ')';
-    $text =~ s~\b(${urlbase_re}\Qshow_bug.cgi?id=\E([0-9]+)(\#c([0-9]+))?)\b
+    $text =~ s~\b($urlbase_re\Qshow_bug.cgi?id=\E([0-9]+)(\#c([0-9]+))?)\b
         ~($things[$count++] = get_bug_link($3, $1, { comment_num => $5 })) && ("\0\0" . ($count-1) . "\0\0")
         ~egox;
 
@@ -355,7 +336,11 @@ sub quoteUrls
     # We have to quote now, otherwise the html itself is escaped
     # THIS MEANS THAT A LITERAL ", <, >, ' MUST BE ESCAPED FOR A MATCH
 
-    $text = html_quote($text);
+    # Allow some HTML without attributes, escape everything else
+    my $q = { '<' => '&lt;', '>' => '&gt;', '&' => '&amp;', '"' => '&quot;' };
+    my $safe_tags = '(?:b|i|u|hr|marquee|s|strike|strong|small|big|sub|sup|tt|em|cite|font(?:\s+color=["\']?(?:#[0-9a-f]{3,6}|[a-z]+)["\']?)?)';
+    my $block_tags = '(?:h[1-6]|center|ol|ul|li)';
+    $text =~ s/<pre>((?:.*?(?:<pre>(?1)<\/pre>)?)*)<\/pre>|\s*(<\/?$block_tags>)\s*|(<\/?$safe_tags>)|([<>&\"])/$4 ? $q->{$4} : lc($1 eq '' ? ($2 eq '' ? $3 : $2) : html_quote($1))/geiso;
 
     # Replace nowrap markers (\1\0\1)
     $text =~ s/\x01\x00\x01(.*?)\x01\x00\x01/<div style="white-space: nowrap">$1<\/div>/gso;
