@@ -156,6 +156,10 @@
    <th>Добавить CC:</th>
    <td><input type="text" id="triggers_add_cc" name="triggers_add_cc" value="[% checker.triggers.add_cc | html %]" /></td>
   </tr>
+  <tr>
+   <th>Снять флаги (через ,):</th>
+   <td><input type="text" id="triggers_clear_flags" name="triggers_clear_flags" value="[% checker.triggers.clear_flags | html %]" /></td>
+  </tr>
  </tbody>
  <tbody>
   <tr><td></td><td><input type="submit" value=" Сохранить " /></td></tr>
@@ -204,9 +208,10 @@ function check_trigger()
 {
   var f = document.getElementById('is_trigger').checked;
   var cc = document.getElementById('triggers_add_cc');
+  var fl = document.getElementById('triggers_clear_flags');
   if (!f)
-    cc.value = '';
-  else if (!cc.value)
+    cc.value = fl.value = '';
+  else if (!cc.value && !fl.value)
   {
     alert('Задайте действие триггера!');
     return false;

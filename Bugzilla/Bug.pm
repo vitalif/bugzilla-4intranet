@@ -3046,7 +3046,7 @@ sub flags
 {
     my $self = shift;
 
-    # Don't cache it as it must be in sync with ->flag_types.
+    # FIXME (Is it true?) Don't cache it as it must be in sync with ->flag_types.
     $self->{flags} = [ map { @{$_->{flags}} } @{$self->flag_types} ];
     return $self->{flags};
 }

@@ -249,13 +249,30 @@ sub run_triggers
         my $checker = $bug->{failed_checkers}->[$i];
         if ($checker->triggers)
         {
+            # FIXME Only "add CC" and "clear flag" triggers are supported by now, but it's not that hard to support more
             if ($checker->triggers->{add_cc})
             {
-                # FIXME Only "add CC" trigger is supported by now, but it's not that hard to support more
                 for (split /[\s,]+/, $checker->triggers->{add_cc})
                 {
                     $bug->add_cc($_);
                     $modified = 1;
+                }
+            }
+            if ($checker->triggers->{clear_flags})
+            {
+                my %del_flags = map { $_ => 1 } split /[\s,]*,+[\s,]*/, $checker->triggers->{clear_flags};
+                for my $flag (@{$bug->flags})
+                {
+                    if ($del_flags{$flag->name})
+                    {
+                        $bug->make_dirty;
+                        Bugzilla::Flag->set_flag($bug, {
+                            id => $flag->id,
+                            status => 'X',
+                            requestee => $flag->requestee && $flag->requestee->login,
+                        });
+                        $modified = 1;
+                    }
                 }
             }
         }

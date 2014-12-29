@@ -177,7 +177,7 @@ sub except_fields
 # { field_name => value }
 # Change field 'field_name' to 'value'. For multivalued fields field_name may also
 # by 'add_<field_name>' or 'remove_<field_name>', which means add or remove something.
-# FIXME Now the only function supported is 'add_cc'
+# FIXME Now the only functions supported are 'add_cc' and 'clear_flags'
 sub triggers
 {
     my $self = shift;
