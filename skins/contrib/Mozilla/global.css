@@ -78,7 +78,7 @@ body {
     background-repeat: repeat, repeat-x;
     color: #404040;
     margin: 0;
-    font-size: 16px; /* Base font size. NEVER hardcode absolute sizes anywhere except this place. */
+    font-size: 0.8em; /* Base font size. NEVER hardcode absolute sizes anywhere except this place. */
     -moz-text-size-adjust: none; /* Fix inconsistent font sizes in mobile Firefox */
 }
 
@@ -954,7 +954,7 @@ table.eventbox {
     padding-bottom: 6px;
 }
 
-@media only screen and (max-width: 1365px) {
+@media only screen and (max-width: 85em) {
     .bz_show_bug_column {
         float: none;
         width: 100%;
@@ -962,7 +962,7 @@ table.eventbox {
 }
 
 /* Smaller than standard 990 (devices and browsers) */
-@media only screen and (max-width: 989px) {
+@media only screen and (max-width: 61em) {
     #header .links {
         float: none;
     }
@@ -973,28 +973,28 @@ table.eventbox {
 }
 
 /* Tablet Portrait size to standard 990 */
-@media only screen and (min-width: 768px) and (max-width: 989px) {
+@media only screen and (min-width: 48em) and (max-width: 61em) {
     body {
-        min-width: 768px;
+        min-width: 48em;
     }
 
     #header .wrapper, #bugzilla-body {
         -moz-box-sizing: border-box;
         -webkit-box-sizing: border-box;
         box-sizing: border-box;
-        min-width: 768px;
+        min-width: 48em;
     }
 
     #footer > * {
         -moz-box-sizing: border-box;
         -webkit-box-sizing: border-box;
         box-sizing: border-box;
-        min-width: 768px;
+        min-width: 48em;
     }
 }
 
 /* All Mobile Sizes */
-@media only screen and (max-width: 767px) {
+@media only screen and (max-width: 47.99em) {
     .bz_show_bug_colpair {
         float: none;
         width: 100%;
@@ -1029,7 +1029,7 @@ table.eventbox {
 }
 
 /* Mobile Landscape Size to Tablet Portrait */
-@media only screen and (min-width: 480px) and (max-width: 767px) {
+@media only screen and (min-width: 30em) and (max-width: 48em) {
     #attachment_table, .bz_comment, .bz_comment_text, #add_comment > table, #comment {
         -moz-box-sizing: border-box;
         -webkit-box-sizing: border-box;
@@ -1041,7 +1041,7 @@ table.eventbox {
 }
 
 /* Mobile Portrait Size to Mobile Landscape Size */
-@media only screen and (max-width: 479px) {
+@media only screen and (max-width: 29.99em) {
     body {
         min-width: 100%;
     }
