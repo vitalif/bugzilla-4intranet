@@ -968,6 +968,7 @@ table.eventbox {
     }
     .flatten_table, .flatten_table > tbody, .flatten_table > tbody > tr, .flatten_table > tbody > tr > td {
         display: block;
+        width: 100%;
     }
 }
 
