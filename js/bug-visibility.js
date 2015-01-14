@@ -222,7 +222,7 @@ function handleControlledField(controlled_id, is_initial_editform)
         }
     }
     // Select and/or remember default value
-    if (m.default_field && document.getElementById(m.default_field) && 0)
+    if (m.default_field && document.getElementById(m.default_field))
     {
         var diff = false;
         if (controlled._oldDefault)
