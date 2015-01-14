@@ -54,7 +54,7 @@ if (@add_members || @add_bless || @rm_members || @rm_bless)
         } };
         for (\@add_members, \@add_bless)
         {
-            @$_ = map { $users->{lc $_} ? $users->{lc $_}->id : ThrowUserError('invalid_username', $_) } @$_;
+            @$_ = map { $users->{lc $_} ? $users->{lc $_}->id : ThrowUserError('invalid_username', { name => $_ }) } @$_;
         }
         if (@add_members || @add_bless)
         {
