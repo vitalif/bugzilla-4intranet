@@ -174,7 +174,7 @@ body { font-family: Segoe UI, sans-serif; }
   <p><a href="[%+ urlbase %]show_bug.cgi?id=[% bug.id %]#c[% comment.count %]">Comment #[% comment.count %]</a> from
       <span class="vcard">
           <a class="fn email" href="[% Param('user_mailto') %][% comment.author.email FILTER html %]">
-          [% (comment.author.name || comment.author.login) FILTER html %]</a>
+          [% (comment.author.realname || comment.author.login) FILTER html %]</a>
       </span>
   [% comment.bug_when FILTER time(undef, to_user.timezone) %]</p>
   <div class="bz_comment_text">

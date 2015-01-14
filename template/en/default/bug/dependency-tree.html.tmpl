@@ -216,8 +216,8 @@
      [%# Limit entry form: the button can not do anything when total depth
          is less than two, so disable it %]
      <input name="maxdepth" size="4" maxlength="4" value="[%
-         maxdepth  /> 0 && maxdepth <= realdepth ? maxdepth : ""
-     %]">
+         maxdepth > 0 && maxdepth <= realdepth ? maxdepth : ""
+     %]" />
      <input name="id" type="hidden" value="[% bugid %]" />
      <input name="hide_resolved" type="hidden" value="[% hide_resolved %]" />
      <noscript>
@@ -238,7 +238,7 @@
      [% END %]
      <input name="hide_resolved" type="hidden" value="[% hide_resolved %]" />
      <input type="submit" id="increase_depth" value="&nbsp;&gt;&nbsp;" 
-        [% "disabled" IF realdepth < 2 || !maxdepth || maxdepth  />= realdepth %]>
+        [% "disabled" IF realdepth < 2 || !maxdepth || maxdepth >= realdepth %] />
    </form>
    </td>
 
