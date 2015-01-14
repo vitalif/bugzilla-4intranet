@@ -255,7 +255,7 @@ function setDefaultCheckbox(e, field_id)
     if (el && elLabel)
     {
         el.checked = "true";
-        elLabel.style.fontWeight = bold;
+        elLabel.style.fontWeight = 'bold';
     }
 }
 

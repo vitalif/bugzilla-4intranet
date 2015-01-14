@@ -134,6 +134,10 @@ function setFieldValue(f, v)
 function handleControlledField(controlled_id, is_initial_editform)
 {
     var m = field_metadata[controlled_id];
+    if (!m)
+    {
+        return;
+    }
     var controlled = document.getElementById(controlled_id);
     var vis;
     // Show/hide the field
