@@ -252,7 +252,7 @@ sub SaveEmail
     my $ARGS = Bugzilla->input_params;
     my $user = Bugzilla->user;
 
-    Bugzilla::User::match_field({ 'new_watchedusers' => {'type' => 'multi'} });
+    Bugzilla::User::match_field({ new_watchedusers => { type => 'multi' } });
 
     ###########################################################################
     # Role-based preferences
@@ -322,20 +322,20 @@ sub SaveEmail
         push @$add_wdwr,
             map { [ Bugzilla::User::login_to_id(trim($_), THROW_ERROR), $userid ] }
             split /[,\s]+/,
-            join(',', $ARGS->{new_watchedusers}) || '';
+            join(',', list $ARGS->{new_watchedusers}) || '';
 
         # New watchers
         push @$add_wdwr,
             map { [ $userid, Bugzilla::User::login_to_id(trim($_), THROW_ERROR) ] }
             split /[,\s]+/,
-            join(',', $ARGS->{new_watchers}) || '';
+            join(',', list $ARGS->{new_watchers}) || '';
 
         if ($ARGS->{remove_watched_users})
         {
             # User wants to remove selected watched users
             push @$del_wdwr,
                 map { [ Bugzilla::User::login_to_id(trim($_), THROW_ERROR), $userid ] }
-                $ARGS->{watched_by_you};
+                list $ARGS->{watched_by_you};
         }
 
         if ($ARGS->{remove_watchers})
@@ -343,7 +343,7 @@ sub SaveEmail
             # User wants to remove selected watchers
             push @$del_wdwr,
                 map { [ $userid, Bugzilla::User::login_to_id(trim($_), THROW_ERROR) ] }
-                $ARGS->{watchers};
+                list $ARGS->{watchers};
         }
 
         if (@$add_wdwr)
