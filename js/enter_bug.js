@@ -155,23 +155,27 @@ function validateEntryForm(theform)
     }
 
     // Validate worktime
-    var wt = bzParseTime(theform.work_time.value);
-    if (wt !== null && (wt === undefined || wt != wt))
-        wt = null;
-    else if (wt < 0)
-        wt = 0;
-    if (wantsReminder && (wt === null || noTimeTracking == (wt != 0)))
+    if (theform.work_time)
     {
-        wt = prompt("Please, verify working time:", "0");
-        if (wt == null || wt == undefined || (""+wt).length <= 0)
+        var wt = bzParseTime(theform.work_time.value);
+        if (wt !== null && (wt === undefined || wt != wt))
+            wt = null;
+        else if (wt < 0)
+            wt = 0;
+        if (wantsReminder && (wt === null || noTimeTracking == (wt != 0)))
         {
-            theform.work_time.focus();
-            return false;
+            wt = prompt("Please, verify working time:", "0");
+            if (wt == null || wt == undefined || (""+wt).length <= 0)
+            {
+                theform.work_time.focus();
+                return false;
+            }
         }
+        if (wt === null)
+            wt = 0;
+        theform.work_time.value = wt;
     }
-    if (wt === null)
-        wt = 0;
-    theform.work_time.value = wt;
+
     window.checkCommentOnUnload = false;
     return true;
 }

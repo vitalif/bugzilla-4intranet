@@ -260,7 +260,7 @@ function changeform_onsubmit()
         return false;
 
     var wtInput = document.changeform.work_time;
-    if (wtInput)
+    if (!wtInput)
     {
         window.checkCommentOnUnload = false;
         return true;
