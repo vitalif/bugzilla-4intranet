@@ -536,7 +536,7 @@ sub insert
     my @obsolete_attachments;
     if ($ARGS->{obsolete})
     {
-        my @obsolete = $ARGS->{obsolete};
+        my @obsolete = list $ARGS->{obsolete};
         @obsolete_attachments = Bugzilla::Attachment->validate_obsolete($bug, \@obsolete);
     }
 
