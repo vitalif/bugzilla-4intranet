@@ -11,6 +11,7 @@ use Bugzilla;
 use Bugzilla::Token;
 use Bugzilla::Error;
 use Bugzilla::Bug;
+use Bugzilla::Util;
 use Bugzilla::Product;
 use Bugzilla::Search;
 use Bugzilla::Search::Saved;
