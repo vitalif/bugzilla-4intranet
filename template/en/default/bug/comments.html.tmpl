@@ -175,18 +175,18 @@
 
     <div class="bz_comment_text[% " collapsed" IF wt_only %][% " bz_fullscreen_comment" IF user.settings.comment_width.value == 'on' %]" id="comment_text_[% comment.id %]">
       [%# FIXME: Mozilla skin is hardcoded :-( %]
-      [% IF show_avatars == 2 %]
-      <span class="bz_comment_avatar">
-        <a href="[% Param("user_mailto") %][% comment.author.email | html %]"
-          title="[% comment.author.identity | html %]">
-          <img src="[% comment.author.gravatar_url('s=80') | html %]"
-            onerror="this.style.display='none'" />
-        </a>
+      [%- IF show_avatars == 2 -%]
+      <span class="bz_comment_avatar">[%- -%]
+        <a href="[% Param("user_mailto") %][% comment.author.email | html %]"[%- -%]
+          title="[% comment.author.identity | html %]">[%- -%]
+          <img src="[% comment.author.gravatar_url('s=80') | html %]"[%- -%]
+            onerror="this.style.display='none'" />[%- -%]
+        </a>[%- -%]
       </span>
-      [% END %]
+      [%- END -%]
       [%- comment.body_full({ wrap => 1, wo_preview => (user.settings.preview_long_comments.value == 'off') }) -%]
     </div>
-    [% IF !wt_only && Param('gravatar_url') && user.settings.skin.value != 'Mozilla' %]
+    [% IF show_avatars == 2 %]
     <div style="clear: both"></div>
     [% END %]
   </div>
