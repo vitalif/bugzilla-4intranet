@@ -187,7 +187,9 @@
             [% dontchange | html %]
           </option>
         [% END %]
+        [% SET was_nullable = 0 %]
         [% IF field.type == constants.FIELD_TYPE_SINGLE_SELECT && field.check_is_nullable(bug) %]
+          [% SET was_nullable = 1 %]
           <option value="">---</option>
         [% END %]
         [% IF override_legal_values %]
@@ -200,7 +202,8 @@
         [% value_found = allow_dont_change AND value == dontchange %]
         [% FOREACH legal_value = legal_values %]
           <option value="[% legal_value.name | html %]" id="v[% legal_value.id | html %]_[% field.name | html %]"
-            [% IF value.contains(legal_value.id).size || value_name.defined && value_name.contains(legal_value.name).size %]
+            [% IF value.contains(legal_value.id).size || value_name.defined && value_name.contains(legal_value.name).size ||
+                (!bug.id || !was_nullable) && !value && !value_name && field.default_value_hash.${legal_value.id} %]
               selected="selected"
               [% value_found = 1 %]
             [% END %]>
