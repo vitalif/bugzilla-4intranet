@@ -297,6 +297,9 @@ div#docslinks {
 
 .bz_comment_text, #comment_textarea {
     width: 50em;
+}
+
+.bz_comment_text {
     white-space: normal;
 }
 

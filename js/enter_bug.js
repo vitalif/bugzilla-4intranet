@@ -172,7 +172,7 @@ function validateEntryForm(theform)
     if (wt === null)
         wt = 0;
     theform.work_time.value = wt;
-    checkCommentOnUnload = false;
+    window.checkCommentOnUnload = false;
     return true;
 }
 

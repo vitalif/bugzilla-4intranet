@@ -33,11 +33,20 @@ function initControlledField(id)
     var f = document.getElementById(id);
     if (f && document.forms['Create'] && field_metadata[id].default_value)
     {
-        // Check if anything is selected initially on the entry form
-        var copt = getSelectedValues(f);
-        delete copt[''];
+        // Check if anything is selected initially on the entry form in HTML
         var nonempty = false;
-        for (var i in copt)
+        if (f.nodeName == 'SELECT')
+        {
+            for (var i = 0; i < f.options.length; i++)
+            {
+                if (f.options[i].value && f.options[i].getAttribute('selected'))
+                {
+                    nonempty = true;
+                    break;
+                }
+            }
+        }
+        else if (f.value)
         {
             nonempty = true;
         }
