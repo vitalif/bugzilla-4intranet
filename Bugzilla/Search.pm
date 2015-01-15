@@ -541,6 +541,7 @@ sub STATIC_COLUMNS
         owner_idle_time attachments.submitter days_elapsed percentage_complete))
     {
         $columns->{$col}->{title} = Bugzilla->messages->{field_descs}->{$col};
+        $columns->{$col}->{nobuglist} = 1;
     }
 
     # Fields that are email addresses
@@ -583,7 +584,7 @@ sub STATIC_COLUMNS
         my $type = $field->value_type;
         $columns->{$id}->{title} = $field->description;
         # FIXME Maybe enable obsolete fields in search? Or do it optionally?
-        $columns->{$id}->{nobuglist} = $field->obsolete || $id =~ /^attachments\./s;
+        $columns->{$id}->{nobuglist} = $field->obsolete || $id =~ /^attachments\.|^longdesc$/s;
         $columns->{$id}->{nocharts} = $field->obsolete;
         next if $id eq 'product' || $id eq 'component' || $id eq 'classification';
         if ($field->type == FIELD_TYPE_BUG_ID)
