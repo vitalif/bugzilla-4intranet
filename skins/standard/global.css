@@ -479,10 +479,10 @@ div.user_match {
 .bug_field table select {
     width: 100%;
 }
-.bug_field input[type=text], .bug_field input:not([type]) {
+.bug_field .text_input {
     width: 98%;
 }
-.bug_field table input[type=text], .bug_field table input:not([type]) {
+.bug_field table .text_input, .bug_field table .text_input {
     width: 100%;
 }
 
