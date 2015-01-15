@@ -985,7 +985,7 @@ sub FUNCTIONS
         'setters.login_name'        => { '*' => \&_setters_login_name },
         $multi_fields               => { '*' => \&_multiselect_nonchanged },
         $bugid_rev_fields           => { '*' => \&_bugid_rev_nonchanged },
-        'see_also'                  => { '*' => sub { die 'Not implemented'; } },
+        'see_also'                  => { '*' => \&_see_also_nonchanged },
     };
     # Expand | or-lists in hash keys
     expand_hash($FUNCTIONS);
@@ -2731,7 +2731,6 @@ sub _multiselect_nonchanged
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    my @terms;
     my $type = Bugzilla->get_field($self->{field})->value_type;
     my $t = $type->REL_TABLE;
     my $ft = $type->DB_TABLE;
@@ -2741,16 +2740,7 @@ sub _multiselect_nonchanged
     my @v = ref $self->{value} ? @{$self->{value}} : $self->{value};
     $self->{quoted} = join ', ', map { $dbh->quote($_) } @v;
 
-    $self->{type} =~ s/^(all|any)wordssubstr$/$1words/so;
-    if ($self->{type} eq 'anywords' || $self->{type} eq 'anyexact')
-    {
-        $self->{term} = {
-            table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$ta.value_id)",
-            where => "$fta.".$type->NAME_FIELD." IN ($self->{quoted})",
-            bugid_field => "$ta.bug_id",
-        };
-    }
-    elsif ($self->{type} eq 'allwords')
+    if ($self->{type} eq 'allwordssubstr')
     {
         $self->{term} = {
             table => "(SELECT bug_id FROM $t, $ft WHERE id=value_id AND ".$type->NAME_FIELD." IN ($self->{quoted})".
@@ -2760,13 +2750,59 @@ sub _multiselect_nonchanged
     }
     else
     {
-        $self->{fieldsql} = $self->{field} = "$fta.".$type->NAME_FIELD;
-        $self->{value} = $v[0];
-        $self->call_op;
+        if ($self->{type} eq 'anyexact' || $self->{type} eq 'anywordssubstr')
+        {
+            $self->{term} = "$fta.".$type->NAME_FIELD." IN ($self->{quoted})";
+        }
+        else
+        {
+            $self->{fieldsql} = $self->{field} = "$fta.".$type->NAME_FIELD;
+            $self->{value} = $v[0];
+            $self->call_op;
+        }
         $self->{term} = {
             table => "($t $ta INNER JOIN $ft $fta ON $fta.id=$ta.value_id)",
             where => $self->{term},
             bugid_field => "$ta.bug_id",
+        };
+    }
+}
+
+sub _see_also_nonchanged
+{
+    my $self = shift;
+    my $dbh = Bugzilla->dbh;
+
+    my $type = Bugzilla->get_field($self->{field})->value_type;
+    my $t = "see".$self->{sequence};
+
+    my @v = ref $self->{value} ? @{$self->{value}} : $self->{value};
+    $self->{quoted} = join ', ', map { $dbh->quote($_) } @v;
+
+    if ($self->{type} eq 'allwordssubstr')
+    {
+        $self->{term} = {
+            table => "(SELECT bug_id FROM bug_see_also $t WHERE value IN ($self->{quoted})".
+                " GROUP BY bug_id HAVING COUNT(bug_id) = ".@v.") a$t",
+            bugid_field => "a$t.bug_id",
+        };
+    }
+    else
+    {
+        if ($self->{type} eq 'anyexact' || $self->{type} eq 'anywordssubstr')
+        {
+            $self->{term} = "$t.value IN ($self->{quoted})";
+        }
+        else
+        {
+            $self->{fieldsql} = $self->{field} = "$t.value";
+            $self->{value} = $v[0];
+            $self->call_op;
+        }
+        $self->{term} = {
+            table => "bug_see_also $t",
+            where => $self->{term},
+            bugid_field => "$t.bug_id",
         };
     }
 }
@@ -2776,7 +2812,6 @@ sub _bugid_rev_nonchanged
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
-    my @terms;
     my $fn = Bugzilla->get_field($self->{field})->value_field->name;
     my $t = 'bugs_'.$self->{sequence};
 
