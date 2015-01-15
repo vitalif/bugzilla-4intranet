@@ -787,7 +787,7 @@ sub get_dependent_check_order
         $_->type == FIELD_TYPE_MULTI_SELECT ||
         # include these to check them for an empty value
         $_->name eq 'deadline' || $_->name eq 'status_whiteboard' || $_->name eq 'alias' ||
-        $_->custom
+        $_->custom && $_->type != FIELD_TYPE_BUG_ID_REV
     } Bugzilla->get_fields({ obsolete => 0 });
     my @check;
     for my $f (@{ [ values %check ] }) # iterate over array copy
