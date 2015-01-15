@@ -258,7 +258,7 @@ hr {
     }
 }
 
-textarea, select, input[type="text"], input:not([type]), input[type="password"] {
+textarea, select, input[type="text"], input:not([type]), input[type="password"], .text_input {
     border-width: 1px;
     border-style: solid;
     border-color: #747e93;

@@ -26,18 +26,18 @@
 /* global (begin) */
     body {
         font-family: sans-serif;
+        font-size: 80%;
         color: #000;
         background: #fff url("global/body-back.gif") repeat-x;
     }
     table {
         border-collapse: collapse;
     }
-    body, td, th, input, select {
+    body, td, th {
         font-family: Verdana, sans-serif;
-        font-size: small;
     }
-    textarea {
-        font-size: small;
+    table, td, th, input, select, textarea {
+        font-size: 100%;
     }
     select {
         background: #fff;
@@ -321,7 +321,8 @@ div#docslinks {
 /* The rules for these classes make international text wrap correctly,
    even for languages like Japanese that have no spaces. */
 .bz_comment_text, .uneditable_textarea, textarea {
-    font-family: Consolas, monospace;
+    font-family: "Droid Sans Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 110%;
 }
 
 .bz_comment_hilite {
@@ -356,7 +357,7 @@ table#flags td {
 }
 
 .flag_select {
-    min-width: 3em;
+    width: auto !important;
 }
 
 input.requestee {
@@ -432,7 +433,6 @@ dl dl > dt {
 /* For bug fields */
 .uneditable_textarea {
     width: 30em;
-    font-size: medium;
 }
 
 div.user_match {
@@ -578,8 +578,6 @@ table.alcontent { width: 100%; }
 
 .importxls_link { margin-left: 20px; }
 .importxls_link span { font-weight: bold; }
-
-#comment_status_commit #comment { width: 50em; font-size: medium; font-family: Consolas, monospace; }
 
 .selectfree_ie iframe {
 display:none;

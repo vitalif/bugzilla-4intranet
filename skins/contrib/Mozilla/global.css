@@ -78,7 +78,7 @@ body {
     background-repeat: repeat, repeat-x;
     color: #404040;
     margin: 0;
-    font-size: 0.8em; /* Base font size. NEVER hardcode absolute sizes anywhere except this place. */
+    font-size: 0.9em; /* Base font size. NEVER hardcode absolute sizes anywhere except this place. */
     -moz-text-size-adjust: none; /* Fix inconsistent font sizes in mobile Firefox */
 }
 
@@ -969,6 +969,7 @@ table.eventbox {
     .flatten_table, .flatten_table > tbody, .flatten_table > tbody > tr, .flatten_table > tbody > tr > td {
         display: block;
         width: 100%;
+        float: left;
     }
 }
 
