@@ -2801,7 +2801,7 @@ sub add_see_also
     my $found = 0;
     for my $line (split /\n/, $regexes)
     {
-        next if /^#/;
+        next if $line =~ /^#/;
         my ($regex, $replacement) = split /\s+/, $line;
         if ($regex && $input =~ /$regex/)
         {
