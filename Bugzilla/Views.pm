@@ -58,7 +58,7 @@ sub refresh_some_views
         $u{$_} = 1;
     }
     my $dbh = Bugzilla->dbh;
-    return unless $dbh->can('real_table_list');
+    return unless (ref $dbh)->can('real_table_list');
     my $r = $dbh->real_table_list('view$%$bugs', 'VIEW');
     # Save current user
     my $old_user = Bugzilla->user;
