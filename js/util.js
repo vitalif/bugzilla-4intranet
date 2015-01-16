@@ -289,7 +289,7 @@ window.eventTarget = function(ev)
  */
 window.addClass = function(obj, c)
 {
-    if (obj instanceof Array)
+    if (typeof(obj) == 'object' && (obj instanceof Array))
     {
         for (var i = 0; i < obj.length; i++)
             addClass(obj[i], c);
@@ -302,7 +302,7 @@ window.addClass = function(obj, c)
 };
 window.removeClass = function(obj, c)
 {
-    if (obj instanceof Array)
+    if (typeof(obj) == 'object' && (obj instanceof Array))
     {
         for (var i = 0; i < obj.length; i++)
             removeClass(obj[i], c);
