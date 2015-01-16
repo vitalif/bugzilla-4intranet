@@ -310,7 +310,7 @@ function getSelectedIds(sel)
 function getSelectedValues(sel)
 {
     var opt = {};
-    if (sel.type != 'select' || !sel.multi)
+    if (sel.nodeName != 'SELECT' || !sel.multiple)
     {
         opt[sel.value] = true;
         return opt;

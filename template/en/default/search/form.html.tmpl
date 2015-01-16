@@ -405,11 +405,11 @@
   [% field_obj = Bugzilla.get_field(sel.name) %]
   <select name="[% sel.name | html %]" id="[% sel.name | html %]" multiple="multiple" size="[% sel.size %]">
     [% IF field_obj.type == constants.FIELD_TYPE_SINGLE_SELECT && field_obj.nullable %]
-      <option value="---"[% " selected" IF lsearch(default.${sel.name}, '---') != -1 %]>---</option>
+      <option value="---"[% ' selected="selected"' IF lsearch(default.${sel.name}, '---') != -1 %]>---</option>
     [% END %]
     [% FOREACH value = field_obj.legal_value_names_with_ids %]
       <option value="[% value.name | html %]" id="qf_[% sel.name | html %]_[% value.ids.join('_') %]"
-        [% " selected" IF lsearch(default.${sel.name}, value.name) != -1 %]>
+        [% ' selected="selected"' IF lsearch(default.${sel.name}, value.name) != -1 %]>
         [%- value.name | html -%]
       </option>
     [% END %]
