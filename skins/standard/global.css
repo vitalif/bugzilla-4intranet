@@ -325,6 +325,11 @@ div#docslinks {
     font-size: 110%;
 }
 
+pre, code, kbd, samp, tt {
+    font-family: "Droid Sans Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 1em;
+}
+
 .bz_comment_hilite {
     background-color: lightgreen;
     margin: 0;
