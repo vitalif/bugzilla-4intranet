@@ -457,18 +457,19 @@ u {
 
 .bz_alias_short_desc_container {
     background: none;
-    font-weight: normal;
+    font-weight: bold;
     line-height: 30px;
     padding: 5px 0;
     text-shadow: 0 1px rgba(255, 255, 255, 0.2);
 }
 
-.bz_alias_short_desc_container b {
+.bz_alias_short_desc_container .editme {
     font-weight: normal;
 }
 
-.bz_alias_short_desc_container .editme {
+#summary_alias_input {
     font-weight: normal;
+    font-size: 0.8em;
 }
 
 .last_comment_link b {
