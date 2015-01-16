@@ -2110,7 +2110,7 @@ sub _set_keywords
                     {
                         # CustIS Bug 66910 - Keyword autocreation
                         my $obj = Bugzilla::Keyword->create({
-                            name => $name,
+                            value => $name,
                             description => $data->{descriptions}->{$name},
                         });
                         $kw->{lc $name} = $obj;
