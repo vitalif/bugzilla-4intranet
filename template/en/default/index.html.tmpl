@@ -37,7 +37,8 @@
 <!--
 function onLoadActions() {
   quicksearchHelpText('quicksearch_main', 'show');
-  if( window.external && window.external.AddSearchProvider ){
+  if( window.external && ( typeof( window.external.AddSearchProvider ) != 'undefined' &&
+    typeof( window.external.AddSearchProvider ) != 'unknown' ) ){
     removeClass('quicksearch_plugin', 'bz_default_hidden');
   }
   document.getElementById('quicksearch_top').focus();

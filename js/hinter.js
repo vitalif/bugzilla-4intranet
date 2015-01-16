@@ -130,7 +130,7 @@ SimpleAutocomplete.prototype.init = function()
         t.style.display = 'none';
         t.style.position = 'absolute';
         t.style.zIndex = 1000;
-        document.body.appendChild(t);
+        document.body.insertBefore(t, document.body.childNodes[0]);
     }
     else
     {

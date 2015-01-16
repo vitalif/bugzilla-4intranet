@@ -289,7 +289,7 @@ window.eventTarget = function(ev)
  */
 window.addClass = function(obj, c)
 {
-    if (typeof(obj) == 'object' && (obj instanceof Array))
+    if (obj !== null && (obj instanceof Array)) // ie8 needs explicit check for null here O_o
     {
         for (var i = 0; i < obj.length; i++)
             addClass(obj[i], c);
@@ -302,7 +302,7 @@ window.addClass = function(obj, c)
 };
 window.removeClass = function(obj, c)
 {
-    if (typeof(obj) == 'object' && (obj instanceof Array))
+    if (obj !== null && (obj instanceof Array))
     {
         for (var i = 0; i < obj.length; i++)
             removeClass(obj[i], c);
