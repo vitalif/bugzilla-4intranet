@@ -77,12 +77,13 @@ use constant LIST_ORDER => 'id';
 use constant DB_COLUMNS => qw(
     id
     type_id
+    status
     bug_id
     attach_id
-    requestee_id
-    setter_id
-    status
     creation_date
+    modification_date
+    setter_id
+    requestee_id
 );
 
 use constant REQUIRED_CREATE_FIELDS => qw(
@@ -148,6 +149,7 @@ sub attach_id    { return $_[0]->{attach_id};    }
 sub status       { return $_[0]->{status};       }
 sub setter_id    { return $_[0]->{setter_id};    }
 sub requestee_id { return $_[0]->{requestee_id}; }
+sub creation_date { return $_[0]->{creation_date}; }
 
 ###############################
 ####       Methods         ####
