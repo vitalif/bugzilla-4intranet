@@ -30,7 +30,7 @@
 
 [% DEFAULT flag_table_id = "flags" %]
 
-<script type="text/javascript" src="js/flag.js"></script>
+<script type="text/javascript" src="[% 'js/flag.js' | ts_url %]"></script>
 
 <table id="[% flag_table_id | html %]" class="flag_table">
   [% UNLESS flag_no_header %]

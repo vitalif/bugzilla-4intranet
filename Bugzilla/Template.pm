@@ -683,6 +683,26 @@ sub create
         # built-in filter, please also add a stub filter to t/004template.t.
         FILTERS => {
 
+            # Timestamped URL to force refresh of JavaScript/CSS
+            ts_url => sub
+            {
+                my ($file) = @_;
+                my $mtime = (stat(bz_locations()->{libpath}.'/'.$file))[9];
+                if (!defined $mtime)
+                {
+                    if ($file =~ /\.css$/so)
+                    {
+                        return 'skins/empty.css';
+                    }
+                    elsif ($file =~ /\.js$/so)
+                    {
+                        return 'js/empty.js';
+                    }
+                    return $file;
+                }
+                return "$file?$mtime";
+            },
+
             # Returns the text with backslashes, single/double quotes,
             # and newlines/carriage returns escaped for use in JS strings.
             js => sub

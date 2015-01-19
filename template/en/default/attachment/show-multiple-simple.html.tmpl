@@ -3,7 +3,7 @@
   <head>
     <title>[% title FILTER html %]</title>
     <base href="[% urlbase FILTER html %]" [% IF Bugzilla.cgi.param('target') == '_blank' %] target="_blank"[% END %] />
-    <script type="text/javascript" src="js/resize-iframe.js"></script>
+    <script type="text/javascript" src="[% 'js/resize-iframe.js' | ts_url %]"></script>
   </head>
 
   <body>

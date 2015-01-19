@@ -8,9 +8,9 @@
 <html>
 <head>
     <title>Печать SCRUM-карточек[% IF searchname || defaultsavename %][% ": " _ (searchname || defaultsavename) | html %][% END %]</title>
-    <link rel="stylesheet" type="text/css" media="print" href="skins/standard/print.css" />
+    <link rel="stylesheet" type="text/css" media="print" href="[% 'skins/standard/print.css' | ts_url %]" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <script type="text/javascript" src="js/util.js"></script>
+    <script type="text/javascript" src="[% 'js/util.js' | ts_url %]"></script>
 <style type="text/css">
 .dot { border: 1px dashed black; }
 .dot { white-space: nowrap; }
@@ -184,8 +184,8 @@ var nc = [% t.cols || "0" %];
 var idlist = [ [% idlist_js || "" %] ];
 //-->
 </script>
-<script type="text/javascript" src="js/DragDrop.js"></script>
-<script type="text/javascript" src="js/scrumcards.js"></script>
+<script type="text/javascript" src="[% 'js/DragDrop.js' | ts_url %]"></script>
+<script type="text/javascript" src="[% 'js/scrumcards.js' | ts_url %]"></script>
 
 </body>
 </html>

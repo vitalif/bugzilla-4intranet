@@ -95,7 +95,7 @@
       # Always present.
       #%]
     [% FOREACH style_url = style_urls %]
-      <link href="[% style_url FILTER html %]"
+      <link href="[% style_url | ts_url | html %]"
             rel="stylesheet"
             type="text/css" />
     [% END %]
@@ -104,7 +104,7 @@
         # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
         # and below.
         #%]
-      <link href="skins/standard/IE-fixes.css"
+      <link href="[% 'skins/standard/IE-fixes.css' | ts_url %]"
             rel="stylesheet"
             type="text/css">
     <![endif]-->
@@ -117,7 +117,7 @@
       # Причём в Bugzilla 4 их указывают в другом порядке, и получается нормально. O_o %]
     [% IF 0 # user.settings.skin.is_enabled %]
       [% FOREACH style_url = style_urls %]
-        <link href="[% style_url FILTER html %]"
+        <link href="[% style_url | ts_url | html %]"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
               title="[% lc_messages.setting_descs.standard FILTER html %]"
               type="text/css" />
@@ -127,7 +127,7 @@
         # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
         # and below.
         #%]
-        <link href="skins/standard/IE-fixes.css"
+        <link href="[% 'skins/standard/IE-fixes.css' | ts_url | html %]"
               rel="[% 'alternate ' IF user_skin %]stylesheet"
               title="[% lc_messages.setting_descs.standard FILTER html %]"
               type="text/css" />
@@ -145,7 +145,7 @@
       [% contrib_skin = contrib_skin FILTER url_quote %]
       [% IF contrib_skin.match('\.css$') %]
         [%# 1st skin variant: single-file stylesheet %]
-        <link href="[% "skins/contrib/$contrib_skin" %]"
+        <link href="[% "skins/contrib/$contrib_skin" | ts_url %]"
               rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
               title="[% contrib_skin FILTER html %]"
               type="text/css" />
@@ -153,8 +153,7 @@
         [%# 2nd skin variant: stylesheet set %]
         [% FOREACH style_url = style_urls %]
           [% IF style_url.match('^skins/standard/') %]
-            <link href="[% style_url.replace('^skins/standard/',
-                                             "skins/contrib/$contrib_skin/") %]"
+            <link href="[% style_url.replace('^skins/standard/', "skins/contrib/$contrib_skin/") | ts_url %]"
                   rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
                   title="[% contrib_skin FILTER html %]"
                   type="text/css" />
@@ -165,7 +164,7 @@
             # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
             # and below.
             #%]
-          <link href="skins/contrib/[% contrib_skin FILTER html %]/IE-fixes.css"
+          <link href="[% ('skins/contrib/' _ contrib_skin _ '/IE-fixes.css') | ts_url | html %]"
                 rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
                 title="[% contrib_skin FILTER html %]"
                 type="text/css" />
@@ -187,8 +186,7 @@
       #%]
     [% FOREACH style_url = style_urls %]
       [% IF style_url.match('^skins/standard/') %]
-        <link href="[% style_url.replace('^skins/standard/', "skins/custom/")
-                       FILTER html %]" rel="stylesheet" type="text/css" />
+        <link href="[% style_url.replace('^skins/standard/', "skins/custom/") | ts_url | html %]" rel="stylesheet" type="text/css" />
       [% END %]
     [% END %]
     <!--[if lte IE 7]>
@@ -196,14 +194,14 @@
         # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
         # and below.
         #%]
-      <link href="skins/custom/IE-fixes.css"
+      <link href="[% 'skins/custom/IE-fixes.css' | ts_url %]"
             rel="stylesheet"
             type="text/css" />
     <![endif]-->
 
-    <script src="js/util.js" type="text/javascript"></script>
-    <script src="js/global.js" type="text/javascript"></script>
-    <script src="js/hinter.js" type="text/javascript"></script>
+    <script src="[% 'js/util.js' | ts_url %]" type="text/javascript"></script>
+    <script src="[% 'js/global.js' | ts_url %]" type="text/javascript"></script>
+    <script src="[% 'js/hinter.js' | ts_url %]" type="text/javascript"></script>
     <script type="text/javascript">
     <!--
         [%# The language selector needs javascript to set its cookie,
@@ -236,7 +234,7 @@
 
     [% IF javascript_urls %]
       [% FOREACH javascript_url = javascript_urls %]
-        <script src="[% javascript_url FILTER html %]" type="text/javascript"></script>
+        <script src="[% javascript_url | ts_url | html %]" type="text/javascript"></script>
       [% END %]
     [% END %]
 
