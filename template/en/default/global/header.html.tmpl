@@ -153,22 +153,30 @@
         [%# 2nd skin variant: stylesheet set %]
         [% FOREACH style_url = style_urls %]
           [% IF style_url.match('^skins/standard/') %]
-            <link href="[% style_url.replace('^skins/standard/', "skins/contrib/$contrib_skin/") | ts_url %]"
+            [% skinned_url = style_url.replace('^skins/standard/', "skins/contrib/$contrib_skin/") %]
+            [% ts_skin_url = skinned_url | ts_url %]
+            [% IF ts_skin_url != skinned_url %][%# == means that css does not exist %]
+            <link href="[% ts_skin_url | none %]"
                   rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
                   title="[% contrib_skin FILTER html %]"
                   type="text/css" />
+            [% END %]
           [% END %]
         [% END %]
+        [% skinned_url = 'skins/contrib/' _ contrib_skin _ '/IE-fixes.css' %]
+        [% ts_skin_url = skinned_url | ts_url %]
+        [% IF ts_skin_url != skinned_url %][%# == means that css does not exist %]
         <!--[if lte IE 7]>
           [%# Internet Explorer treats [if IE] HTML comments as uncommented.
             # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
             # and below.
             #%]
-          <link href="[% ('skins/contrib/' _ contrib_skin _ '/IE-fixes.css') | ts_url | html %]"
+          <link href="[% ts_skin_url | none %]"
                 rel="[% 'alternate ' UNLESS contrib_skin == user_skin %]stylesheet"
                 title="[% contrib_skin FILTER html %]"
                 type="text/css" />
         <![endif]-->
+        [% END %]
       [% END %]
     [% END %]
 
@@ -186,18 +194,27 @@
       #%]
     [% FOREACH style_url = style_urls %]
       [% IF style_url.match('^skins/standard/') %]
-        <link href="[% style_url.replace('^skins/standard/', "skins/custom/") | ts_url | html %]" rel="stylesheet" type="text/css" />
+        [% skinned_url = style_url.replace('^skins/standard/', "skins/custom/") %]
+        [% ts_skin_url = skinned_url | ts_url %]
+        [% IF ts_skin_url != skinned_url %]
+          [%# Skins are allowed to miss some stylesheets. == means checked css does not exist %]
+          <link href="[% ts_skin_url | none %]" rel="stylesheet" type="text/css" />
+        [% END %]
       [% END %]
     [% END %]
+    [% skinned_url = 'skins/custom/IE-fixes.css' %]
+    [% ts_skin_url = skinned_url | ts_url %]
+    [% IF ts_skin_url != skinned_url %][%# == means that css does not exist %]
     <!--[if lte IE 7]>
       [%# Internet Explorer treats [if IE] HTML comments as uncommented.
         # Use it to import CSS fixes so that Bugzilla looks decent on IE 7
         # and below.
         #%]
-      <link href="[% 'skins/custom/IE-fixes.css' | ts_url %]"
+      <link href="[% ts_skin_url | none %]"
             rel="stylesheet"
             type="text/css" />
     <![endif]-->
+    [% END %]
 
     <script src="[% 'js/util.js' | ts_url %]" type="text/javascript"></script>
     <script src="[% 'js/global.js' | ts_url %]" type="text/javascript"></script>

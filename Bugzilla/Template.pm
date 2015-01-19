@@ -690,14 +690,6 @@ sub create
                 my $mtime = (stat(bz_locations()->{libpath}.'/'.$file))[9];
                 if (!defined $mtime)
                 {
-                    if ($file =~ /\.css$/so)
-                    {
-                        return 'skins/empty.css';
-                    }
-                    elsif ($file =~ /\.js$/so)
-                    {
-                        return 'js/empty.js';
-                    }
                     return $file;
                 }
                 return "$file?$mtime";
