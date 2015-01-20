@@ -39,10 +39,10 @@ Bugzilla::User::match_field({
     ($vars->{allow_bless} ? (add_bless => { type => 'multi' }) : ()),
 });
 
-my @add_members = split /[\s,]+/, $ARGS->{add_members};
-my @add_bless = $vars->{allow_bless} ? (split /[\s,]+/, $ARGS->{add_bless}) : ();
+my @add_members = list $ARGS->{add_members};
+my @add_bless = $vars->{allow_bless} ? (list $ARGS->{add_bless}) : ();
 my @rm_members = list $ARGS->{remove};
-my @rm_bless = $vars->{allow_bless} ? list $ARGS->{unbless} : ();
+my @rm_bless = $vars->{allow_bless} ? (list $ARGS->{unbless}) : ();
 
 if (@add_members || @add_bless || @rm_members || @rm_bless)
 {
