@@ -71,11 +71,13 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
         [% PROCESS section_status %]
         [% PROCESS section_details1 %]
         [% PROCESS section_people %]
+        [% PROCESS section_customfields part=1 %]
       </div>
       <div id="bz_show_bug_column_2" class="bz_show_bug_column">
         [% PROCESS section_details2 %]
         [% PROCESS section_keyword_whiteboard %]
         [% PROCESS section_url %]
+        [% PROCESS section_customfields part=2 %]
       </div>
     </div>
     <div class="bz_show_bug_colpair">
@@ -83,28 +85,13 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
         [% PROCESS section_dates %]
         [% PROCESS section_see_also %]
         [% PROCESS section_dependson_blocks %]
+        [% PROCESS section_customfields part=3 %]
       </div>
       <div id="bz_show_bug_column_4" class="bz_show_bug_column">
         [% PROCESS section_cclist %]
-        [% PROCESS section_flags %]
-      </div>
-    </div>
-    <div style="clear: both"></div>
-    <div class="bz_show_bug_colpair">
-      <div id="bz_custom_column_1" class="bz_show_bug_column">
-        [% PROCESS section_customfields part=1 %]
-      </div>
-      <div id="bz_custom_column_2" class="bz_show_bug_column">
-        [% PROCESS section_customfields part=2 %]
-      </div>
-    </div>
-    <div class="bz_show_bug_colpair">
-      <div id="bz_custom_column_3" class="bz_show_bug_column">
-        [% PROCESS section_customfields part=3 %]
-      </div>
-      <div id="bz_custom_column_4" class="bz_show_bug_column">
         [% PROCESS section_customfields part=4 %]
         [% Hook.process("after_custom_fields") %]
+        [% PROCESS section_flags %]
       </div>
     </div>
     <hr id="bz_top_half_spacer" />
@@ -788,9 +775,8 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
 [%############################################################################%]
 
 [% BLOCK section_customfields %]
-  [% c = Bugzilla.active_custom_fields %]
-  [% IF c && c.size >= part %]
-    [% FOREACH field = c.slice((c.size * (part - 1)) div 4, (c.size * part) div 4 - 1) %]
+  [% FOREACH field = Bugzilla.active_custom_fields %]
+    [% IF (part == 1 || field.sortkey >= (part - 1)*1000) && (part == 4 || field.sortkey < part*1000) %]
       [% INCLUDE bug/field.html.tmpl
         value = bug.${field.name}
         editable = bug.check_can_change_field(field.name, 0, 1)

@@ -25,7 +25,6 @@ function initControlledFields()
     {
         doInit(i);
     }
-    reflowFieldColumns();
 }
 
 function initControlledField(id)
@@ -101,10 +100,6 @@ function handleControllerField_this(e, nonfirst)
     for (var i in f)
     {
         handleControllerField_this.apply(document.getElementById(i), [ null, true ]);
-    }
-    if (!nonfirst)
-    {
-        reflowFieldColumns();
     }
 }
 
@@ -268,45 +263,5 @@ function handleControlledField(controlled_id, is_initial_editform)
         {
             setFieldValue(controlled, v);
         }
-    }
-}
-
-// FIXME: Remove partially duplicated code with query-visibility.js:reflowFieldRows()
-function reflowFieldColumns()
-{
-    var cols = [];
-    var fields = [];
-    var visible = 0;
-    for (var i = 1, e; e = document.getElementById('bz_custom_column_'+i); i++)
-    {
-        cols.push(e);
-        for (var j = 0; j < e.childNodes.length; j++)
-        {
-            if (hasClass(e.childNodes[j], 'bug_field'))
-            {
-                var v = hasClass(e.childNodes[j], 'bz_hidden_field') ? 0 : 1;
-                fields.push([ e.childNodes[j], v ]);
-                visible += v;
-            }
-        }
-    }
-    var changed = false;
-    for (var cur_col = 0, j = 0, pushed = 0; cur_col < 4; cur_col++)
-    {
-        var per_col = Math.ceil((visible-pushed)/(4-cur_col));
-        var v = 0;
-        for (; j < fields.length; v += fields[j][1], j++)
-        {
-            if ((v + Math.ceil(fields[j][1]/2)) > per_col)
-            {
-                break;
-            }
-            if (changed || fields[j][0].parentNode != cols[cur_col])
-            {
-                cols[cur_col].appendChild(fields[j][0]);
-                changed = true;
-            }
-        }
-        pushed += v;
     }
 }
