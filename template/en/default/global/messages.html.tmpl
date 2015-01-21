@@ -131,6 +131,30 @@
   </p>
 [% END %]
 
+[% BLOCK msg_custom_field_created %]
+  [% title = "Custom Field Created" %]
+  <div class="message">
+  The new custom field '[% field.name | html %]' has been
+  successfully created.
+  </div>
+[% END %]
+
+[% BLOCK msg_custom_field_deleted %]
+  [% title = "Custom Field Deleted" %]
+  <div class="message">
+  The custom field '[% field.name | html %]' has been
+  successfully deleted.
+  </div>
+[% END %]
+
+[% BLOCK msg_custom_field_updated %]
+  [% title = "Custom Field Updated" %]
+  <div class="message">
+  Properties of the '[% field.name | html %]' field have been
+  successfully updated.
+  </div>
+[% END %]
+
 [%# This is a list of all the possible messages. Please keep them in
   # alphabetical order by message tag, and leave a blank line between messages.
   #%]
@@ -362,24 +386,6 @@
   [% ELSE %]
     No changes made to <em>[% comp.name | html %]</em>.
   [% END %]
-[% END %]
-
-[% BLOCK msg_custom_field_created %]
-  [% title = "Custom Field Created" %]
-  The new custom field '[% field.name | html %]' has been
-  successfully created.
-[% END %]
-
-[% BLOCK msg_custom_field_deleted %]
-  [% title = "Custom Field Deleted" %]
-  The custom field '[% field.name | html %]' has been
-  successfully deleted.
-[% END %]
-
-[% BLOCK msg_custom_field_updated %]
-  [% title = "Custom Field Updated" %]
-  Properties of the '[% field.name | html %]' field have been
-  successfully updated.
 [% END %]
 
 [% BLOCK msg_emailold_change_canceled %]

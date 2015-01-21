@@ -67,10 +67,10 @@ elsif ($action eq 'new')
 
     delete_token($token);
 
-    $vars->{message} = 'custom_field_created';
-
-    $template->process('admin/custom_fields/list.html.tmpl', $vars)
-        || ThrowTemplateError($template->error());
+    Bugzilla->add_result_message({ message => 'custom_field_created', field => { name => $field->name } });
+    Bugzilla->save_session_data;
+    print Bugzilla->cgi->redirect('editfields.cgi');
+    exit;
 }
 elsif ($action eq 'edit')
 {
@@ -156,10 +156,10 @@ elsif ($action eq 'update')
 
     delete_token($token);
 
-    $vars->{message} = 'custom_field_updated';
-
-    $template->process('admin/custom_fields/list.html.tmpl', $vars)
-        || ThrowTemplateError($template->error());
+    Bugzilla->add_result_message({ message => 'custom_field_updated', field => { name => $field->name } });
+    Bugzilla->save_session_data;
+    print Bugzilla->cgi->redirect('editfields.cgi');
+    exit;
 }
 elsif ($action eq 'del')
 {
@@ -173,7 +173,7 @@ elsif ($action eq 'del')
     $vars->{token} = issue_session_token('delete_field');
 
     $template->process('admin/custom_fields/confirm-delete.html.tmpl', $vars)
-            || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 }
 elsif ($action eq 'delete')
 {
@@ -186,13 +186,12 @@ elsif ($action eq 'delete')
     # If the field cannot be deleted, it will throw an error.
     $field->remove_from_db();
 
-    $vars->{field}   = $field;
-    $vars->{message} = 'custom_field_deleted';
-
     delete_token($token);
 
-    $template->process('admin/custom_fields/list.html.tmpl', $vars)
-        || ThrowTemplateError($template->error());
+    Bugzilla->add_result_message({ message => 'custom_field_deleted', field => { name => $field->name } });
+    Bugzilla->save_session_data;
+    print Bugzilla->cgi->redirect('editfields.cgi');
+    exit;
 }
 else
 {
