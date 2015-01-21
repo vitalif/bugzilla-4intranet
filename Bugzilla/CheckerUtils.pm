@@ -131,26 +131,31 @@ sub show_checker_errors
     my ($bugs) = @_;
     $bugs ||= saved_failed_checkers();
     return if !grep { !$_->{passed_checkers} } @$bugs;
-    if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE)
-    {
-        my $info = [
-            map { {
-                bug_id => $_->bug_id,
-                errors => [ map { $_->message } grep { !$_->triggers } @{$_->{failed_checkers}} ]
-            } }
-            grep { @{$_->{failed_checkers} || []} } @$bugs
-        ];
-        ThrowUserError('checks_failed', { bugs => $info });
-    }
-    @{Bugzilla->result_messages} = ();
+    # Recheck force/fatal for the case of mass update when show_checker_errors() is called once in the end
     my $fatal = 1 && (grep { grep { $_->{is_fatal} } @{$_->{failed_checkers} || []} } @$bugs);
-    delete Bugzilla->input_params->{force_checkers};
-    Bugzilla->template->process("bug/process/verify-checkers.html.tmpl", {
-        script_name => Bugzilla->cgi->script_name,
-        failed => $bugs,
-        allow_commit => !$fatal,
-    }) || ThrowTemplateError(Bugzilla->template->error);
-    exit;
+    my $force = 1 && Bugzilla->input_params->{force_checkers};
+    if ($fatal || !$force)
+    {
+        if (Bugzilla->error_mode != ERROR_MODE_WEBPAGE)
+        {
+            my $info = [
+                    map { {
+                    bug_id => $_->bug_id,
+                    errors => [ map { $_->message } grep { !$_->triggers } @{$_->{failed_checkers}} ]
+                } }
+                grep { @{$_->{failed_checkers} || []} } @$bugs
+            ];
+            ThrowUserError('checks_failed', { bugs => $info });
+        }
+        @{Bugzilla->result_messages} = ();
+        delete Bugzilla->input_params->{force_checkers};
+        Bugzilla->template->process("bug/process/verify-checkers.html.tmpl", {
+            script_name => Bugzilla->cgi->script_name,
+            failed => $bugs,
+            allow_commit => !$fatal,
+        }) || ThrowTemplateError(Bugzilla->template->error);
+        exit;
+    }
 }
 
 sub freeze_failed_checkers
