@@ -480,6 +480,7 @@ div.user_match {
 }
 .bug_field select, .bug_field textarea {
     width: 98%;
+    font-size: 100% !important;
 }
 .bug_field table select {
     width: 100%;
