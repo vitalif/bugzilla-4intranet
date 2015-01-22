@@ -110,7 +110,13 @@ var constants = {
         <th align="left"><label for="sortkey">Sortkey:</label></th>
         <td>
           <input type="text" id="sortkey" name="sortkey" size="6"
-            maxlength="6" value="[% field.sortkey | html %]" />
+            maxlength="6" value="[% field.sortkey | html %]" onchange="onChangeSortkey()" />
+          [% IF !field.id || field.custom %]
+          <span id="sortkey_col1"[% IF !(field.sortkey < 1000) %] style="display: none"[% END %]>< 1000: first column</span>
+          <span id="sortkey_col2"[% IF !(field.sortkey >= 1000 AND field.sortkey < 2000) %] style="display: none"[% END %]>1000-1999: second column</span>
+          <span id="sortkey_col3"[% IF !(field.sortkey >= 2000 AND field.sortkey < 3000) %] style="display: none"[% END %]>2000-2999: third column</span>
+          <span id="sortkey_col4"[% IF !(field.sortkey >= 3000) %] style="display: none"[% END %]>>= 3000: 4th column</span>
+          [% END %]
         </td>
       </tr>
       <tr>
@@ -432,6 +438,7 @@ var constants = {
 <!--
 onChangeNullable();
 onChangeCloned();
+onChangeSortkey();
 [% IF !field.id %]
 onChangeType();
 [% END %]

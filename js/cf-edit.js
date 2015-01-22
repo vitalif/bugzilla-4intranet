@@ -70,3 +70,17 @@ function onChangeCloned()
     if (n)
         n.style.display = c.style.display;
 }
+
+function onChangeSortkey()
+{
+    var s = parseInt(document.getElementById('sortkey').value);
+    s = s && s == s ? (s < 4000 ? 1+Math.floor(s/1000) : 4) : 1;
+    for (var i = 1; i <= 4; i++)
+    {
+        var e = document.getElementById('sortkey_col'+i);
+        if (e)
+        {
+            e.style.display = i == s ? '' : 'none';
+        }
+    }
+}
