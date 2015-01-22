@@ -799,7 +799,7 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
     [% dep.title %]:</label>
     <br />
     <span id="[% dep.fieldname %]_input_area">
-      [% IF bug.check_can_change_field(dep.fieldname, 0, 1) %]
+      [% IF chg %]
         <input name="[% dep.fieldname %]" id="[% dep.fieldname %]"
                class="text_input"
                value="[% bug.${dep.fieldname}.join(', ') %]" />

@@ -55,7 +55,8 @@
   bug.id && field.type != constants.FIELD_TYPE_BUG_ID_REV &&
   field.type != constants.FIELD_TYPE_MULTI_SELECT &&
   field.type != constants.FIELD_TYPE_TEXTAREA &&
-  field.type != constants.FIELD_TYPE_BUG_URLS %]
+  field.type != constants.FIELD_TYPE_BUG_URLS &&
+  field.type != constants.FIELD_TYPE_BUG_ID %]
 
 [% IF NOT no_tds %]
   <th class="field_label" id="field_label_[% field.name | html %]">
@@ -121,21 +122,35 @@
         //-->
       </script>
     [% CASE constants.FIELD_TYPE_BUG_ID %]
+      [% IF bug.id && !no_search_link %]
+      <table width="98%"><tr><td width="100%" id="[% field.name | html %]_input_area" style="padding-right: 5px">
+      [% ELSE %]
       <span id="[% field.name | html %]_input_area">
+      [% END %]
         <input name="[% field.name | html %]" id="[% field.name | html %]" class="text_input"
           [% IF style %] style="[% style | html %]"[% END %]
           [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]
           value="[% value | html %]" size="7" />
+      [% IF bug.id && !no_search_link %]
+      </td>
+      [% ELSE %]
       </span>
+      [% END %]
 
       [%# Do not hide input on bug creation form %]
       [% IF bug.id %]
+        [% IF !no_search_link %]
+          </td><td style="white-space: nowrap">
+        [% END %]
         [% IF bug.${field.name} %]
           [% bug.${field.name} | bug_link(bug.${field.name}) | none %]
         [% END %]
         <span id="[% field.name | html %]_edit_container" class="edit_me bz_default_hidden">
           (<a href="#" id="[% field.name | html %]_edit_action" [% IF tabindex %] tabindex="[% tabindex | html %]"[% END %]>edit</a>)
         </span>
+        [% IF !no_search_link %]
+          [% PROCESS search_link %](search)</a></td></tr></table>
+        [% END %]
         <script type="text/javascript">
         hideEditableField(
           '[% field.name | js %]_edit_container',
