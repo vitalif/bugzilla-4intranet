@@ -100,7 +100,7 @@ sub sqlize_dates
         # we need to add one day to end_date to catch stuff done today
         # do not forget to adjust date if it was the last day of month
         my (undef, undef, undef, $ed, $em, $ey, undef) = strptime($end_date);
-        ($ey, $em, $ed) = date_adjust($ey+1900, $em+1, $ed+1, 1);
+        ($ey, $em, $ed) = date_adjust($ey+1900, $em+1, $ed, 1);
         $end_date = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
         $date_bits .= " AND longdescs.bug_when < ?";
         push @date_values, $end_date;
@@ -258,7 +258,7 @@ if ($do_report)
         if ($end_date)
         {
             my (undef, undef, undef, $ed, $em, $ey, undef) = strptime($end_date);
-            ($ey, $em, $ed) = date_adjust($ey+1900, $em+1, $ed+1, 1);
+            ($ey, $em, $ed) = date_adjust($ey+1900, $em+1, $ed, 1);
             my $end_date2 = sprintf("%04d-%02d-%02d", $ey, $em, $ed);
             $sql .= " AND bug_when<?";
             trick_taint($end_date2);
