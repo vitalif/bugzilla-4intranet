@@ -396,7 +396,7 @@ addListener(window, 'beforeunload', function(e)
 (function()
 {
     var lastSel;
-    addListener(window, 'hashchange', function()
+    var selectComment = function()
     {
         var a = document.getElementsByName(window.location.hash.substr(1));
         if (a.length)
@@ -416,7 +416,9 @@ addListener(window, 'beforeunload', function(e)
                 lastSel = a;
             }
         }
-    });
+    };
+    onDomReady(selectComment);
+    addListener(window, 'hashchange', selectComment);
 })();
 
 function showEditComment(comment_id)
