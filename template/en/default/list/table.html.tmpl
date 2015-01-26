@@ -215,6 +215,8 @@
         [%- bug.$column FILTER format(abbrev.$column.format_value) FILTER html -%]
       [% ELSIF field_obj.type == constants.FIELD_TYPE_BUG_ID %]
         [% bug.$column FILTER bug_link(bug.$column) IF bug.$column %]
+      [% ELSIF field_obj.type == constants.FIELD_TYPE_BUG_ID_REV %]
+        [% bug.$column FILTER bug_list_link IF bug.$column %]
       [% ELSIF field_obj.type == constants.FIELD_TYPE_EXTURL %]
         [% IF bug.$column %]
           [% SET url_quoted = bug.$column | url_quote_ns %]
