@@ -2950,7 +2950,7 @@ Is open:: Specifies if a bug in this state hasn't been fixed yet.
 Is it a confirmed state:: For open states, specifies if a bug in this state is confirmed.
     By default, this is off only for the UNCONFIRMED state.
 Is it an assigned state:: Specifies if a bug in this state has someone working on it.
-    There should only one assigned state.
+    There should be only one assigned state.
 
 These flags are used by Bugzilla4Intranet to work with bug statuses correctly regardless of
 their names.
@@ -2998,23 +2998,22 @@ or on another select field by setting the value dependency field from the Bug Fi
 
 In Bugzilla4Intranet, keywords are more similar to tags: if a user specifies a non-existing
 keyword, Bugzilla asks him to enter a description for it, and the new keyword is created
-automatically afterwards.
+automatically afterwards. This is different from the original Bugzilla where each keyword
+must be created by an administrator before usage.
 
 [[bug_status_workflow]]
 === Bug Status Workflow
 
 The bug status workflow is no longer hardcoded but can be freely customized
-from the web interface. Only one bug status cannot be renamed nor deleted,
-UNCONFIRMED, but the workflow involving it is free. The configuration
-page displays all existing bug statuses twice, first on the left for bug
-statuses we come from and on the top for bug statuses we move to.
+from the web interface. The configuration page displays all existing bug statuses
+twice, first on the left for bug statuses we come from and on the top for bug statuses we move to.
 If the checkbox is checked, then the transition between the two bug statuses
 is legal, else it's forbidden independently of your privileges. The bug status
 used for the "duplicate_or_move_bug_status" parameter must be part of the
 workflow as that is the bug status which will be used when duplicating or
 moving a bug, so it must be available from each bug status.
 
-When the workflow is set, the "View Current Triggers" link below the table
+When the workflow is set, the "View Comments Required on Status Transitions" link below the table
 lets you set which transitions require a comment from the user.
 
 [[voting]]
@@ -3025,29 +3024,31 @@ to bugs, to indicate that they'd like them fixed.
 This allows developers to gauge
 user need for a particular enhancement or bugfix. By allowing bugs with
 a certain number of votes to automatically move from "UNCONFIRMED" to
-"NEW", users of the bug system can help high-priority bugs garner
+"NEW" status, users of the bug system can help high-priority bugs garner
 attention so they don't sit for a long time awaiting triage.
 
-To modify Voting settings:
+To enable Voting, enable the "Votes" field in the Bug Fields UI.
 
-. Navigate to the "Edit product" screen for the Product you
-wish to modify
+To modify Voting settings, navigate to the "Edit product" screen for the Product
+you wish to modify.
 
-. __Maximum Votes per person__:
-Setting this field to "0" disables voting.
+Maximum Votes, per user:: Maximum number of votes a single user can put
+    to bugs in this product. Setting this field to "0" disables voting.
 
-. __Maximum Votes a person can put on a single bug__:
-It should probably be some number lower than the
-"Maximum votes per person". Don't set this field to "0" if
-"Maximum votes per person" is non-zero; that doesn't make
-any sense.
+Maximum Votes, per user, per single bug::
+    Maximum number of votes a single user can put to a single bug in this product.
+    It should probably be some number lower than the "Maximum votes per user".
+    Setting this to "0" of course will also prevent the user from voting on bugs in this product.
+    "1" means that a user can only put a single vote to a single bug in this product.
 
-. __Number of votes a bug in this product needs to automatically get out of the UNCONFIRMED state__:
-Setting this field to "0" disables the automatic move of
-bugs from UNCONFIRMED to NEW.
+Allow unconfirmed:: You must allow unconfirmed bug statuses in the product if you want
+    to automatically confirm bugs by their number of votes.
 
-. Once you have adjusted the values to your preference, click
-"Update".
+and automatically confirm bugs if they get ... votes:: Number of votes a bug in this product
+    needs to automatically get out of the unconfirmed state. Setting this field to "0" disables
+    the automatic confirmation of bugs.
+
+Once you have adjusted the values to your preference, click "Update".
 
 [[quips]]
 === Quips
@@ -3057,16 +3058,21 @@ next to search results. A Bugzilla installation can have its own specific
 quips. Whenever a quip needs to be displayed, a random selection
 is made from the pool of already existing quips.
 
-Quips are controlled by the _enablequips_ parameter.
-It has several possible values: on, approved, frozen or off.
+Quips are controlled by the 'quip_list_entry_control' parameter.
+It has several possible values: open, moderated or closed.
 In order to enable quips approval you need to set this parameter
-to "approved". In this way, users are free to submit quips for
+to "moderated". In this way, users are free to submit quips for
 addition but an administrator must explicitly approve them before
 they are actually used.
 
+Each user can enable or disable quips by changing their personal
+preference named "Show a quip at the top of each bug list". If you
+want to totally disable quips, you can do it using "Default Preferences"
+administration UI - just set that preference to "off" and disable it.
+
 In order to see the user interface for the quips, it is enough to click
 on a quip when it is displayed together with the search results. Or
-it can be seen directly in the browser by visiting the quips.cgi URL
+it can be seen directly in the browser by visiting the /quips.cgi URL
 (prefixed with the usual web location of the Bugzilla installation).
 Once the quip interface is displayed, it is enough to click the
 "view and edit the whole quip list" in order to see the administration
@@ -3086,13 +3092,13 @@ which can be used in order to permanently delete a quip.
 [[sanitycheck]]
 === Checking and Maintaining Database Integrity
 
-Over time it is possible for the Bugzilla database to become corrupt
-or to have anomalies.
-This could happen through normal usage of Bugzilla, manual database
-administration outside of the Bugzilla user interface, or from some
-other unexpected event. Bugzilla includes a "Sanity Check" script that
-can perform several basic database checks, and repair certain problems or
-inconsistencies.
+Bugzilla always uses foreign keys to maintain referential integrity of the database.
+However, there are other types of non-critical logical anomalies which can sometimes
+appear over some time of normal usage or after manual database administration outside
+of the Bugzilla user interface.
+
+Bugzilla includes a "Sanity Check" script that can perform some database checks,
+and repair certain problems.
 
 To run the "Sanity Check" script, log in as an Administrator and click the
 "Sanity Check" link in the admin page. Any problems that are found will be
@@ -3101,18 +3107,8 @@ it will present a link to initiate the fix. If the script can not
 fix the problem it will require manual database administration or recovery.
 
 The "Sanity Check" script can also be run from the command line via the perl
-script _sanitycheck.pl_. The script can also be run as
-a _cron_ job. Results will be delivered by email.
-
-The "Sanity Check" script should be run on a regular basis as a matter of
-best practice.
-
-[WARNING]
-====
-The "Sanity Check" script is no substitute for a competent database
-administrator. It is only designed to check and repair basic database
-problems.
-====
+script _sanitycheck.pl_. The script can also be run as a _cron_ job. Results
+will be delivered by email.
 
 [[security]]
 == Bugzilla Security
@@ -3175,7 +3171,8 @@ permissions on Unix systems so that nothing is world-writable.
 If your system supports it, you may wish to consider running
 Bugzilla inside of a _chroot_ jail. This option
 provides unprecedented security by restricting anything running
-inside the jail from accessing any information outside of it. If you
+inside the jail from accessing any information outside of it.
+Note that except information stored in client-server DBMS like MySQL or PostgreSQL). If you
 wish to use this option, please consult the documentation that came
 with your system.
 
