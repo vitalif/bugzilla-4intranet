@@ -2298,9 +2298,14 @@ sub _set_version
     my ($self, $version) = @_;
     $version = trim($version);
     my $field_obj = Bugzilla->get_field('version');
+    if (!$field_obj->enabled)
+    {
+        return undef;
+    }
     if (!defined $version || $version eq '')
     {
-
+        $self->{version_obj} = undef;
+        $self->{version} = undef;
         return undef;
     }
     # FIXME use set_select_field
