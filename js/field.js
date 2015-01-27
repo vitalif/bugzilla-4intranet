@@ -37,9 +37,10 @@ function hideEditableField( container, input, action, field_id, original_value )
  * var ContainerInputArray: An array containing the (edit) and text area and the input being displayed
  * var ContainerInputArray[0]: the conainer that will be hidden usually shows the (edit) text
  * var ContainerInputArray[1]: the input area and label that will be displayed
+ * var nofocus: do not focus the field
  *
  */
-function showEditableField(e, ContainerInputArray)
+function showEditableField(e, ContainerInputArray, nofocus)
 {
     var inputs = new Array();
     var inputArea = ContainerInputArray[1];
@@ -56,7 +57,7 @@ function showEditableField(e, ContainerInputArray)
         inputs.push(inputArea);
     else
         inputs = inputArea.getElementsByTagName('input');
-    if (inputs.length > 0)
+    if (inputs.length > 0 && !nofocus)
     {
         // focus on the first field, this makes it easier to edit
         inputs[0].focus();
@@ -122,9 +123,9 @@ function showPeopleOnChange(field_id_list)
     for (var i = 0; i < field_id_list.length; i++)
     {
         addListener(field_id_list[i], 'change',
-            function(ev) { return showEditableField(ev, [ 'bz_qa_contact_edit_container', 'bz_qa_contact_input' ]) });
+            function(ev) { return showEditableField(ev, [ 'bz_qa_contact_edit_container', 'bz_qa_contact_input' ], true) });
         addListener(field_id_list[i], 'change',
-            function(ev) { return showEditableField(ev, [ 'bz_assignee_edit_container', 'bz_assignee_input']) });
+            function(ev) { return showEditableField(ev, [ 'bz_assignee_edit_container', 'bz_assignee_input'], true) });
     }
 }
 
