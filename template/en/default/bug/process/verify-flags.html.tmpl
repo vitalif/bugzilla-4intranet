@@ -23,7 +23,7 @@
 [% FOREACH flag = verify_flags %]
   <tr>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
-      [% flag.setter.login | html %] ( [% flag.setter.name | html %] )
+      [% flag.setter.login | html %] ( [% flag.setter.realname | html %] )
     </td>
     <td style="border-width: 0 0 1px 0; border-style: solid; border-color: gray">
       "[% flag.type.description | html %]"
