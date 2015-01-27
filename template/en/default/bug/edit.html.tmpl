@@ -941,9 +941,10 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
                    cols      = constants.COMMENT_COLS
                    style     = (user.settings.comment_width.value == 'on' ? 'width: 100%' : '')
         %]
-        [% Hook.process("after_comment_textarea", 'bug/edit.html.tmpl') %]
-        <br />
-        [% PROCESS commit_button id="" nobr=0%]
+        [%# Hook.process("after_comment_textarea", 'bug/edit.html.tmpl') %]
+        <div style="margin-top: 5px">
+          [% PROCESS commit_button id="" nobr=0%]
+        </div>
 
         <table class="status" cellspacing="0" cellpadding="0">
           <tr>
