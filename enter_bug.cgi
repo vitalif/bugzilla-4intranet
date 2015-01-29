@@ -316,6 +316,7 @@ else
     $default{bug_file_loc}   = $ARGS->{bug_file_loc} || "http://";
     $default{keywords}       = $ARGS->{keywords};
     $default{status_whiteboard} = $ARGS->{status_whiteboard};
+    $default{target_milestone} = $ARGS->{target_milestone};
     $default{dependson}      = $ARGS->{dependson};
     $default{blocked}        = $ARGS->{blocked};
     $default{deadline}       = $ARGS->{deadline};
@@ -354,8 +355,6 @@ elsif (defined $vercookie && grep { $_ eq $vercookie } @{$vars->{version}})
 {
     $default{version} = $vercookie;
 }
-
-$default{target_milestone} = $ARGS->{target_milestone};
 
 # Construct the list of allowable statuses.
 my $initial_statuses = Bugzilla::Status->can_change_to();
