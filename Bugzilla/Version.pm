@@ -141,6 +141,10 @@ sub create
 {
     my $class = shift;
     my ($params) = @_;
+    if ($params->{name} =~ /^(-*|unspecified)$/s)
+    {
+        ThrowUserError('version_blank_name', $params);
+    }
     my $self = $class->SUPER::create($params);
     if ($self)
     {

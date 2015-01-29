@@ -1239,7 +1239,11 @@
 
 [% BLOCK error_milestone_blank_name %]
   [% title = "Blank Milestone Name Not Allowed" %]
-  You must enter a name for this milestone.
+  Blank and "---" milestone names are not allowed.
+  If you want an empty milestone for bugs in your product, just
+  [% IF product %]<a href="editproducts.cgi?product=[% product.name | html %]">[% END -%]
+  enable empty value for the Target Milestone field
+  [%- IF product %]</a>[% END %] in it.
 [% END %]
 
 [% BLOCK error_milestone_name_too_long %]
@@ -1361,21 +1365,6 @@
 [% BLOCK error_missing_subcategory %]
   [% title = "Missing Subcategory" %]
   You did not specify a subcategory for this series.
-[% END %]
-
-[% BLOCK error_missing_version %]
-  [% title = "Missing Version" %]
-  [% admindocslinks = {'versions.html' => 'Defining versions'} %]
-  Sorry, the product <em>[% product.name FILTER html %]</em>
-  has to have at least one version in order for you to
-  enter [% terms.abug %] into it.<br />
-  [% IF user.in_group("editcomponents", product.id) %]
-    <a href="editversions.cgi?action=add&amp;product=[% product.name FILTER url_quote %]">Create
-    a new version</a>.
-  [% ELSE %]
-    Please contact [% Param("maintainer") %] and ask them
-    to add a version to this product.
-  [% END %]
 [% END %]
 
 [% BLOCK error_move_worktime_empty %]
@@ -1923,7 +1912,11 @@
 
 [% BLOCK error_version_blank_name %]
   [% title = "Blank Version Name Not Allowed" %]
-  You must enter a name for this version.
+  Blank, "---" and "unspecified" version names are not allowed.
+  If you want an empty version for bugs in your product, just
+  [% IF product %]<a href="editproducts.cgi?product=[% product.name | html %]">[% END -%]
+  enable empty value for the Version field
+  [%- IF product %]</a>[% END %] in it.
 [% END %]
 
 [% BLOCK error_unknown_action %]

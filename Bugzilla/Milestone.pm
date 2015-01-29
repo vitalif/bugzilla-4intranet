@@ -118,7 +118,12 @@ sub run_create_validators
 sub create
 {
     my $class = shift;
-    my $self = $class->SUPER::create(@_);
+    my ($params) = @_;
+    if ($params->{name} =~ /^-*$/s)
+    {
+        ThrowUserError('milestone_blank_name', $params);
+    }
+    my $self = $class->SUPER::create($params);
     if ($self)
     {
         # Fill visibility values
