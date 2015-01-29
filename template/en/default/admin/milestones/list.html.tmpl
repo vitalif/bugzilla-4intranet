@@ -77,6 +77,21 @@
      })
 %]
 
+[% vf = Bugzilla.get_field('target_milestone') %]
+[% IF vf.null_field.name == 'product' %]
+<p>
+  [% IF !vf.nullable %]
+  Empty milestone (---) <a href="editfields.cgi?action=edit&field=target_milestone">disabled globally</a>.
+  [% ELSE %]
+  <form action="?action=change_empty&product=[% product.name | url_quote %]" method="POST">
+    Empty milestone (---) is [% vf.null_visibility_values.${product.id} ? 'enabled' : 'disabled' %] in this product.
+    <input type="hidden" name="allow_empty" value="[% vf.null_visibility_values.${product.id} ? 0 : 1 %]" />
+    <input type="submit" value="[% vf.null_visibility_values.${product.id} ? 'Disable' : 'Enable' %] empty milestone" />
+  </form>
+  [% END %]
+</p>
+[% END %]
+
 [% Hook.process('before_table') %]
 
 [% PROCESS admin/table.html.tmpl

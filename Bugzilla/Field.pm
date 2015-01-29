@@ -1021,16 +1021,23 @@ sub update_visibility_values
     }
     my $del = [ keys %$h ];
     return 0 if !@$add && !@$del;
-    if (@$del)
-    {
-        Bugzilla->dbh->do(
-            "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?".
-            " AND visibility_value_id IN (".join(", ", @$del).")",
-            undef, $self->id, $controlled_value_id
-        );
-    }
+    $self->delete_visibility_values($controlled_value_id, $del, 1);
     $self->add_visibility_values($controlled_value_id, $add);
     return 1;
+}
+
+sub delete_visibility_values
+{
+    my $self = shift;
+    my ($controlled_value_id, $visibility_value_ids, $dont_touch) = @_;
+    return 0 if !@$visibility_value_ids;
+    my $ok = Bugzilla->dbh->do(
+        "DELETE FROM fieldvaluecontrol WHERE field_id=? AND value_id=?".
+        " AND visibility_value_id IN (".join(", ", map { int($_) } @$visibility_value_ids).")",
+        undef, $self->id, $controlled_value_id
+    );
+    $self->touch if !$dont_touch;
+    return $ok;
 }
 
 sub add_visibility_values

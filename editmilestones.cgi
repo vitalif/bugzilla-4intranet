@@ -88,6 +88,17 @@ unless ($action)
 }
 
 #
+# action='change_empty' -> Enable/disable empty milestone
+#
+if ($action eq 'change_empty' && Bugzilla->get_field('target_milestone')->null_field_id == Bugzilla->get_field('product')->id)
+{
+    my $f = ($ARGS->{allow_empty} ? 'add' : 'delete').'_visibility_values';
+    Bugzilla->get_field('target_milestone')->$f(FLAG_NULLABLE, [ $product->id ]);
+    print Bugzilla->cgi->redirect('editmilestones.cgi?product='.url_quote($product->name));
+    exit;
+}
+
+#
 # action='add' -> present form for parameters for new milestone
 #
 # (next action will be 'new')

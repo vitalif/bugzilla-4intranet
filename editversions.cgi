@@ -89,6 +89,17 @@ unless ($action)
 }
 
 #
+# action='change_empty' -> Enable/disable empty version
+#
+if ($action eq 'change_empty' && Bugzilla->get_field('version')->null_field_id == Bugzilla->get_field('product')->id)
+{
+    my $f = ($ARGS->{allow_empty} ? 'add' : 'delete').'_visibility_values';
+    Bugzilla->get_field('version')->$f(FLAG_NULLABLE, [ $product->id ]);
+    print Bugzilla->cgi->redirect('editversions.cgi?product='.url_quote($product->name));
+    exit;
+}
+
+#
 # action='add' -> present form for parameters for new version
 #
 # (next action will be 'new')

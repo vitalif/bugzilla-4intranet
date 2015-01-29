@@ -71,6 +71,21 @@
      })
 %]
 
+[% vf = Bugzilla.get_field('version') %]
+[% IF vf.null_field.name == 'product' %]
+<p>
+  [% IF !vf.nullable %]
+  Empty version (---) <a href="editfields.cgi?action=edit&field=version">disabled globally</a>.
+  [% ELSE %]
+  <form action="?action=change_empty&product=[% product.name | url_quote %]" method="POST">
+    Empty version (---) is [% vf.null_visibility_values.${product.id} ? 'enabled' : 'disabled' %] in this product.
+    <input type="hidden" name="allow_empty" value="[% vf.null_visibility_values.${product.id} ? 0 : 1 %]" />
+    <input type="submit" value="[% vf.null_visibility_values.${product.id} ? 'Disable' : 'Enable' %] empty version" />
+  </form>
+  [% END %]
+</p>
+[% END %]
+
 [% Hook.process('before_table') %]
 
 [% PROCESS admin/table.html.tmpl
