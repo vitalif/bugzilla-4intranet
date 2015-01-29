@@ -601,7 +601,7 @@ use constant ABSTRACT_SCHEMA => {
     # (originally CustIS Bugs 53617, 91153)
     fieldvaluecontrol => {
         FIELDS => [
-            field_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id'}},
+            field_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'fielddefs', COLUMN => 'id', DELETE => 'CASCADE'}},
             value_id => {TYPE => 'INT4', NOTNULL => 1},
             visibility_value_id => {TYPE => 'INT4', NOTNULL => 1},
         ],
