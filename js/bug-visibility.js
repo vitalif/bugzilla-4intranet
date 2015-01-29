@@ -30,43 +30,6 @@ function initControlledFields()
 function initControlledField(id)
 {
     var f = document.getElementById(id);
-    if (f && document.forms['Create'] && field_metadata[id].default_value)
-    {
-        // Check if anything is selected initially on the entry form in HTML
-        var nonempty = false;
-        if (f.nodeName == 'SELECT')
-        {
-            for (var i = 0; i < f.options.length; i++)
-            {
-                if (f.options[i].value && f.options[i].getAttribute('selected'))
-                {
-                    nonempty = true;
-                    break;
-                }
-            }
-        }
-        else if (f.value)
-        {
-            nonempty = true;
-        }
-        // Select global default value before selecting dependent ones
-        if (!nonempty)
-        {
-            f._oldDefault = setFieldValue(f, field_metadata[id].default_value);
-        }
-        else
-        {
-            f._oldDefault = field_metadata[id].default_value;
-            if (f.nodeName == 'SELECT')
-            {
-                f._oldDefault = f._oldDefault.split(',');
-            }
-            else
-            {
-                f._oldDefault = [ f._oldDefault ];
-            }
-        }
-    }
     if (!f || f.nodeName != 'INPUT' || f.type != 'hidden')
     {
         handleControlledField(id, !document.forms['Create']);
@@ -217,15 +180,16 @@ function handleControlledField(controlled_id, is_initial_editform)
         }
     }
     // Select and/or remember default value
-    if (m.default_field && document.getElementById(m.default_field))
+    var df;
+    if (m.default_value || (df = m.default_field && document.getElementById(m.default_field)))
     {
         var diff = false;
-        if (controlled._oldDefault)
+        // Check if the value is different from previous default or from empty value
+        if (controlled.nodeName == 'SELECT')
         {
-            // Check if the value is different from previous default
-            if (controlled.nodeName == 'SELECT')
+            var copt = getSelectedIds(controlled);
+            if (controlled._oldDefault)
             {
-                var copt = getSelectedIds(controlled);
                 for (var i in controlled._oldDefault)
                 {
                     if (copt[controlled._oldDefault[i]])
@@ -238,20 +202,20 @@ function handleControlledField(controlled_id, is_initial_editform)
                         break;
                     }
                 }
-                for (var i in copt)
-                {
-                    diff = true;
-                    break;
-                }
             }
-            else
+            for (var i in copt)
             {
-                diff = controlled.value != controlled._oldDefault;
+                diff = true;
+                break;
             }
+        }
+        else
+        {
+            diff = controlled.value != (controlled._oldDefault || '');
         }
         // Remember default value for the new controller
         var v = m.default_value;
-        if (field_metadata[m.default_field]['defaults'][controlled_id])
+        if (df && field_metadata[m.default_field]['defaults'][controlled_id])
         {
             for (var i in getSelectedIds(m.default_field))
             {
@@ -261,6 +225,7 @@ function handleControlledField(controlled_id, is_initial_editform)
         controlled._oldDefault = v;
         if (!diff && !is_initial_editform)
         {
+            // If the field was empty or equal to the previous default, set it to the new default
             setFieldValue(controlled, v);
         }
     }
