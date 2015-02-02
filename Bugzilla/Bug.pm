@@ -2082,7 +2082,7 @@ sub _set_keywords
 {
     my ($self, $data) = @_;
 
-    $data = { 'keywords' => $data, 'descriptions' => {} } if !ref $data;
+    $data = { keywords => $data, descriptions => {} } if !ref $data;
 
     my $old = $self->get_object('keywords');
     my $new = $old;
@@ -4043,7 +4043,8 @@ sub create_or_update
     for my $f (Bugzilla->get_fields({ type => FIELD_TYPE_MULTI_SELECT, obsolete => 0 }))
     {
         $f = $f->name;
-        if (defined $fields_in->{$f} && !ref $fields_in->{$f})
+        # FIXME: Can't autocreate keywords from this function
+        if ($f ne 'keywords' && defined $fields_in->{$f} && !ref $fields_in->{$f})
         {
             $fields_in->{$f} = [ split ',', $fields_in->{$f} ];
         }
