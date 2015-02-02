@@ -515,27 +515,25 @@ if ($ARGS->{newcc} || $ARGS->{addselfcc} || $ARGS->{removecc} || $ARGS->{masscc}
     {
         if ($ARGS->{ccaction} eq 'add')
         {
-            $cc_add = $ARGS->{masscc};
+            push @cc_add, list $ARGS->{masscc};
         }
         elsif ($ARGS->{ccaction} eq 'remove')
         {
-            $cc_remove = $ARGS->{masscc};
+            push @cc_remove, list $ARGS->{masscc};
         }
     }
     else
     {
-        $cc_add = ref $ARGS->{newcc} ? join(', ', @{$ARGS->{newcc}}) : $ARGS->{newcc};
-        # We came from bug_form which uses a select box to determine what cc's
-        # need to be removed...
+        # newcc, as well as masscc, is processed through Bugzilla::User::match_field which makes it an arrayref
+        push @cc_add, list $ARGS->{newcc};
+        # We came from bug_form which uses a select box to determine what cc's need to be removed...
         if (defined $ARGS->{removecc} && $ARGS->{cc})
         {
-            $cc_remove = ref $ARGS->{cc} ? join(', ', @{$ARGS->{cc}}) : $ARGS->{cc};
+            push @cc_remove, list $ARGS->{cc};
         }
     }
 
-    push @cc_add, split /[\s,]+/, $cc_add if $cc_add;
     push @cc_add, Bugzilla->user if defined $ARGS->{addselfcc};
-    push @cc_remove, split /[\s,]+/, $cc_remove if $cc_remove;
 }
 
 foreach my $b (@bug_objects)
