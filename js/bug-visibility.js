@@ -25,6 +25,11 @@ function initControlledFields()
     {
         doInit(i);
     }
+    if (navigator.appName == 'Microsoft Internet Explorer')
+    {
+        // :-X reflow page to hide the gap between bugzilla-body and footer in IE8
+        document.body.className = document.body.className;
+    }
 }
 
 function initControlledField(id)
@@ -63,6 +68,11 @@ function handleControllerField_this(e, nonfirst)
     for (var i in f)
     {
         handleControllerField_this.apply(document.getElementById(i), [ null, true ]);
+    }
+    if (!nonfirst && navigator.appName == 'Microsoft Internet Explorer')
+    {
+        // :-X reflow page to hide the gap between bugzilla-body and footer in IE8
+        document.body.className = document.body.className;
     }
 }
 
