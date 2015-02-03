@@ -198,7 +198,7 @@
           size="[% field_size | html %]" multiple="multiple"
         [% END %]>
         [% IF allow_dont_change %]
-          <option value="[% dontchange | html %]" [% ' selected="selected"' IF value == dontchange %]>
+          <option value="[% dontchange | html %]" selected="selected">
             [% dontchange | html %]
           </option>
         [% END %]
@@ -214,11 +214,11 @@
         [% ELSE %]
           [% legal_values = field.legal_values %]
         [% END %]
-        [% value_found = allow_dont_change AND value == dontchange %]
+        [% value_found = allow_dont_change %]
         [% FOREACH legal_value = legal_values %]
           <option value="[% legal_value.name | html %]" id="v[% legal_value.id | html %]_[% field.name | html %]"
-            [% IF value.contains(legal_value.id).size || value_name.defined && value_name.contains(legal_value.name).size ||
-                (!bug.id || !was_nullable) && !value && !value_name && field.default_value_hash.${legal_value.id} %]
+            [% IF !allow_dont_change && (value.contains(legal_value.id).size || value_name.defined && value_name.contains(legal_value.name).size ||
+                (!bug.id || !was_nullable) && !value && !value_name && field.default_value_hash.${legal_value.id}) %]
               selected="selected"
               [% value_found = 1 %]
             [% END %]>
