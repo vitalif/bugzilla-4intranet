@@ -422,6 +422,7 @@ GROUP BY t1.bug_id", {Slice=>{}}, keys %$seen) || {};
 
         if ($row->{short_desc})
         {
+            my $sd = html_quote($row->{short_desc});
             push @params, <<"EOF";
 label=<
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0">
@@ -432,7 +433,7 @@ label=<
 <TR>
 <TD COLSPAN="2" ALIGN="TEXT">
 <FONT POINT-SIZE="8">
-$row->{short_desc}
+$sd
 </FONT>
 </TD>
 </TR>
