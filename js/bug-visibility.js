@@ -198,6 +198,7 @@ function handleControlledField(controlled_id, is_initial_editform)
         if (controlled.nodeName == 'SELECT')
         {
             var copt = getSelectedIds(controlled);
+            delete copt[0]; // skip empty value
             if (controlled._oldDefault)
             {
                 for (var i in controlled._oldDefault)
