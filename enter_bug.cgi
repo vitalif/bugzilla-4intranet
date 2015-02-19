@@ -323,7 +323,7 @@ else
     $default{estimated_time} = 0+($ARGS->{estimated_time} || 0) || "0.0";
     $default{work_time}      = 0+($ARGS->{work_time} || 0) || "0.0";
 
-    $vars->{cc}             = $ARGS->{cc};
+    $vars->{cc}             = join ', ', list $ARGS->{cc};
 
     $vars->{comment}        = $ARGS->{comment};
     $vars->{commentprivacy} = $ARGS->{commentprivacy};
