@@ -51,8 +51,14 @@ var notimetracking = [% bug.product_obj.notimetracking ? 1 : 0 %];
 //-->
 </script>
 
-<form id="form_bug_edit" name="changeform" method="post" action="process_bug.cgi" enctype="multipart/form-data"
+[%# CustIS Bug 57315 - Force Fucking Firefox to reset form on Reload %]
+[% SET cfname = 'changeform_' _ bug.delta_ts.replace('\D+', '') %]
+<form id="form_bug_edit" name="[% cfname %]" method="post" action="process_bug.cgi" enctype="multipart/form-data"
     onsubmit="return changeform_onsubmit()" onkeypress="return ctrlEnter(event||window.event,this)">
+<script type="text/javascript">
+document.forms.changeform = document.forms.[% cfname %];
+document.changeform = document.[% cfname %];
+</script>
 
   <input type="hidden" name="delta_ts" value="[% bug.delta_ts %]" />
   <input type="hidden" name="longdesclength" value="[% bug.comments.size %]" />
