@@ -94,6 +94,10 @@ a, #header a, #header a:visited, #footer a, #footer a:visited, #titles {
     color: #0095dd;
 }
 
+a:visited {
+    color: #800080;
+}
+
 a:hover, #header a:hover, #footer a:hover {
     color: #00539f;
 }
