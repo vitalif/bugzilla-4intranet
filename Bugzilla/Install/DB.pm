@@ -855,6 +855,12 @@ WHERE description LIKE \'%[CC:%]%\'');
         $dbh->bz_drop_column('flagtypes', 'cc_list');
     }
 
+    # Change all NUMERIC custom fields to their actual type
+    for (Bugzilla->get_fields({ custom => 1, type => FIELD_TYPE_NUMERIC }))
+    {
+        $dbh->bz_alter_column('bugs', $_->name, Bugzilla::Field->SQL_DEFINITIONS->{FIELD_TYPE_NUMERIC()});
+    }
+
     _move_old_defaults($old_params);
 
     ################################################################
@@ -4098,7 +4104,10 @@ sub _change_select_fields_to_ids
         print "Replacing 'unspecified' versions with NULL\n";
         my $id = Bugzilla->get_field('version')->id;
         $dbh->do("UPDATE bugs b SET version=NULL WHERE b.version IN (SELECT v.id FROM versions v WHERE v.value='unspecified')");
-        $dbh->do("UPDATE components c SET default_version=NULL WHERE c.default_version IN (SELECT v.id FROM versions v WHERE v.value='unspecified')");
+        if ($dbh->bz_column_info('components', 'default_version'))
+        {
+            $dbh->do("UPDATE components c SET default_version=NULL WHERE c.default_version IN (SELECT v.id FROM versions v WHERE v.value='unspecified')");
+        }
         $dbh->do("UPDATE fielddefs SET is_mandatory=0 WHERE name='version'");
         $dbh->do(
             "DELETE FROM fieldvaluecontrol WHERE (field_id, value_id, visibility_value_id) IN ".

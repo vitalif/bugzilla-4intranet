@@ -143,7 +143,7 @@ use constant SQL_DEFINITIONS => {
     FIELD_TYPE_TEXTAREA,      { TYPE => 'MEDIUMTEXT' },
     FIELD_TYPE_DATETIME,      { TYPE => 'DATETIME'   },
     FIELD_TYPE_BUG_ID,        { TYPE => 'INT4'       },
-    FIELD_TYPE_NUMERIC,       { TYPE => 'NUMERIC', NOTNULL => 1, DEFAULT => '0' },
+    FIELD_TYPE_NUMERIC,       { TYPE => 'DECIMAL(30,10)', NOTNULL => 1, DEFAULT => '0' },
 };
 
 # Field definitions for the fields that ship with Bugzilla.
