@@ -27,6 +27,9 @@ function initChangeColumns()
     switch_options(sel_select, av_select, false);
     sel_select.selectedIndex = -1;
     updateView();
+    Calendar.set('period_from');
+    Calendar.set('period_to');
+    new SimpleAutocomplete("period_who", userAutocomplete, { emptyText: 'No users found' });
 }
 
 function switch_options(from_box, to_box, selected)

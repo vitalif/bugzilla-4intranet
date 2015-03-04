@@ -116,12 +116,14 @@ if ($ARGS->{rememberedquery})
     {
         my $params = http_decode_query($search->query);
         $params->{columnlist} = join(",", @collist);
+        $params->{$_} = $ARGS->{$_} for qw(period_from period_to period_who);
         $search->set_query(http_build_query($params));
         $search->update();
     }
 
     my $params = http_decode_query($ARGS->{rememberedquery});
     $params->{columnlist} = join(",", @collist);
+    $params->{$_} = $ARGS->{$_} for qw(period_from period_to period_who);
     $vars->{redirect_url} = "buglist.cgi?".http_build_query($params);
 
     # If we're running on Microsoft IIS, $cgi->redirect discards
@@ -138,7 +140,7 @@ if ($ARGS->{rememberedquery})
     }
     else
     {
-        print Bugzilla->cgi->redirect($vars->{'redirect_url'});
+        print Bugzilla->cgi->redirect($vars->{redirect_url});
         exit;
     }
 
@@ -169,6 +171,14 @@ else
 $vars->{collist} = \@collist;
 $vars->{splitheader} = Bugzilla->cookies->{SPLITHEADER} ? 1 : 0;
 $vars->{buffer} = http_build_query($ARGS);
+
+$vars->{$_} = $ARGS->{$_} for qw(period_from period_to period_who);
+if (!$vars->{period_from} && !$vars->{period_to} && !$vars->{period_who})
+{
+    $vars->{period_from} = $ARGS->{chfieldfrom};
+    $vars->{period_to} = $ARGS->{chfieldto};
+    $vars->{period_who} = $ARGS->{chfieldwho};
+}
 
 my $search;
 if (defined $ARGS->{query_based_on})

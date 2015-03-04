@@ -21,7 +21,8 @@
 
 [% PROCESS global/header.html.tmpl
   title = "Change Columns"
-  javascript_urls = "js/change-columns.js"
+  javascript_urls = [ "js/calendar.js", "js/change-columns.js" ]
+  style_urls = [ "skins/standard/calendar.css" ]
   onload = "initChangeColumns()"
 %]
 
@@ -106,9 +107,20 @@
              value="[% saved_search.id FILTER html%]" />
       <input type="checkbox" id="save_columns_for_search" checked="checked"
              name="save_columns_for_search" value="1" />
-      <label for="save_columns_for_search">Save this column list only
+      <label for="save_columns_for_search">Save this column list
         for search '[% saved_search.name FILTER html %]'</label>
     </p>
+  [% END %]
+
+  [% IF user.is_timetracker %]
+  <p>
+    In the "[% COLUMNS.interval_time.title | html %]" column, show working time for user:
+    <input name="period_who" id="period_who" size="30" value="[% period_who | html %]" />
+    between
+    <input name="period_from" id="period_from" size="10" value="[% period_from | html %]" />
+    and <input name="period_to" id="period_to" size="10" value="[% period_to | html %]" />
+    (YYYY-MM-DD or relative dates)
+  </p>
   [% END %]
 
   <p>

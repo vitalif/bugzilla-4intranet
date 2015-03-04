@@ -811,7 +811,7 @@ if ($superworktime)
     # Must come after Bugzilla::Search::getSQL
     if (Bugzilla->user->in_group('worktimeadmin'))
     {
-        my $d = $Bugzilla::Search::interval_to;
+        my $d = $search->{interval_to};
         if ($d)
         {
             # Use DateTime instead of SQL functions to be more DBMS-independent
@@ -824,7 +824,7 @@ if ($superworktime)
         {
             $d = POSIX::strftime("%Y-%m-%d", localtime);
         }
-        $vars->{worktime_user} = $ARGS->{worktime_user} || ($Bugzilla::Search::interval_who ? $Bugzilla::Search::interval_who->login : undef);
+        $vars->{worktime_user} = $ARGS->{worktime_user} || ($search->{interval_who} ? $search->{interval_who}->login : undef);
         $vars->{worktime_date} = $ARGS->{worktime_date} || $d;
     }
     else
@@ -1078,8 +1078,8 @@ $vars->{caneditbugs} = 1;
 $vars->{time_info} = $time_info;
 
 $vars->{query_params} = { %$params }; # now used only in superworktime
-$vars->{query_params}->{chfieldfrom} = $Bugzilla::Search::interval_from;
-$vars->{query_params}->{chfieldto} = $Bugzilla::Search::interval_to;
+$vars->{query_params}->{chfieldfrom} = $search->{interval_from};
+$vars->{query_params}->{chfieldto} = $search->{interval_to};
 
 if (!Bugzilla->user->in_group('editbugs'))
 {

@@ -1287,15 +1287,35 @@ sub init
         }
     }
 
-    $Bugzilla::Search::interval_from = undef;
-    $Bugzilla::Search::interval_to = undef;
-    $Bugzilla::Search::interval_who = undef;
+    # Setup interval_time column
+    if ($self->{user}->is_timetracker)
+    {
+        my $override = $H->{period_from} || $H->{period_to} || $H->{period_who};
+        $self->{interval_from} = $override ? $H->{period_from} : $H->{chfieldfrom};
+        $self->{interval_to} = $override ? $H->{period_to} : $H->{chfieldto};
+        $self->{interval_who} = $override ? $H->{period_who} : $H->{chfieldwho};
+        for ($self->{interval_from}, $self->{interval_to})
+        {
+            $_ = $_ && $_ ne 'now' ? SqlifyDate($_) : undef;
+        }
+        for ($self->{interval_who})
+        {
+            $_ = $_ ? ($_ eq '%user%' ? $self->{user} : Bugzilla::User::match_name($_, 1)->[0]) : undef;
+        }
+        COLUMNS->{interval_time}->{name} =
+            "(SELECT COALESCE(SUM(ldtime.work_time),0) FROM longdescs ldtime".
+            " WHERE ldtime.bug_id=bugs.bug_id".
+            ($self->{interval_from} ? " AND ldtime.bug_when >= ".$dbh->quote($self->{interval_from}) : '').
+            ($self->{interval_to} ? " AND ldtime.bug_when <= ".$dbh->quote($self->{interval_to}) : '').
+            ($self->{interval_who} ? " AND ldtime.who = ".$self->{interval_who}->id : '').
+            ")";
+    }
 
+    # Add "only bugs changed between..."
     my $chfieldfrom = trim(lc($H->{chfieldfrom} || ''));
     my $chfieldto = trim(lc($H->{chfieldto} || ''));
     $chfieldfrom = '' if $chfieldfrom eq 'now';
     $chfieldto = '' if $chfieldto eq 'now';
-
     if ($chfieldfrom ne '' || $chfieldto ne '')
     {
         my @chfield = map { COLUMN_ALIASES->{$_} || $_ } list $H->{chfield};
@@ -2058,7 +2078,6 @@ sub changed
         $who = $who eq '%user%' ? $self->{user} : Bugzilla::User::match_name($who, 1)->[0];
         if ($who)
         {
-            $Bugzilla::Search::interval_who = $who;
             $v->{who} = $who->login;
             $v->{who} =~ s/\@.*$//so if !Bugzilla->user->id;
             $who = $who->id;
@@ -2075,17 +2094,7 @@ sub changed
     # on the time interval and user specified in "changes" search area
     my $c;
     my %f = map { $_ => 1 } @{$v->{fields}};
-    if ($self->{user}->is_timetracker)
-    {
-        $Bugzilla::Search::interval_from = SqlifyDate($v->{after});
-        $Bugzilla::Search::interval_to = SqlifyDate($v->{before});
-        $c = $cond;
-        $c =~ s/ \./ldtime./gs;
-        COLUMNS->{interval_time}->{name} =
-            "(SELECT COALESCE(SUM(ldtime.work_time),0) FROM longdescs ldtime".
-            " WHERE ldtime.bug_id=bugs.bug_id AND $c)";
-    }
-    else
+    if (!$self->{user}->is_timetracker)
     {
         # Non-timetrackers can't search on time tracking fields
         delete $f{$_} for keys %{TIMETRACKING_FIELDS()};
@@ -2532,9 +2541,9 @@ sub _work_time_equals_0
         my $w = "$table.work_time != 0";
         if ($self->{field} eq 'interval_time')
         {
-            $w .= " AND $table.bug_when >= ".$dbh->quote($Bugzilla::Search::interval_from) if $Bugzilla::Search::interval_from;
-            $w .= " AND $table.bug_when <= ".$dbh->quote($Bugzilla::Search::interval_to) if $Bugzilla::Search::interval_to;
-            $w .= " AND $table.who = ".$Bugzilla::Search::interval_who->id if $Bugzilla::Search::interval_who;
+            $w .= " AND $table.bug_when >= ".$dbh->quote($self->{interval_from}) if $self->{interval_from};
+            $w .= " AND $table.bug_when <= ".$dbh->quote($self->{interval_to}) if $self->{interval_to};
+            $w .= " AND $table.who = ".$self->{interval_who}->id if $self->{interval_who};
         }
         $w .= " AND $table.isprivate = 0" if $self->{user}->is_insider;
         $self->{term} = {

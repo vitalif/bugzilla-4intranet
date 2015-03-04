@@ -6,7 +6,8 @@
 [% title = "Массовый ввод трудозатрат" %]
 [% PROCESS global/header.html.tmpl
   title = title
-  style_urls = [ "skins/standard/buglist.css" ]
+  javascript_urls = [ "js/calendar.js", "js/change-columns.js" ]
+  style_urls = [ "skins/standard/calendar.css", "skins/standard/buglist.css" ]
 %]
 
 <p>
@@ -53,12 +54,21 @@
 
 [% hidden_inputs(HideIndex=2) %]
 
-  Дата:
+<p style="margin: 8px 0">
+  Баг изменён:
   с <input type="text" name="chfieldfrom" id="chfieldfrom" value="[% query_params.chfieldfrom | html %]" onchange="check_who_enabled()" />
   по <input type="text" name="chfieldto" id="chfieldto" value="[% query_params.chfieldto | html %]" onchange="check_who_enabled()" />
   <span style="color: #aaa">(YYYY-MM-DD HH:MM:SS)</span> &nbsp; &nbsp;
-  Пользователь: <input type="text" name="chfieldwho" id="chfieldwho" value="[% query_params.chfieldwho | html %]" /> &nbsp;
+  пользователем: <input type="text" name="chfieldwho" id="chfieldwho" value="[% query_params.chfieldwho | html %]" />
+</p>
+<p style="margin: 0">
+  Period Worktime:
+  с <input type="text" name="period_from" id="period_from" value="[% query_params.period_from || query_params.period_to || query_params.period_who ? query_params.period_from : query_params.chfieldfrom | html %]" />
+  по <input type="text" name="period_to" id="period_to" value="[% query_params.period_from || query_params.period_to || query_params.period_who ? query_params.period_to : query_params.chfieldto | html %]" />
+  <span style="color: #aaa">(YYYY-MM-DD HH:MM:SS)</span> &nbsp; &nbsp;
+  пользователь: <input type="text" name="period_who" id="period_who" value="[% query_params.period_from || query_params.period_to || query_params.period_who ? query_params.period_who : query_params.chfieldwho | html %]" /> &nbsp;
   <input type="submit" value=" Показать трудозатраты " />
+</p>
 </form>
 </fieldset>
 
@@ -303,6 +313,12 @@ function do_dry_run(frm)
 }
 wt_user_blur();
 check_who_enabled();
+Calendar.set('chfieldfrom');
+Calendar.set('chfieldto');
+new SimpleAutocomplete("chfieldwho", userAutocomplete, { emptyText: 'No users found' });
+Calendar.set('period_from');
+Calendar.set('period_to');
+new SimpleAutocomplete("period_who", userAutocomplete, { emptyText: 'No users found' });
 //-->
 </script>
 
