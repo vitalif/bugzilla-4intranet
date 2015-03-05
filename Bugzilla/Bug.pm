@@ -4257,7 +4257,7 @@ sub get_value
 
     if (defined $self->{$attr})
     {
-        $self->{$attr} =~ s/\.?0+$//so if $field && $field->type == FIELD_TYPE_NUMERIC;
+        $self->{$attr} =~ s/((\.\d*[1-9])|\.)0+$/$2/so if $field && $field->type == FIELD_TYPE_NUMERIC;
         return $self->{$attr};
     }
 
