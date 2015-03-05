@@ -1202,7 +1202,7 @@ sub init
             if ($field eq 'content')
             {
                 $type = 'matches';
-                $values = join ' ', @$values;
+                $values = trim(join ' ', @$values);
             }
             elsif ($field eq 'bug_id')
             {
