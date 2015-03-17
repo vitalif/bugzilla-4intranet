@@ -1165,9 +1165,9 @@ sub init
     if ($H->{resolution})
     {
         my %resolutions = map { $_ => 1 } list $H->{resolution};
-        # Also include inactive resolutions, as you can query them.
+        # Also include inactive resolutions and '---', as you can query them.
         my $legal_resolutions = Bugzilla->get_field('resolution')->legal_values;
-        if (keys %resolutions == scalar @$legal_resolutions)
+        if (keys %resolutions == 1 + scalar @$legal_resolutions)
         {
             delete $H->{resolution};
         }
