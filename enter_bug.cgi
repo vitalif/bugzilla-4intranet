@@ -305,7 +305,7 @@ if ($cloned_bug_id)
 } # end of cloned bug entry form
 else
 {
-    $default{component_}    = $ARGS->{component};
+    $default{component}     = $ARGS->{component};
     $default{priority}      = $ARGS->{priority} || Bugzilla->params->{defaultpriority};
     $default{bug_severity}  = $ARGS->{bug_severity} || Bugzilla->params->{defaultseverity};
     $default{rep_platform}  = pick_by_ua($ARGS, 'rep_platform') if Bugzilla->get_field('rep_platform')->enabled;
