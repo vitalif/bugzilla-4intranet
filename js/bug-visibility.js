@@ -162,7 +162,7 @@ function handleControlledField(controlled_id, is_initial_editform)
             for (var i in m.legal)
             {
                 controlled_value = m.legal[i];
-                vis = checkValueVisibility(opt, vh[controlled_value[0]]);
+                vis = checkValueVisibility(opt, vh && vh[controlled_value[0]]);
                 if (vis)
                 {
                     var item = bz_createOptionInSelect(controlled, controlled_value[1], controlled_value[1]);
