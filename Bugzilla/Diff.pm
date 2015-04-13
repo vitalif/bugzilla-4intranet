@@ -141,17 +141,16 @@ sub get_part
                 $_ = $_->[1];
                 if ($_ eq TYPE_REM)
                 {
-                    $_ = '<b style="background: #CCC; color: #F00;">'.$_.'</b>';
+                    s/^/-/gmo;
                 }
                 elsif ($t eq TYPE_ADD)
                 {
-                    $_ = '<b style="background: #CCC; color: #090;">'.$_.'</b>';
+                    s/^/+/gmo;
                 }
             }
             $lval = join('', @$lval);
         }
-
-        $result .= "\n" . ($line->{type} eq TYPE_ADD ? TYPE_ADD : ($line->{type} eq TYPE_REM ? TYPE_REM : ' ')) . $lval;
+        $result .= "\n$lval";
     }
     return $result;
 }
