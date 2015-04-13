@@ -354,17 +354,29 @@ sub view
     # Bug 129398 - View office documents online
     if (defined $action && $action eq 'online_view' && $attachment->isOfficeDocument())
     {
-        # FIXME: Detect pdf support in MSIE and show PDF as pictures if not present
-        # Prevent recoding of binary data
-        disable_utf8();
-        use bytes;
-        my $pdf = $attachment->convert_to('pdf');
-        Bugzilla->send_header(
-            -type => 'application/pdf',
-            -content_disposition => "inline; filename=\"$filename\"",
-            -content_length => length $pdf,
-        );
-        print $pdf;
+        if ($attachment->{mimetype} =~ /excel|spreadsheet/i)
+        {
+            # Show spreadsheets as HTML...
+            my $html = $attachment->convert_to('html');
+            Bugzilla->send_header();
+            Encode::_utf8_on($html);
+            print $html;
+        }
+        else
+        {
+            # ...and everything else as PDF
+            # FIXME: Detect pdf support in MSIE and show PDF as pictures if not present
+            # Prevent recoding of binary data
+            disable_utf8();
+            use bytes;
+            my $pdf = $attachment->convert_to('pdf');
+            Bugzilla->send_header(
+                -type => 'application/pdf',
+                -content_disposition => "inline; filename=\"$filename\"",
+                -content_length => length $pdf,
+            );
+            print $pdf;
+        }
     }
     else
     {

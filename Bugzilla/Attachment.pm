@@ -319,6 +319,12 @@ sub convert_to
         local $/ = undef;
         $converted_html = <AH>;
         close AH;
+        # Known bug of Perl: previously tainted scalar doesn't want to change its UTF-8 status
+        trick_taint($converted_html);
+        if ($format eq 'html')
+        {
+            $converted_html =~ s/\n([^\n]*List_\d+_Paragraph.*?\{.*?)margin:100%;(.*?\}[^\n]*?)\n/\n$1$2\n/;
+        }
     }
 
     return $converted_html;
