@@ -32,19 +32,6 @@ use constant TYPE_SKP  => 's';
 use constant SKIP_STRING  => '...';
 use constant SKIP_LENGTH  => length(SKIP_STRING);
 
-use constant VIEW_TAGS => {
-    '<add>'  => '<b style="background: #CCC; color: #090;">',
-    '</add>' => '</b>',
-    '<rem>'  => '<b style="background: #CCC; color: #F00;">',
-    '</rem>' => '</b>'
-};
-use constant VIEW_PLAIN_TAGS => {
-    '<add>'  => "\n+",
-    '</add>' => "\n",
-    '<rem>'  => "\n-",
-    '</rem>' => "\n"
-};
-
 sub new
 {
     my $invocant = shift;
@@ -86,14 +73,27 @@ sub get_table
         # old and new texts - [type, value]
         my ($old, $new) = ($self->{context}->{removed}->[$i], $self->{context}->{added}->[$i]);
         my ($oval, $nval) = ($old->{value}, $new->{value});
-
-        for my $key (keys %{ VIEW_TAGS() })
+        for ($oval, $nval)
         {
-            my $val = VIEW_TAGS->{$key};
-            $oval =~ s/$key/$val/g;
-            $nval =~ s/$key/$val/g;
-            $oval =~ s/\n/<br\/>/g;
-            $nval =~ s/\n/<br\/>/g;
+            # value is array of [type, value] after glue_context
+            if (ref $_)
+            {
+                for (@$_)
+                {
+                    my $t = $_->[0];
+                    $_ = html_quote($_->[1]);
+                    s/\n/<br \/>/gso;
+                    if ($t eq TYPE_REM)
+                    {
+                        $_ = '<b style="background: #CCC; color: #F00;">'.$_.'</b>';
+                    }
+                    elsif ($t eq TYPE_ADD)
+                    {
+                        $_ = '<b style="background: #CCC; color: #090;">'.$_.'</b>';
+                    }
+                }
+                $_ = join('', @$_);
+            }
         }
 
         push @$result, '<td style="vertical-align: top' .
@@ -119,7 +119,7 @@ sub get_added
     return $self->get_part(0, $force);
 }
 
-#  get only specified part (with context): first param - bool is_removed
+# get only specified part (with context): first param - bool is_removed
 sub get_part
 {
     my ($self, $removed, $force) = @_;
@@ -132,11 +132,23 @@ sub get_part
     {
         my $line = $self->{context}->{$removed}->[$i];
         my $lval = $line->{value};
-
-        for my $key (keys %{ VIEW_PLAIN_TAGS() })
+        # value is array of [type, value] after glue_context
+        if (ref $lval)
         {
-            my $val = VIEW_PLAIN_TAGS->{$key};
-            $lval =~ s/$key/$val/g;
+            for (@$lval)
+            {
+                my $t = $_->[0];
+                $_ = $_->[1];
+                if ($_ eq TYPE_REM)
+                {
+                    $_ = '<b style="background: #CCC; color: #F00;">'.$_.'</b>';
+                }
+                elsif ($t eq TYPE_ADD)
+                {
+                    $_ = '<b style="background: #CCC; color: #090;">'.$_.'</b>';
+                }
+            }
+            $lval = join('', @$lval);
         }
 
         $result .= "\n" . ($line->{type} eq TYPE_ADD ? TYPE_ADD : ($line->{type} eq TYPE_REM ? TYPE_REM : ' ')) . $lval;
@@ -491,23 +503,19 @@ sub glue_context
 {
     my ($self) = @_;
     my ($or, $oa) = @{$self->{context}}{qw(removed added)};
-    for (@$or)
+    for (@$or, @$oa)
     {
-        $_->{value} = '<rem>' . $_->{value} . '</rem>' if $_->{type} eq TYPE_REM;
-    }
-    for (@$oa)
-    {
-        $_->{value} = '<add>' . $_->{value} . '</add>' if $_->{type} eq TYPE_ADD;
+        $_->{value} = [ [ $_->{type}, $_->{value} ] ];
     }
     my $len = scalar @$or;
     for (my $i = 1; $i < $len; $i++)
     {
         if (($or->[$i-1]->{type} ne TYPE_SKP && $or->[$i]->{type} ne TYPE_SKP) &&
-            ($or->[$i-1]->{value} !~ /\n$/s || $oa->[$i-1]->{value} !~ /\n$/s))
+            ($or->[$i-1]->{value}->[$#{$or->[$i-1]->{value}}]->[1] !~ /\n$/s || $oa->[$i-1]->{value}->[$#{$oa->[$i-1]->{value}}]->[1] !~ /\n$/s))
         {
             for ($or, $oa)
             {
-                $_->[$i-1]->{value} .= $_->[$i]->{value};
+                push @{$_->[$i-1]->{value}}, @{$_->[$i]->{value}};
                 # Don't care about (i-1 == EMP && i == UNI) - it doesn't make sense after glue_context
                 $_->[$i-1]->{type} = $_->[$i]->{type} if $_->[$i]->{type} eq TYPE_REM || $_->[$i]->{type} eq TYPE_ADD;
                 splice @$_, $i, 1;
