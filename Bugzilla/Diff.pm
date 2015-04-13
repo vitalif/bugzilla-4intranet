@@ -78,21 +78,22 @@ sub get_table
             # value is array of [type, value] after glue_context
             if (ref $_)
             {
+                my $s = '';
                 for (@$_)
                 {
-                    my $t = $_->[0];
-                    $_ = html_quote($_->[1]);
-                    s/\n/<br \/>/gso;
-                    if ($t eq TYPE_REM)
+                    my $r = html_quote($_->[1]);
+                    $r =~ s/\n/<br \/>/gso;
+                    if ($_->[0] eq TYPE_REM)
                     {
-                        $_ = '<b style="background: #CCC; color: #F00;">'.$_.'</b>';
+                        $r = '<b style="background: #CCC; color: #F00;">'.$r.'</b>';
                     }
-                    elsif ($t eq TYPE_ADD)
+                    elsif ($_->[0] eq TYPE_ADD)
                     {
-                        $_ = '<b style="background: #CCC; color: #090;">'.$_.'</b>';
+                        $r = '<b style="background: #CCC; color: #090;">'.$r.'</b>';
                     }
+                    $s .= $r;
                 }
-                $_ = join('', @$_);
+                $_ = $s;
             }
         }
 
@@ -135,20 +136,21 @@ sub get_part
         # value is array of [type, value] after glue_context
         if (ref $lval)
         {
+            my $s = '';
             for (@$lval)
             {
-                my $t = $_->[0];
-                $_ = $_->[1];
-                if ($_ eq TYPE_REM)
+                my $r = $_->[1];
+                if ($_->[0] eq TYPE_REM)
                 {
-                    s/^/-/gmo;
+                    $r =~ s/^/-/gmo;
                 }
-                elsif ($t eq TYPE_ADD)
+                elsif ($_->[0] eq TYPE_ADD)
                 {
-                    s/^/+/gmo;
+                    $r =~ s/^/+/gmo;
                 }
+                $s .= $r;
             }
-            $lval = join('', @$lval);
+            $lval = $s;
         }
         $result .= "\n$lval";
     }
