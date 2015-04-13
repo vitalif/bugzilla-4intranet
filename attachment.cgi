@@ -344,13 +344,27 @@ sub view
     $filename =~ s/\\/\\\\/g; # escape backslashes
     $filename =~ s/"/\\"/g; # escape quotes
 
+    if ($cgi->user_agent() =~ /MSIE/ && $cgi->user_agent() !~ /Opera/)
+    {
+        # Bug 57108 - russian filenames for MSIE
+        Encode::_utf8_off($filename);
+        Encode::from_to($filename, 'utf-8', 'cp1251');
+    }
+
     # Bug 129398 - View office documents online
     if (defined $action && $action eq 'online_view' && $attachment->isOfficeDocument())
     {
-        Bugzilla->send_header();
-        my $html = $attachment->_get_converted_html();
-        $html =~ s/\n([^\n]*List_20_Paragraph.*?\{.*?)margin:100%;(.*?\}[^\n]*?)\n/\n$1$2\n/;
-        print $html;
+        # FIXME: Detect pdf support in MSIE and show PDF as pictures if not present
+        # Prevent recoding of binary data
+        disable_utf8();
+        use bytes;
+        my $pdf = $attachment->convert_to('pdf');
+        Bugzilla->send_header(
+            -type => 'application/pdf',
+            -content_disposition => "inline; filename=\"$filename\"",
+            -content_length => length $pdf,
+        );
+        print $pdf;
     }
     else
     {
@@ -359,13 +373,6 @@ sub view
             && Bugzilla->params->{allow_attachment_display}
             && $contenttype =~ /$disposition/is
             ? "inline" : "attachment";
-
-        if ($cgi->user_agent() =~ /MSIE/ && $cgi->user_agent() !~ /Opera/)
-        {
-            # Bug 57108 - russian filenames for MSIE
-            Encode::_utf8_off($filename);
-            Encode::from_to($filename, 'utf-8', 'cp1251');
-        }
 
         # Don't send a charset header with attachments--they might not be UTF-8.
         # However, we do allow people to explicitly specify a charset if they

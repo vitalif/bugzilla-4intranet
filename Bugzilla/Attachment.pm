@@ -162,7 +162,6 @@ whether or not the attachment is obsolete
 
 whether or not the attachment is private
 
-
 =item B<bug>
 
 the bug object to which the attachment is attached
@@ -186,9 +185,9 @@ the content of the attachment
 
 check if the attachment has office document content type
 
-=item B<_get_converted_html>
+=item B<convert_to>
 
-return converted html from the content of the attachment
+return converted html or pdf from the content of the attachment
 
 =item B<datasize>
 
@@ -285,44 +284,26 @@ sub isOfficeDocument
     return 1 && $self->{mimetype} =~ m/(officedocument|msword|excel|html|opendocument)/;
 }
 
-sub _get_converted_html
+sub convert_to
 {
     my $self = shift;
+    my ($format) = @_;
+    $format = $format eq 'pdf' ? 'pdf' : 'html';
     my $file_path = $self->_get_local_filename();
-    my $file_cache_path = $self->_get_local_cache_filename();
+    my $file_cache_path = $self->_get_local_cache_filename().'.'.$format;
     my $dir_cache_path = $self->_get_local_cache_dir();
     my $converted_html;
 
-    # Read cached converted file
-    if (-e $file_cache_path)
-    {
-        if (open(AH, '<:encoding(UTF-8)', $file_cache_path))
-        {
-            local $/;
-            $converted_html = <AH>;
-            close(AH);
-        }
-    }
-    else
+    if (!-e $file_cache_path)
     {
         # Work with existing files
         if (-e $file_path)
         {
             $ENV{HOME} = '/tmp/';
-            system("/usr/bin/libreoffice --invisible --convert-to html --outdir ".$dir_cache_path." ".$file_path." 1>&2");
-            if (-e $dir_cache_path."/attachment.html")
+            system("/usr/bin/libreoffice --invisible --convert-to $format --outdir $dir_cache_path $file_path 1>&2");
+            if (-e "$dir_cache_path/attachment.$format")
             {
-                rename $dir_cache_path."/attachment.html",$file_cache_path;
-            }
-
-            if (-e $file_cache_path)
-            {
-                if (open(AH, '<:encoding(UTF-8)', $file_cache_path))
-                {
-                    local $/;
-                    $converted_html = <AH>;
-                    close(AH);
-                }
+                rename "$dir_cache_path/attachment.$format", $file_cache_path;
             }
         }
         else
@@ -331,6 +312,15 @@ sub _get_converted_html
             # FIXME: save data from DB to file and convert it to HTML.
         }
     }
+
+    # Read cached converted file
+    if (-e $file_cache_path && open(AH, $file_cache_path))
+    {
+        local $/ = undef;
+        $converted_html = <AH>;
+        close AH;
+    }
+
     return $converted_html;
 }
 
