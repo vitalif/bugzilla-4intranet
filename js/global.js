@@ -150,7 +150,7 @@ function userAutocomplete(hint, emptyOptions, loadAllOnEmpty)
         u += '20';
         var l = hint.input.value.split(/[\s,]*,[\s,]*/);
         for (var i = 0; i < l.length; i++)
-            u += '&match='+encodeURI(l[i]);
+            u += '&match='+encodeURIComponent(l[i]);
     }
     else
     {

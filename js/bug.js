@@ -103,12 +103,12 @@ function addReplyLink(num, id)
             num + ', ' + id + '); return false;">reply<' + '/a>';
     }
     s += ', clone to <a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;cloned_comment='+num+'">other</a>';
-    s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURI(bug_info.product)+'&amp;cloned_comment='+num+'">same</a>';
+    s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.product)+'&amp;cloned_comment='+num+'">same</a>';
     // 4Intranet Bug 69514 - Clone to external product button
     if (bug_info.extprod)
-        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURI(bug_info.extprod)+'&amp;cloned_comment='+num+'">ext</a>';
+        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.extprod)+'&amp;cloned_comment='+num+'">ext</a>';
     else if (bug_info.intprod)
-        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURI(bug_info.intprod)+'&amp;cloned_comment='+num+'">int</a>';
+        s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.intprod)+'&amp;cloned_comment='+num+'">int</a>';
     s += ' product]';
     e.innerHTML += s;
 }
