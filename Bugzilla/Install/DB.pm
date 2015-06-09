@@ -3932,7 +3932,7 @@ sub _make_fieldvaluecontrol
     {
         my $rows;
         for ([ FLAG_VISIBLE, 'visibility_field', 'visible' ],
-            [ FLAG_NULLABLE, 'null_field_id', 'nullable' ])
+            [ FLAG_NULLABLE, 'null_field', 'nullable' ])
         {
             my ($flag, $dep, $depinfo) = @$_;
             $rows = $dbh->selectcol_arrayref(
