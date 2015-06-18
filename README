@@ -51,7 +51,7 @@ Minimal requirements are:
 
    sudo cpan Date::Parse DBI CGI DateTime Email::Address \
      Template JSON Email::MIME Test::Taint \
-     XML::Twig Text::TabularDisplay Email::Sender \
+     XML::Twig Text::TabularDisplay Text::Wrap Email::Sender \
      Lingua::Translit Archive::Zip \
      DBD::mysql Image::Magick
 
@@ -60,7 +60,7 @@ For the full installation, you also need the following modules:
    sudo cpan GD Template::Plugin::GD GD::Graph GD::Graph3d \
      MIME::Parser Mail::RFC822::Address Email::Reply \
      Devel::StackTrace Email::MIME::Attachment::Stripper \
-     SOAP::Lite JSON::RPC JSON::XS Text::CSV HTML::Strip \
+     SOAP::Lite XMLRPC::Lite JSON::RPC JSON::XS Text::CSV HTML::Strip \
      Text::CSV_XS Spreadsheet::ParseExcel Spreadsheet::XLSX \
      Lingua::Stem::Snowball Math::Random::Secure TheSchwartz \
      Daemon::Generic HTTP::Server::Simple Net::Server Sys::Sendfile
