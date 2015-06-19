@@ -303,7 +303,7 @@ if ($do_report)
         # Provide a default end date. Note that this differs in semantics
         # from the open-ended queries we use when start/end_date aren't
         # provided -- and clock skews will make this evident!
-        @parts = split_by_month($start_date, $end_date || format_time(scalar localtime(time()), '%Y-%m-%d'));
+        @parts = $start_date ? split_by_month($start_date, $end_date || format_time(scalar localtime(time()), '%Y-%m-%d')) : ();
     }
     else
     {
