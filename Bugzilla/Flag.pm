@@ -1019,7 +1019,7 @@ sub show_flag_reminders
         # 2) When closing bugs, clear all flag requests (CustIS Bug 68430).
         for my $bug (@$bug_objects)
         {
-            my $clear_this = $clear_on_close && $bug->{_old_self}->bug_status_obj->name ne $CLOSED;
+            my $clear_this = $clear_on_close && ($bug->{_old_self} || $bug)->bug_status_obj->name ne $CLOSED;
             next if !$clear_this && !$reset_own_flags;
             if ($single)
             {
