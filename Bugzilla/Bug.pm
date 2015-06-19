@@ -1298,11 +1298,12 @@ sub save_dependencies
             $changes->{$type} = [ join(', ', @$removed), join(', ', @$added) ];
         }
     }
-    if (@rm_deps)
+    if (@rm_deps || @add_deps)
     {
+        # Prevent races by deleting everything we insert (InnoDB helps us with gap locks)
         Bugzilla->dbh->do(
             'DELETE FROM dependencies WHERE (blocked, dependson) IN ('.
-            join(', ', map { "($_->{blocked}, $_->{dependson})" } @rm_deps).')'
+            join(', ', map { "($_->{blocked}, $_->{dependson})" } (@rm_deps, @add_deps)).')'
         );
     }
     if (@add_deps)
