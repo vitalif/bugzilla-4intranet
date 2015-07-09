@@ -63,7 +63,7 @@ sub _init
     my $class = shift;
     my ($param) = @_;
     my $dbh = Bugzilla->dbh;
-    my $columns = join(',', @{ [ $class->DB_COLUMNS ] }); # Another mysterious taint happens here with Bugzilla::Component::DB_COLUMNS
+    my $columns = join(',', $class->DB_COLUMNS);
     my $table = $class->DB_TABLE;
     my $name_field = $class->NAME_FIELD;
     my $id_field = $class->ID_FIELD;
