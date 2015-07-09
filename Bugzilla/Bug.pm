@@ -3171,7 +3171,7 @@ sub status
     return undef if !$self->{bug_status};
     if (!$self->{status})
     {
-        ($self->{status}) = grep { $_->id == $self->{bug_status} } Bugzilla::Status->get_all;
+        ($self->{status}) = grep { $_->id == $self->{bug_status} } Bugzilla::Status->get_all(1);
     }
     return $self->{status};
 }
