@@ -39,7 +39,7 @@ use constant NAME_FIELD => 'name';
 
 use constant LIST_ORDER => 'product_id, name';
 
-use constant DB_COLUMNS => qw(
+sub DB_COLUMNS() { qw(
     id
     name
     product_id
@@ -48,7 +48,7 @@ use constant DB_COLUMNS => qw(
     description
     wiki_url
     isactive
-);
+) }
 
 use constant REQUIRED_CREATE_FIELDS => qw(
     name

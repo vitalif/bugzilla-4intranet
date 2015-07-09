@@ -47,7 +47,10 @@ use constant FIELD_NAME => 'product';
 use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'name';
 
-use constant DB_COLUMNS => qw(
+# Workaround mysterious taint issue:
+# join('', DB_COLUMNS) will be tainted if defined as 'use constant'
+# (although none of the columns themselves will be tainted in that case)
+sub DB_COLUMNS() { qw(
     id
     name
     wiki_url
@@ -62,7 +65,7 @@ use constant DB_COLUMNS => qw(
     allows_unconfirmed
     cc_group
     entryheaderhtml
-);
+) }
 
 use constant REQUIRED_CREATE_FIELDS => qw(
     name

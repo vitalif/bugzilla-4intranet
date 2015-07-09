@@ -376,6 +376,7 @@ if ($action eq 'updategroupcontrols')
         {
             my $count_id = $1;
             my $id = $ARGS->{$f};
+            next if !$id;
             trick_taint($id);
             if ($ARGS->{"membercontrol_$count_id"} == CONTROLMAPNA)
             {
