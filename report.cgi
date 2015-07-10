@@ -105,6 +105,7 @@ elsif ($action eq 'del')
 }
 
 my $valid_columns = Bugzilla::Search::REPORT_COLUMNS();
+$vars->{report_columns} = $valid_columns;
 
 my $field = {};
 for (qw(x y z))

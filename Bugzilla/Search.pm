@@ -779,7 +779,7 @@ sub REPORT_COLUMNS
     # Subselect fields are also not supported.
     push @no_report_columns, grep {
         /\./ || $columns->{$_}->{noreports} ||
-        $columns->{$_}->{nobuglist} || $columns->{$_}->{subid}
+        $columns->{$_}->{nobuglist}
     } keys %$columns;
     # FIXME Multi-select fields are now incorrectly supported in reports.
     # They report like: "a,b: 80 bugs; a: 20 bugs; b: 10 bugs". I.e. the grouping
