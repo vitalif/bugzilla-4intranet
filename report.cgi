@@ -179,7 +179,9 @@ my $measures = {
     wtime => 'interval_time',
     count => '_count',
 };
-# Trick Bugzilla::Search by adding '_count' column
+# Trick Bugzilla::Search: replace report columns SQL + add '_count' column
+# FIXME: Remove usage of global variable COLUMNS in search generation code
+%{Bugzilla::Search->COLUMNS} = (%{Bugzilla::Search->COLUMNS}, %{Bugzilla::Search->REPORT_COLUMNS});
 Bugzilla::Search->COLUMNS->{_count}->{name} = '1';
 
 my $measure = $ARGS->{measure};

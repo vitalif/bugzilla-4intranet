@@ -781,15 +781,28 @@ sub REPORT_COLUMNS
         /\./ || $columns->{$_}->{noreports} ||
         $columns->{$_}->{nobuglist}
     } keys %$columns;
-    # FIXME Multi-select fields are now incorrectly supported in reports.
-    # They report like: "a,b: 80 bugs; a: 20 bugs; b: 10 bugs". I.e. the grouping
-    # is by value sets, not by individual values.
-
     # Unset non-reportable columns
     foreach my $name (@no_report_columns)
     {
         delete $columns->{$name};
     }
+
+    foreach my $field (Bugzilla->get_fields)
+    {
+        if ($field->type == FIELD_TYPE_MULTI_SELECT)
+        {
+            my $type = $field->value_type;
+            $columns->{$field->name} = {
+                name  => $type->DB_TABLE.'.'.$type->NAME_FIELD,
+                title => $field->description,
+                joins => [
+                    "LEFT JOIN ".$type->REL_TABLE." ON ".$type->REL_TABLE.".bug_id=bugs.bug_id",
+                    "LEFT JOIN ".$type->DB_TABLE." ON ".$type->DB_TABLE.".".$type->ID_FIELD."=".$type->REL_TABLE.".value_id"
+                ],
+            };
+        }
+    }
+
     return $cache->{report_columns} = $columns;
 }
 
