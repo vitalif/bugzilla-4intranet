@@ -28,7 +28,7 @@
   <select name="[% name FILTER html %]">
     <option value="">&lt;none&gt;</option>
     [% FOREACH field = report_columns %]
-      <option value="[% field.id FILTER html %]" 
+      <option value="[% field.id FILTER html %]"
         [% " selected" IF default.$name.0 == field.id %]>
         [%# FIXME Take field descriptions from Bugzilla->messages->field_descs to field.description %]
         [% field_descs.$field || field.title || field.id FILTER html %]</option>

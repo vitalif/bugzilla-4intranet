@@ -793,6 +793,7 @@ sub REPORT_COLUMNS
         {
             my $type = $field->value_type;
             $columns->{$field->name} = {
+                id    => $field->name,
                 name  => $type->DB_TABLE.'.'.$type->NAME_FIELD,
                 title => $field->description,
                 joins => [

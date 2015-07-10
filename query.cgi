@@ -178,7 +178,7 @@ $vars->{chfield} = [
 
 # Fields for reports
 $vars->{report_columns} = [
-    sort { $a->{title} cmp $b->{title} }
+    sort { $a->{sortkey} <=> $b->{sortkey} || $a->{title} cmp $b->{title} }
     values %{Bugzilla::Search::REPORT_COLUMNS()}
 ];
 
