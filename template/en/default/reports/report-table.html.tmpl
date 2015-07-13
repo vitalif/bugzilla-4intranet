@@ -71,7 +71,7 @@ END; %]
 [% classes = [ [ "t1", "t2" ] , [ "t3", "t4" ] ] %]
 [% col_idx = 0 %]
 [% row_idx = 0 %]
-[% grand_total = 0 %]
+[% mlist = (measure == 'times' ? [ 'etime', 'wtime', 'rtime' ] : [ measure ]) %]
 
 <table border="1" style="border-collapse: collapse">
   [% IF col_field %]
@@ -79,72 +79,77 @@ END; %]
       <td class="[% classes.$row_idx.$col_idx %]">
       </td>
       [% FOREACH col = col_names %]
-        [% col_totals.$col = 0 %]
         [% col_idx = 1 - col_idx %]
-        <td class="[% classes.$row_idx.$col_idx %]">
+        <td class="[% classes.$row_idx.$col_idx %]"[% ' colspan="3"' IF measure == 'times' %]>
           [% PROCESS value_display value = col field = col_field %]
         </td>
       [% END %]
-      <td class="ttotal">
+      <td class="ttotal"[% ' colspan="3"' IF measure == 'times' %]>
         Total
       </td>
     </tr>
   [% END %]
 
   [% FOREACH row = row_names %]
-    [% row_total = 0 %]
-
+    [% row_total = {} %]
     [% row_idx = 1 - row_idx %]
     <tr>
       <td class="[% classes.$row_idx.$col_idx %]">
         [% PROCESS value_display value = row field = row_field %]
       </td>
       [% FOREACH col = col_names %]
-        [% row_total = row_total + data.$tbl.$col.$row %]
-        [% col_totals.$col = col_totals.$col + data.$tbl.$col.$row %]
-
         [% col_idx = 1 - col_idx %]
-        <td class="[% classes.$row_idx.$col_idx %]" align="center">
-          [% IF data.$tbl.$col.$row AND data.$tbl.$col.$row > 0 %]
-            <a href="[% urlbase %]&amp;
-              [% PROCESS value_url value=row field=row_field %]&amp;
-              [% PROCESS value_url value=col field=col_field %]">
-              [% data.$tbl.$col.$row %]</a>
-          [% ELSE %]
-            .
-          [% END %]
-        </td>
+        [% FOR m = mlist %]
+          [% col_totals.$col.$m = col_totals.$col.$m + data.$tbl.$col.$row.$m %]
+          [% row_total.$m = row_total.$m + data.$tbl.$col.$row.$m %]
+          <td class="[% classes.$row_idx.$col_idx %]" align="center">
+            [% IF data.$tbl.$col.$row.$m AND data.$tbl.$col.$row.$m > 0 %]
+              <a href="[% urlbase %]&amp;
+                [% PROCESS value_url value=row field=row_field %]&amp;
+                [% PROCESS value_url value=col field=col_field %]">
+                [% data.$tbl.$col.$row.$m %]</a>
+            [% END %]
+          </td>
+        [% END %]
       [% END %]
-      <td class="ttotal" align="right">
-        <a href="[% urlbase %]&amp;
-          [% PROCESS value_url value=row field=row_field %]
-          [% "&amp;$col_vals" IF col_vals %]">
-        [% row_total %]</a>
-        [% grand_total = grand_total + row_total %]
-      </td>
+      [% IF col_names.size > 1 %]
+        [% FOR m = mlist %]
+        <td class="ttotal" align="right">
+          <a href="[% urlbase %]&amp;
+            [% PROCESS value_url value=row field=row_field %]
+            [% "&amp;$col_vals" IF col_vals %]">
+          [% row_total.$m %]</a>
+          [% grand_total.$m = grand_total.$m + row_total.$m %]
+        </td>
+        [% END %]
+      [% END %]
     </tr>
   [% END %]
 
   <tr>
     [% row_idx = 1 - row_idx %]
-    <td class="ttotal">
-      Total
-    </td>
+    <td class="ttotal">Total</td>
     [% FOREACH col = col_names %]
-      <td class="ttotal" align="center">
-        <a href="[% urlbase %]&amp;
-          [% PROCESS value_url value=col field=col_field %]
-          [% "&amp;$row_vals" IF row_vals %]">
-        [% col_totals.$col %]</a>
-      </td> 
+      [% FOR m = mlist %]
+        <td class="ttotal" align="center">
+          <a href="[% urlbase %]&amp;
+            [% PROCESS value_url value=col field=col_field %]
+            [% "&amp;$row_vals" IF row_vals %]">
+          [% col_totals.$col.$m %]</a>
+        </td>
+      [% END %]
     [% END %]
-    <td class="ttotal" align="right">
-      <strong>
-        <a href="[% urlbase %]
-          [% "&amp;$row_vals" IF row_vals %]
-          [% "&amp;$col_vals" IF col_vals %]">[% grand_total %]</a>
-      </strong>
-    </td>
+    [% IF col_names.size > 1 %]
+      [% FOR m = mlist %]
+      <td class="ttotal" align="right">
+        <strong>
+          <a href="[% urlbase %]
+            [% "&amp;$row_vals" IF row_vals %]
+            [% "&amp;$col_vals" IF col_vals %]">[% grand_total.$m %]</a>
+        </strong>
+      </td>
+      [% END %]
+    [% END %]
   </tr>
 </table>
 

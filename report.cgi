@@ -150,8 +150,10 @@ if (defined($height))
 # These shenanigans are necessary to make sure that both vertical and
 # horizontal 1D tables convert to the correct dimension when you ask to
 # display them as some sort of chart.
-if (defined $ARGS->{format} && $ARGS->{format} =~ /^(table|simple)$/)
+my $is_table;
+if ($ARGS->{format} eq 'table' || $ARGS->{format} eq 'simple')
 {
+    $is_table = 1;
     if ($field->{x} && !$field->{y})
     {
         # 1D *tables* should be displayed vertically (with a row_field only)
@@ -185,14 +187,20 @@ my $measures = {
 Bugzilla::Search->COLUMNS->{_count}->{name} = '1';
 
 my $measure = $ARGS->{measure};
-$measure = 'count' unless $measures->{$measure};
+if ($measure eq 'times' ? !$is_table : !$measures->{$measure})
+{
+    $measure = 'count';
+}
 $vars->{measure} = $measure;
 
 # Validate the values in the axis fields or throw an error.
 my %a;
 my @group_by = grep { !($a{$_}++) } values %$field;
 my @axis_fields = @group_by;
-push @axis_fields, $measures->{$measure} unless $a{$measures->{$measure}};
+for ($measure eq 'times' ? qw(etime rtime wtime) : $measure)
+{
+    push @axis_fields, $measures->{$_} unless $a{$measures->{$_}};
+}
 
 # Clone the params, so that Bugzilla::Search can modify them
 my $search = new Bugzilla::Search(
@@ -205,7 +213,8 @@ $query =
     ($field->{x} || "''")." x, ".
     ($field->{y} || "''")." y, ".
     ($field->{z} || "''")." z, ".
-    "SUM(".$measures->{$measure}.") r FROM ($query) _report_table GROUP BY ".join(", ", @group_by);
+    join(', ', map { "SUM($measures->{$_}) $_" } $measure eq 'times' ? qw(etime rtime wtime) : $measure).
+    " FROM ($query) _report_table GROUP BY ".join(", ", @group_by);
 
 $::SIG{TERM} = 'DEFAULT';
 $::SIG{PIPE} = 'DEFAULT';
@@ -231,7 +240,7 @@ foreach my $group (@$results)
         $isnumeric{$_} &&= ($group->{$_} =~ /^-?\d+(\.\d+)?$/o);
         $names{$_}{$group->{$_}} = 1;
     }
-    $data{$group->{z}}{$group->{x}}{$group->{y}} = $group->{r};
+    $data{$group->{z}}{$group->{x}}{$group->{y}} = $is_table ? $group : $group->{$measure};
 }
 
 my @tbl_names = @{get_names($names{z}, $isnumeric{z}, $field->{z})};

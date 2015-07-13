@@ -136,7 +136,7 @@
           [% other_format.description FILTER html %]
           [% "</a>" UNLESS other_format.name == format %] | 
         [% END %]
-        <a href="[% formaturl %]&amp;ctype=csv&amp;format=table">CSV</a> 
+        <a href="[% formaturl %]&amp;measure=[% measure %]&amp;ctype=csv&amp;format=table">CSV</a> 
       </td>
       
       [% IF format != "table" %]
@@ -165,14 +165,15 @@
       rtime => 'Remaining time'
       etime => 'Estimated time'
       wtime => 'Actual time'
-      count => 'Bugs count'
+      times => 'Estimated/Actual/Remaining'
+      count => "Number of $terms.bugs"
     } %]
     [% FOR m = measure_descs.keys.sort %]
-      [%+ IF measure != m %]<a href="[% formaturl %]&amp;format=[% format %]&amp;measure=[% m %]">[% END %]
-      [% measure_descs.$m %]
-      [% IF measure != m %]</a>[% END %]
-      [% IF NOT loop.last %]
-      |
+      [% IF m != 'times' || format == 'table' %]
+        [%+ IF measure != m %]<a href="[% formaturl %]&amp;format=[% format %]&amp;measure=[% m %]">[% END %]
+        [% measure_descs.$m %]
+        [% IF measure != m %]</a>[% END %]
+        [% IF NOT loop.last %] | [% END %]
       [% END %]
     [% END %]
   </td></tr></table>
