@@ -32,6 +32,12 @@ sub get_param_list
     },
 
     {
+        name => 'git_url',
+        type => 't',
+        default => '',
+    },
+
+    {
         name => 'mediawiki_urls',
         type => 'l',
         default => '',

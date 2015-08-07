@@ -19,7 +19,10 @@
       _ " \$MD5 will be replaced by MD5 hash of user email, just like it is required by real Gravatar service."
       _ " You can also disable avatar display by clearing this parameter.",
     viewvc_url =>
-      "ViewVC query URL for browsing bug code. Bugzilla4Intranet links to ViewVC search page with full-text query 'bugXXX XXX'"
+      "ViewVC query URL for browsing bug-related commits. Bugzilla4Intranet links to ViewVC search page with full-text query 'bugXXX XXX'"
+      _ " which allows to show commits with the bug number in the commit message (like 'Bug XXX' or 'BugXXX').",
+    git_url =>
+      "Git (GitBlit or other web UI) full-text query URL for browsing bug-related commits. '$q' in URL will be replaced by 'bugXXX XXX'"
       _ " which allows to show commits with the bug number in the commit message (like 'Bug XXX' or 'BugXXX').",
     wiki_url =>
       "Default MediaWiki URL for bug links. Bugzilla4Intranet links to <tt>&lt;wiki_url&gt;/Bug_XXX</tt> pages when this is non-empty.",
