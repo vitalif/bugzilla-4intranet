@@ -2,6 +2,7 @@
  * License: Dual-license GPL 3.0+ or MPL 1.1+
  * Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
  */
+// MUST be loaded AFTER bug-visibility.js
 
 var cc_rem = {}, cc_add = {};
 var last_cc;
