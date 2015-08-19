@@ -132,6 +132,37 @@ function handleControlledField(controlled_id, is_initial_editform)
         // Maybe the field is not editable.
         return;
     }
+    var df, diff;
+    if (m.default_value || (df = m.default_field && document.getElementById(m.default_field)))
+    {
+        // Check if the value is different from previous default or from empty value
+        // We must check it before re-filling field options because some values can disappear
+        if (controlled.nodeName == 'SELECT')
+        {
+            var copt = getSelectedIds(controlled);
+            delete copt[0]; // skip empty value
+            if (controlled._oldDefault)
+            {
+                for (var i in controlled._oldDefault)
+                {
+                    if (copt[controlled._oldDefault[i]])
+                        delete copt[controlled._oldDefault[i]];
+                    else
+                    {
+                        diff = true;
+                        break;
+                    }
+                }
+            }
+            for (var i in copt)
+            {
+                diff = true;
+                break;
+            }
+        }
+        else
+            diff = controlled.value != (controlled._oldDefault || '');
+    }
     if (is_initial_editform)
     {
         // Skip re-filling of fields on bug edit page load, because
@@ -189,50 +220,13 @@ function handleControlledField(controlled_id, is_initial_editform)
             }
         }
     }
-    // Select and/or remember default value
-    var df;
-    if (m.default_value || (df = m.default_field && document.getElementById(m.default_field)))
+    if (m.default_value || df)
     {
-        var diff = false;
-        // Check if the value is different from previous default or from empty value
-        if (controlled.nodeName == 'SELECT')
-        {
-            var copt = getSelectedIds(controlled);
-            delete copt[0]; // skip empty value
-            if (controlled._oldDefault)
-            {
-                for (var i in controlled._oldDefault)
-                {
-                    if (copt[controlled._oldDefault[i]])
-                    {
-                        delete copt[controlled._oldDefault[i]];
-                    }
-                    else
-                    {
-                        diff = true;
-                        break;
-                    }
-                }
-            }
-            for (var i in copt)
-            {
-                diff = true;
-                break;
-            }
-        }
-        else
-        {
-            diff = controlled.value != (controlled._oldDefault || '');
-        }
         // Remember default value for the new controller
         var v = m.default_value;
         if (df && field_metadata[m.default_field]['defaults'][controlled_id])
-        {
             for (var i in getSelectedIds(m.default_field))
-            {
                 v = field_metadata[m.default_field]['defaults'][controlled_id][i];
-            }
-        }
         controlled._oldDefault = v;
         if (!diff && !is_initial_editform)
         {
