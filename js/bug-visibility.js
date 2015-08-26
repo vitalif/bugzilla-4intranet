@@ -136,11 +136,17 @@ function handleControlledField(controlled_id, is_initial_editform)
     if (m.default_value || (df = m.default_field && document.getElementById(m.default_field)))
     {
         // Check if the value is different from previous default or from empty value
-        // We must check it before re-filling field options because some values can disappear
+        // We must check it before re-filling field options because some values may disappear
         if (controlled.nodeName == 'SELECT')
         {
             var copt = getSelectedIds(controlled);
             delete copt[0]; // skip empty value
+            if (copt.UNKNOWN)
+            {
+                // We are on the bug entry form and some default value is selected,
+                // but its ID is still unknown (because entry form does not prefill select options)
+                diff = true;
+            }
             if (controlled._oldDefault)
             {
                 for (var i in controlled._oldDefault)

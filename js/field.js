@@ -302,7 +302,10 @@ function getSelectedIds(sel)
         if (sel.options[i].selected)
         {
             id = sel.options[i].id;
-            opt[id ? id.substr(1, id.length-lm) : 0] = true;
+            if (!id && sel.options[i].value)
+                opt.UNKNOWN = true;
+            else
+                opt[id ? id.substr(1, id.length-lm) : 0] = true;
         }
     }
     return opt;
