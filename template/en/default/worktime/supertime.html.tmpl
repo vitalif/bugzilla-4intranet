@@ -21,6 +21,9 @@
   'chfieldfrom'    => 1
   'chfieldto'      => 1
   'chfieldwho'     => 1
+  'period_from'    => 1
+  'period_to'      => 1
+  'period_who'     => 1
   'worktime_user'  => 3
   'worktime_date'  => 3
   'save_worktime'  => 3
@@ -37,11 +40,11 @@
   [% FOR k = query_params.keys %]
     [% IF !hidden_fields.$k || hidden_fields.$k == HideIndex %]
       [% IF query_params.$k.size %]
-        [% FOR vk = query_params.${k} %]
+        [% FOR vk = query_params.$k %]
           <input type="hidden" name="[% k | html %]" value="[% vk | html %]" />
         [% END %]
       [% ELSE %]
-        <input type="hidden" name="[% k | html %]" value="[% query_params.${k} | html %]" />
+        <input type="hidden" name="[% k | html %]" value="[% query_params.$k | html %]" />
       [% END %]
     [% END %]
   [% END %]
@@ -296,9 +299,7 @@ function check_move(c)
     if (e)
     {
       for (var i in period_times)
-      {
         document.getElementById('wtime_'+i).value = '1';
-      }
     }
   }
 }
