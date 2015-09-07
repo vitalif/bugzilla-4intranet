@@ -1052,8 +1052,10 @@ sub _check_bug_status
     }
 
     # Check if a comment is required for this change (also for new bugs).
-    if ((!$old_status || $new_status->comment_required_on_change_from($old_status)) &&
-        !@{$self->{added_comments} || []})
+    # But honor only commentonduplicate if the bug was just marked as duplicate.
+    if ((!$old_status || $new_status->comment_required_on_change_from($old_status)) && !@{$self->{added_comments} || []} &&
+        (!$self->resolution || $self->resolution_obj->name ne Bugzilla->params->{duplicate_resolution} ||
+        $self->{_old_self} && $self->{_old_self}->resolution eq $self->resolution || Bugzilla->params->{commentonduplicate}))
     {
         ThrowUserError('comment_required', { old => $old_status, new => $new_status });
     }
@@ -1115,7 +1117,9 @@ sub _check_resolution
         }
 
         # Check if they're changing the resolution and need to comment.
-        if (Bugzilla->params->{commentonchange_resolution} && !$self->{added_comments})
+        # But honor only commentonduplicate if the bug was just marked as duplicate.
+        if (Bugzilla->params->{commentonchange_resolution} && !@{$self->{added_comments} || []} &&
+            (!$self->resolution || $self->resolution_obj->name ne Bugzilla->params->{duplicate_resolution} || Bugzilla->params->{commentonduplicate}))
         {
             ThrowUserError('comment_required');
         }
