@@ -43,6 +43,7 @@ use constant DB_COLUMNS => qw(
     id
     value
     product_id
+    sortkey
     isactive
 );
 
@@ -54,11 +55,13 @@ use constant REQUIRED_CREATE_FIELDS => qw(
 use constant UPDATE_COLUMNS => qw(
     value
     isactive
+    sortkey
 );
 
 use constant VALIDATORS => {
     product => \&_check_product,
     isactive => \&Bugzilla::Object::check_boolean,
+    sortkey     => \&_check_sortkey,
 };
 
 use constant UPDATE_VALIDATORS => {
@@ -107,7 +110,7 @@ sub _do_list_select
 {
     my $self = shift;
     my $list = $self->SUPER::_do_list_select(@_);
-    return [ sort { vers_cmp(lc($a->{value}), lc($b->{value})) } @$list ];
+    return [ sort { ($a->{sortkey} <=> $b->{sortkey}) || vers_cmp(lc $a->{value}, lc $b->{value}) } @$list ];
 }
 
 sub run_create_validators
@@ -180,6 +183,7 @@ sub update
 
 sub product_id { return $_[0]->{product_id}; }
 sub is_active  { return $_[0]->{isactive};   }
+sub sortkey    { return $_[0]->{sortkey};    }
 
 sub product
 {
@@ -195,6 +199,7 @@ sub product
 
 sub set_name { $_[0]->set('value', $_[1]); }
 sub set_is_active { $_[0]->set('isactive', $_[1]); }
+sub set_sortkey { $_[0]->set('sortkey', $_[1]); }
 
 sub _check_value
 {
@@ -224,6 +229,12 @@ sub _check_product
 {
     my ($invocant, $product) = @_;
     return Bugzilla->user->check_can_admin_product($product->name);
+}
+
+sub _check_sortkey
+{
+    my ($invocant, $sortkey) = @_;
+    return int($sortkey || 0);
 }
 
 1;

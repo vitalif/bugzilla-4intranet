@@ -27,6 +27,10 @@
       <th class="field_label"><label for="version">Version:</label></th>
       <td><input id="version" size="64" maxlength="64" name="version" id="version" value="[%- version.name | html %]" /></td>
     </tr>
+    <tr>
+      <th class="field_label"><label for="sortkey">Sortkey:</label></th>
+      <td><input id="sortkey" size="20" maxlength="20" name="sortkey" value="[%- version.sortkey | html %]" /></td>
+    </tr>
     [% IF version.id %]
     <tr>
       <th class="field_label"><label for="isactive">Enabled For [% terms.Bugs %]:</label></th>

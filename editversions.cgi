@@ -122,6 +122,7 @@ if ($action eq 'new')
     my $version = Bugzilla::Version->create({
         name => $version_name,
         product => $product,
+        sortkey => $ARGS->{sortkey} || 0,
     });
     delete_token($token);
     $vars->{message} = 'version_created';
@@ -210,6 +211,7 @@ if ($action eq 'update')
 
     $version->set_name($version_name);
     $version->set_is_active($isactive);
+    $version->set_sortkey($ARGS->{sortkey});
     my $changes = $version->update();
 
     $changes->{control_lists} = 1 if $version->field->update_control_lists($version->id, $ARGS);

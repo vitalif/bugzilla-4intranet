@@ -861,6 +861,8 @@ WHERE description LIKE \'%[CC:%]%\'');
         $dbh->bz_alter_column('bugs', $_->name, Bugzilla::Field->SQL_DEFINITIONS->{FIELD_TYPE_NUMERIC()});
     }
 
+    $dbh->bz_add_column('versions', 'sortkey');
+
     _move_old_defaults($old_params);
 
     ################################################################

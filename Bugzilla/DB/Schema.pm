@@ -618,6 +618,7 @@ use constant ABSTRACT_SCHEMA => {
             id         => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             value      => {TYPE => 'varchar(255)', NOTNULL => 1},
             product_id => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'products', COLUMN => 'id', DELETE => 'CASCADE'}},
+            sortkey    => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => 0},
             isactive   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
         ],
         INDEXES => [
