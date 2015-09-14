@@ -402,6 +402,7 @@ sub update
 
     $vars->{bug_types} = Bugzilla::FlagType::match({ target_type => 'bug' });
     $vars->{attachment_types} = Bugzilla::FlagType::match({ target_type => 'attachment' });
+    Bugzilla->send_mail;
 
     $template->process("admin/flag-type/list.html.tmpl", $vars)
         || ThrowTemplateError($template->error());
