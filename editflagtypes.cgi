@@ -265,13 +265,14 @@ sub processCategoryChange
     my @groups = Bugzilla::Group->get_all;
     $vars->{groups} = \@groups;
     $vars->{action} = $ARGS->{action};
+    $vars->{last_action} = $ARGS->{action} eq 'update' ? 'edit' : $ARGS->{action};
 
     my $type = {};
     foreach my $key (keys %$ARGS)
     {
         $type->{$key} = $ARGS->{$key};
     }
-    # That's what I call a big hack. The template expects to see a group object.
+    # FIXME That's what I call a big hack. The template expects to see a flag type object.
     # This script needs some rewrite anyway.
     $type->{grant_group} = {};
     $type->{grant_group}->{name} = $ARGS->{grant_group};
