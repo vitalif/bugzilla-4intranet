@@ -1,104 +1,39 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Tiago R. Mello <timello@async.com.br>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# Bugzilla Classification class, based on GenericObject
+# License: MPL 1.1
+# Author(s): Vitaliy Filippov <vitalif@mail.ru>
+#   still contains some original code from:
+#   Tiago R. Mello <timello@async.com.br>
+#   Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
 
 package Bugzilla::Classification;
+
+use base qw(Bugzilla::GenericObject);
 
 use Bugzilla::Constants;
 use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Product;
 
-use base qw(Bugzilla::Field::Choice);
-
-###############################
-####    Initialization     ####
-###############################
-
 use constant DB_TABLE => 'classifications';
-use constant FIELD_NAME => 'classification';
-
 use constant NAME_FIELD => 'name';
 use constant LIST_ORDER => 'sortkey, name';
+use constant CLASS_NAME => 'classification';
 
-use constant DB_COLUMNS => qw(
-    id
-    name
-    description
-    sortkey
-);
-
-use constant REQUIRED_CREATE_FIELDS => qw(
-    name
-);
-
-use constant UPDATE_COLUMNS => qw(
-    name
-    description
-    sortkey
-);
-
-use constant VALIDATORS => {
-    name        => \&_check_name,
-    description => \&_check_description,
-    sortkey     => \&_check_sortkey,
+use constant OVERRIDE_SETTERS => {
+    name => \&_set_name,
+    description => \&_set_description,
+    sortkey => \&_set_sortkey,
 };
 
 use constant is_active => 1;
+use constant is_default => 0;
+use constant bug_count => 0;
 
-###############################
-####     Constructors     #####
-###############################
-
-sub remove_from_db
+sub _set_name
 {
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
-    ThrowUserError("classification_not_deletable") if ($self->id == 1);
-
-    $dbh->bz_start_transaction();
-
-    # Reclassify products to the default classification, if needed.
-    $dbh->do("UPDATE products SET classification_id=1 WHERE classification_id=?", undef, $self->id);
-    my @dependent_fields = map { $_->id } Bugzilla->get_fields({ visibility_field_id => $self->field->id });
-    if (@dependent_fields)
-    {
-        $dbh->do(
-            "UPDATE fieldvaluecontrol SET visibility_value_id=1 WHERE field_id IN (".
-            join(",", @dependent_fields).") AND visibility_value_id=?", undef, $self->id
-        );
-    }
-
-    # Touch the field
-    $self->SUPER::remove_from_db();
-
-    $dbh->bz_commit_transaction();
-}
-
-sub is_default { 0 }
-sub bug_count { 0 }
-
-###############################
-####      Validators       ####
-###############################
-
-sub _check_name
-{
-    my ($invocant, $name) = @_;
+    my ($self, $name) = @_;
 
     $name = trim($name);
     $name || ThrowUserError('classification_not_specified');
@@ -108,38 +43,30 @@ sub _check_name
     }
 
     my $classification = new Bugzilla::Classification({ name => $name });
-    if ($classification && (!ref $invocant || $classification->id != $invocant->id))
+    if ($classification && ($classification->id != $self->id))
     {
         ThrowUserError("classification_already_exists", { name => $classification->name });
     }
     return $name;
 }
 
-sub _check_description
+sub _set_description
 {
-    my ($invocant, $description) = @_;
-    $description  = trim($description || '');
+    my ($self, $description) = @_;
+    $description = trim($description || '');
     return $description;
 }
 
-sub _check_sortkey
+sub _set_sortkey
 {
-    my ($invocant, $sortkey) = @_;
+    my ($self, $sortkey) = @_;
     $sortkey ||= 0;
-    if (!detaint_natural($sortkey) || $sortkey > MAX_SMALLINT)
+    if (!detaint_natural($sortkey))
     {
         ThrowUserError('classification_invalid_sortkey', { sortkey => $sortkey });
     }
     return $sortkey;
 }
-
-###############################
-####       Methods         ####
-###############################
-
-sub set_name        { $_[0]->set('name', $_[1]); }
-sub set_description { $_[0]->set('description', $_[1]); }
-sub set_sortkey     { $_[0]->set('sortkey', $_[1]); }
 
 sub product_count
 {
@@ -164,13 +91,6 @@ sub products
     }
     return $self->{products};
 }
-
-###############################
-####      Accessors        ####
-###############################
-
-sub description { $_[0]->{description} }
-sub sortkey     { $_[0]->{sortkey}     }
 
 # Return all visible classifications.
 sub get_all { @{ Bugzilla->user->get_selectable_classifications } }
