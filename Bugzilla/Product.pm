@@ -32,108 +32,39 @@ use Bugzilla::Series;
 use Bugzilla::FlagType::UserList;
 use Bugzilla::Hook;
 
-use base qw(Bugzilla::Field::Choice);
+use base qw(Bugzilla::GenericObject);
+
+use constant DB_TABLE => 'products';
+use constant NAME_FIELD => 'name';
+use constant LIST_ORDER => 'name';
+use constant CLASS_NAME => 'product';
 
 use constant DEFAULT_CLASSIFICATION_ID => 1;
 
-###############################
-####    Initialization     ####
-###############################
-
-use constant DB_TABLE => 'products';
-use constant FIELD_NAME => 'product';
-# Reset these back to the Bugzilla::Object defaults, instead of the
-# Bugzilla::Field::Choice defaults.
-use constant NAME_FIELD => 'name';
-use constant LIST_ORDER => 'name';
-
-# Workaround mysterious taint issue:
-# join('', DB_COLUMNS) will be tainted if defined as 'use constant'
-# (although none of the columns themselves will be tainted in that case)
-sub DB_COLUMNS() { qw(
-    id
-    name
-    wiki_url
-    notimetracking
-    extproduct
-    classification_id
-    description
-    isactive
-    votesperuser
-    maxvotesperbug
-    votestoconfirm
-    allows_unconfirmed
-    cc_group
-    entryheaderhtml
-) }
-
-use constant REQUIRED_CREATE_FIELDS => qw(
-    name
-    description
-);
-
-# Allow to update every valid DB column
-*UPDATE_COLUMNS = *DB_COLUMNS;
-
-use constant VALIDATORS => {
-    allows_unconfirmed => \&Bugzilla::Object::check_boolean,
-    classification_id  => \&_check_classification_id,
-    name             => \&_check_name,
-    description      => \&_check_description,
-    version          => \&_check_version,
-    isactive         => \&Bugzilla::Object::check_boolean,
-    votesperuser     => \&_check_votes_per_user,
-    maxvotesperbug   => \&_check_votes_per_bug,
-    votestoconfirm   => \&_check_votes_to_confirm,
-    notimetracking   => \&Bugzilla::Object::check_boolean,
-    extproduct       => \&_check_extproduct,
-    # CustIS Bug 38616 - CC list restriction
-    # FIXME: Maybe also disallow bug access for these users?
-    cc_group         => \&_check_cc_group,
+use constant OVERRIDE_SETTERS => {
+    classification   => \&_set_classification,
+    name             => \&_set_name,
+    description      => \&_set_description,
+    votesperuser     => \&_set_votes_per_user,
+    maxvotesperbug   => \&_set_votes_per_bug,
+    votestoconfirm   => \&_set_votes_to_confirm,
+    extproduct       => \&_set_extproduct,
 };
 
 ###############################
 ####     Constructors     #####
 ###############################
 
-sub create
+sub check
 {
-    my $class = shift;
-    my ($params) = @_;
-
-    my $dbh = Bugzilla->dbh;
-    $dbh->bz_start_transaction();
-
-    $class->check_required_create_fields($params);
-
-    # Some fields do not exist in the DB as is.
-    if (defined $params->{classification})
+    my ($class, $params) = @_;
+    $params = { name => $params } if !ref $params;
+    $params->{_error} = 'product_access_denied';
+    my $product = $class->SUPER::check($params);
+    if (!Bugzilla->user->can_see_product($product))
     {
-        $params->{classification_id} = delete $params->{classification};
+        ThrowUserError('product_access_denied', $params);
     }
-    my $version = delete $params->{version};
-
-    my $field_values = $class->run_create_validators($params);
-    my $product = $class->insert_create_data($field_values);
-    Bugzilla->user->clear_product_cache();
-
-    # Add the new version into the DB as valid values.
-    if ($version)
-    {
-        Bugzilla::Version->create({
-            name => $version,
-            product => $product,
-        });
-    }
-
-    # Fill visibility values
-    $product->set_visibility_values([ $product->classification_id ]);
-
-    Bugzilla::Hook::process('product_end_of_create', { product => $product });
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
-
-    $dbh->bz_commit_transaction();
     return $product;
 }
 
@@ -170,9 +101,8 @@ sub update
 
     # Don't update the DB if something goes wrong below -> transaction.
     $dbh->bz_start_transaction();
-    # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
-    # Yet do not call its update() for the future
-    my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
+    my $old_self = $self->{_old_self};
+    my $changes = $self->SUPER::update(@_);
 
     # FIXME when renaming a product, try to rename it in all named queries
 
@@ -396,17 +326,16 @@ sub update
     }
 
     # Fill visibility values
-    $self->set_visibility_values([ $self->classification_id ]);
+    Bugzilla->get_field('product')->update_visibility_values($self->id, [ $self->classification_id ]);
 
     $dbh->bz_commit_transaction();
+
     # Changes have been committed.
     delete $self->{check_group_controls};
     Bugzilla->user->clear_product_cache();
 
     # Now that changes have been committed, we can send emails to voters.
     Bugzilla->send_mail;
-
-    Bugzilla->get_field(FIELD_NAME)->touch;
 
     return $changes;
 }
@@ -479,26 +408,10 @@ sub remove_from_db
 ####      Validators       ####
 ###############################
 
-sub _check_extproduct
+sub _set_classification
 {
-    my ($invocant, $product) = @_;
-    $product = $product ? Bugzilla::Product->check({ id => $product }) : undef;
-    return $product ? $product->id : undef;
-}
-
-sub _check_cc_group
-{
-    my ($invocant, $cc_group) = @_;
-    $cc_group = trim($cc_group);
-    $cc_group = $cc_group ? Bugzilla::Group->check({ name => $cc_group })->id : undef;
-    return $cc_group;
-}
-
-sub _check_classification_id
-{
-    my ($invocant, $classification_name) = @_;
-
-    my $classification_id = 1;
+    my ($self, $classification_name) = @_;
+    my $classification_id = DEFAULT_CLASSIFICATION_ID;
     if (Bugzilla->get_field('classification')->enabled)
     {
         my $classification = ref $classification_name
@@ -506,13 +419,13 @@ sub _check_classification_id
             : Bugzilla::Classification->check($classification_name);
         $classification_id = $classification->id;
     }
-    delete $invocant->{classification_obj} if ref $invocant;
+    delete $self->{classification_obj};
     return $classification_id;
 }
 
-sub _check_name
+sub _set_name
 {
-    my ($invocant, $name) = @_;
+    my ($self, $name) = @_;
 
     $name = trim($name);
     $name || ThrowUserError('product_blank_name');
@@ -523,7 +436,7 @@ sub _check_name
     }
 
     my $product = new Bugzilla::Product({ name => $name });
-    if ($product && (!ref $invocant || $product->id != $invocant->id))
+    if ($product && (!ref $self || $product->id != $self->id))
     {
         # Check for exact case sensitive match:
         if ($product->name eq $name)
@@ -541,34 +454,38 @@ sub _check_name
     return $name;
 }
 
-sub _check_description
+sub _set_description
 {
-    my ($invocant, $description) = @_;
-
+    my ($self, $description) = @_;
     $description = trim($description);
     $description || ThrowUserError('product_must_have_description');
     return $description;
 }
 
-sub _check_version
+sub _set_extproduct
 {
-    my ($invocant, $version) = @_;
-    $version = trim($version);
-    # We will check the version length when Bugzilla::Version->create will do it.
-    return $version;
+    my ($self, $product) = @_;
+    $product = Bugzilla::Product->check({ id => $product }) if $product && !ref $product;
+    if ($self->{extproduct_obj})
+    {
+        delete $self->{extproduct_obj}->{intproduct_name};
+    }
+    delete $self->{extproduct_name};
+    delete $self->{extproduct_obj};
+    $self->{extproduct} = $product ? $product->id : undef;
 }
 
-sub _check_votes_per_user
+sub _set_votes_per_user
 {
     return _check_votes(@_, 0);
 }
 
-sub _check_votes_per_bug
+sub _set_votes_per_bug
 {
     return _check_votes(@_, 10000);
 }
 
-sub _check_votes_to_confirm
+sub _set_votes_to_confirm
 {
     return _check_votes(@_, 0);
 }
@@ -576,15 +493,14 @@ sub _check_votes_to_confirm
 # This subroutine is only used internally by other _check_votes_* validators.
 sub _check_votes
 {
-    my ($invocant, $votes, $field, $default) = @_;
-
+    my ($self, $votes, $field, $default) = @_;
     detaint_natural($votes);
     # On product creation, if the number of votes is not a valid integer,
     # we silently fall back to the given default value.
     # If the product already exists and the change is illegal, we complain.
     if (!defined $votes)
     {
-        if (ref $invocant)
+        if (ref $self)
         {
             ThrowUserError('product_illegal_votes', { field => $field, votes => $_[1] });
         }
@@ -595,12 +511,6 @@ sub _check_votes
     }
     return $votes;
 }
-
-#####################################
-# Implement Bugzilla::Field::Choice #
-#####################################
-
-use constant is_default => 0;
 
 ###############################
 ####       Methods         ####
@@ -676,38 +586,6 @@ sub _create_series
         });
         $series->writeToDatabase();
     }
-}
-
-sub set_name { $_[0]->set('name', $_[1]); }
-sub set_wiki_url { $_[0]->set('wiki_url', $_[1]); }
-sub set_notimetracking { $_[0]->set('notimetracking', $_[1]); }
-sub set_description { $_[0]->set('description', $_[1]); }
-sub set_is_active { $_[0]->set('isactive', $_[1]); }
-sub set_votes_per_user { $_[0]->set('votesperuser', $_[1]); }
-sub set_votes_per_bug { $_[0]->set('maxvotesperbug', $_[1]); }
-sub set_votes_to_confirm { $_[0]->set('votestoconfirm', $_[1]); }
-sub set_allows_unconfirmed { $_[0]->set('allows_unconfirmed', $_[1]); }
-sub set_classification { $_[0]->set('classification_id', $_[1]); }
-sub set_entryheaderhtml { $_[0]->set('entryheaderhtml', $_[1]); }
-
-sub set_cc_group
-{
-    my ($self, $g) = @_;
-    $self->set('cc_group', $g);
-    delete $self->{cc_group_obj};
-}
-
-sub set_extproduct
-{
-    my ($self, $product) = @_;
-    $product = Bugzilla::Product->check({ id => $product }) if $product && !ref $product;
-    $self->set('extproduct', $product ? $product->id : undef);
-    if ($self->{extproduct_obj})
-    {
-        delete $self->{extproduct_obj}->{intproduct_name};
-    }
-    delete $self->{extproduct_name};
-    delete $self->{extproduct_obj};
 }
 
 sub set_group_controls
@@ -900,15 +778,9 @@ sub groups_valid
 sub versions
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
     if (!defined $self->{versions})
     {
-        my $ids = $dbh->selectcol_arrayref(
-            'SELECT id FROM versions WHERE product_id = ?',
-            undef, $self->id
-        );
-        $self->{versions} = Bugzilla::Version->new_from_list($ids);
+        $self->{versions} = Bugzilla::Version->match({ product_id => $self->id });
     }
     return $self->{versions};
 }
@@ -916,15 +788,9 @@ sub versions
 sub milestones
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
     if (!defined $self->{milestones})
     {
-        my $ids = $dbh->selectcol_arrayref(
-            'SELECT id FROM milestones WHERE product_id = ?',
-            undef, $self->id
-        );
-        $self->{milestones} = Bugzilla::Milestone->new_from_list($ids);
+        $self->{milestones} = Bugzilla::Milestone->match({ product_id => $self->id });
     }
     return $self->{milestones};
 }
@@ -932,11 +798,9 @@ sub milestones
 sub bug_count
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
     if (!defined $self->{bug_count})
     {
-        $self->{bug_count} = $dbh->selectrow_array(
+        $self->{bug_count} = Bugzilla->dbh->selectrow_array(
             'SELECT COUNT(bug_id) FROM bugs WHERE product_id = ?',
             undef, $self->id
         );
@@ -947,11 +811,9 @@ sub bug_count
 sub bug_ids
 {
     my $self = shift;
-    my $dbh = Bugzilla->dbh;
-
     if (!defined $self->{bug_ids})
     {
-        $self->{bug_ids} = $dbh->selectcol_arrayref(
+        $self->{bug_ids} = Bugzilla->dbh->selectcol_arrayref(
             'SELECT bug_id FROM bugs WHERE product_id = ?',
             undef, $self->id
         );
@@ -1013,56 +875,10 @@ sub flag_types
 }
 
 ###############################
-####      Accessors      ######
-###############################
-
-sub allows_unconfirmed { return $_[0]->{allows_unconfirmed}; }
-sub description       { return $_[0]->{description};       }
-sub isactive          { return $_[0]->{isactive};          }
-sub is_active         { return $_[0]->{isactive};          }
-sub votesperuser      { return $_[0]->{votesperuser};      }
-sub maxvotesperbug    { return $_[0]->{maxvotesperbug};    }
-sub votestoconfirm    { return $_[0]->{votestoconfirm};    }
-sub votes_per_user    { return $_[0]->{votesperuser};      }
-sub max_votes_per_bug { return $_[0]->{maxvotesperbug};    }
-sub votes_to_confirm  { return $_[0]->{votestoconfirm};    }
-sub classification_id { return $_[0]->{classification_id}; }
-sub wiki_url          { return $_[0]->{wiki_url};          }
-sub notimetracking    { return $_[0]->{notimetracking};    }
-sub extproduct        { return $_[0]->{extproduct};        }
-sub cc_group          { return $_[0]->{cc_group};          }
-sub entryheaderhtml   { return $_[0]->{entryheaderhtml};   }
-
-###############################
 ####      Subroutines    ######
 ###############################
 
-sub classification_obj
-{
-    my $self = shift;
-    $self->{classification_obj} ||= Bugzilla::Classification->new($self->classification_id);
-    return $self->{classification_obj};
-}
-
-sub extproduct_obj
-{
-    my $self = shift;
-    if (!exists $self->{extproduct_obj})
-    {
-        $self->{extproduct_obj} = $self->{extproduct} ? $self->new($self->{extproduct}) : undef;
-    }
-    return $self->{extproduct_obj};
-}
-
-sub cc_group_obj
-{
-    my $self = shift;
-    if (!exists $self->{cc_group_obj})
-    {
-        $self->{cc_group_obj} = $self->{cc_group} ? Bugzilla::Group->new($self->{cc_group}) : undef;
-    }
-    return $self->{cc_group_obj};
-}
+sub is_active { $_[0]->isactive }
 
 sub enterable_extproduct_name
 {
@@ -1087,35 +903,6 @@ sub enterable_intproduct_name
         $self->{intproduct_name} = $n;
     }
     return $self->{intproduct_name};
-}
-
-sub check_product
-{
-    my ($product_name) = @_;
-
-    unless ($product_name)
-    {
-        ThrowUserError('product_not_specified');
-    }
-    my $product = new Bugzilla::Product({ name => $product_name });
-    unless ($product)
-    {
-        ThrowUserError('product_doesnt_exist', { product => $product_name });
-    }
-    return $product;
-}
-
-sub check
-{
-    my ($class, $params) = @_;
-    $params = { name => $params } if !ref $params;
-    $params->{_error} = 'product_access_denied';
-    my $product = $class->SUPER::check($params);
-    if (!Bugzilla->user->can_see_product($product))
-    {
-        ThrowUserError('product_access_denied', $params);
-    }
-    return $product;
 }
 
 # Product is a special case: it has access controls applied.
@@ -1370,15 +1157,6 @@ than calling those accessors on every item in the array individually.
 
 This function is not exported, so must be called like 
 C<Bugzilla::Product::preload($products)>.
-
-=item C<check_product($product_name)>
-
- Description: Checks if the product name was passed in and if is a valid
-              product.
-
- Params:      $product_name - String with a product name.
-
- Returns:     Bugzilla::Product object.
 
 =back
 

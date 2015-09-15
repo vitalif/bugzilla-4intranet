@@ -175,7 +175,6 @@ if ($action eq 'new')
         name             => $product_name,
         description      => $ARGS->{description},
         entryheaderhtml  => $ARGS->{entryheaderhtml},
-        version          => $ARGS->{version},
         isactive         => $ARGS->{is_active},
         allows_unconfirmed => $ARGS->{allows_unconfirmed},
         wiki_url         => $ARGS->{wiki_url},
@@ -196,6 +195,14 @@ if ($action eq 'new')
         # User has no global editcomponents permission, so grant 'createproducts'
         # group the right to manage his newly created product
         $product->_create_bug_group(1);
+    }
+
+    if ($ARGS->{version})
+    {
+        Bugzilla::Version->create({
+            name => $ARGS->{version},
+            product => $product,
+        });
     }
 
     # Create groups and series for the new product, if requested.
@@ -313,27 +320,29 @@ if ($action eq 'update')
     if ($useclassification)
     {
         $vars->{old_classification} = $product->classification_obj;
-        $product->set_classification($ARGS->{classification});
+        $product->set('classification', $ARGS->{classification});
     }
-    $product->set_name($product_name);
-    $product->set_wiki_url($ARGS->{wiki_url});
-    $product->set_notimetracking($ARGS->{notimetracking});
-    $product->set_extproduct($ARGS->{extproduct});
-    $product->set_cc_group($ARGS->{cc_group} || '');
-    $product->set_description($ARGS->{description});
-    $product->set_entryheaderhtml($ARGS->{entryheaderhtml});
-    $product->set_is_active($ARGS->{is_active});
+    $product->set_all({
+        name => $product_name,
+        wiki_url => $ARGS->{wiki_url},
+        notimetracking => $ARGS->{notimetracking},
+        extproduct => $ARGS->{extproduct},
+        cc_group => $ARGS->{cc_group} || '',
+        description => $ARGS->{description},
+        entryheaderhtml => $ARGS->{entryheaderhtml},
+        isactive => $ARGS->{is_active},
+        allows_unconfirmed => $ARGS->{allows_unconfirmed},
+    });
     if (Bugzilla->get_field('votes')->enabled)
     {
-        $product->set_votes_per_user($ARGS->{votesperuser});
-        $product->set_votes_per_bug($ARGS->{maxvotesperbug});
-        $product->set_votes_to_confirm($ARGS->{votestoconfirm});
+        $product->set('votesperuser', $ARGS->{votesperuser});
+        $product->set('maxvotesperbug', $ARGS->{maxvotesperbug});
+        $product->set('votestoconfirm', $ARGS->{votestoconfirm});
     }
-    $product->set_allows_unconfirmed($ARGS->{allows_unconfirmed});
 
     my $changes = $product->update();
 
-    $changes->{control_lists} = 1 if $product->field->update_control_lists($product->id, $ARGS);
+    $changes->{control_lists} = 1 if Bugzilla->get_field('product')->update_control_lists($product->id, $ARGS);
 
     delete_token($token);
 

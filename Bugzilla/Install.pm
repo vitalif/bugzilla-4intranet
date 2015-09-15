@@ -196,13 +196,14 @@ sub update_system_groups
     }
 }
 
-sub create_default_classification {
+sub create_default_classification
+{
     my $dbh = Bugzilla->dbh;
 
     # Make the default Classification if it doesn't already exist.
-    if (!$dbh->selectrow_array('SELECT 1 FROM classifications')) {
-        print get_text('install_default_classification',
-                       { name => DEFAULT_CLASSIFICATION->{name} }) . "\n";
+    if (!$dbh->selectrow_array('SELECT 1 FROM classifications'))
+    {
+        print get_text('install_default_classification', { name => DEFAULT_CLASSIFICATION->{name} }) . "\n";
         Bugzilla::Classification->create(DEFAULT_CLASSIFICATION);
     }
 }

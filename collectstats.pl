@@ -178,7 +178,7 @@ sub collect_stats {
 
     my $product_id;
     if ($product ne '-All-') {
-        my $prod = Bugzilla::Product::check_product($product);
+        my $prod = Bugzilla::Product->check($product);
         $product_id = $prod->id;
     }
 

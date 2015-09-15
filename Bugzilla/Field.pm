@@ -619,7 +619,9 @@ sub db_column
 {
     my $self = shift;
     return undef if $self->{type} == FIELD_TYPE_MULTI || $self->{type} == FIELD_TYPE_REVERSE;
-    return $self->{name}.'_id' if $self->class->name eq 'bug' && ($self->{name} eq 'component' || $self->{name} eq 'product');
+    return $self->{name}.'_id' if
+        $self->class->name eq 'bug' && ($self->{name} eq 'component' || $self->{name} eq 'product') ||
+        $self->class->name eq 'product' && $self->{name} eq 'classification';
     return $self->{name};
 }
 

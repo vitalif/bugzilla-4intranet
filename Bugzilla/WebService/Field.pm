@@ -7,7 +7,6 @@ package Bugzilla::WebService::Field;
 
 use strict;
 use base qw(Bugzilla::WebService);
-use Bugzilla::Field::Choice;
 use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::WebService::Util qw(validate);

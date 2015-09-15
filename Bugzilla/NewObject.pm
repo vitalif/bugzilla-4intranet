@@ -26,12 +26,16 @@ sub new
     return $class->SUPER::new($param);
 }
 
+# Shorthand create() method - creates empty object, fills it with setters and saves into DB
 sub create
 {
     my $class = shift;
     $class = ref($class) || $class;
-    die("$class has no create() method. You should create an empty $class".
-        " object with new(), fill it using setters and call update().");
+    my ($params) = @_;
+    my $self = $class->new;
+    $self->set_all($params);
+    $self->update;
+    return $self;
 }
 
 sub update

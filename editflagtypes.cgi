@@ -99,7 +99,7 @@ sub get_prod_comp
     my $component;
     if ($product)
     {
-        $product = Bugzilla::Product::check_product($product);
+        $product = Bugzilla::Product->check($product);
         $component = $ARGS->{component} || undef;
         $component = Bugzilla::Component->check({ product => $product, name => $component }) if $component;
     }

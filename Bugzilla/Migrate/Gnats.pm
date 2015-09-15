@@ -207,8 +207,8 @@ sub before_insert {
     # anymore now.
     delete $_->{gnats_id} foreach @{ $self->users };
 
-    # Grab a version out of a bug for each product, so that there is a
-    # valid "version" argument for Bugzilla::Product->create.
+    # Grab a version out of a bug for each product
+    # FIXME: Create versions AFTER creating products
     foreach my $product (@{ $self->products }) {
         my $bug = first { $_->{product} eq $product->{name} and $_->{version} }
                         @{ $self->bugs };

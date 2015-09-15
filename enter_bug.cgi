@@ -75,7 +75,7 @@ if ($product_name eq '')
 }
 else
 {
-    # Do not use Bugzilla::Product::check_product() here, else the user
+    # Do not use Bugzilla::Product->check() here, else the user
     # could know whether the product doesn't exist or is not accessible.
     $product = new Bugzilla::Product({ name => $product_name });
 }

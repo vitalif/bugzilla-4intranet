@@ -95,7 +95,11 @@ sub SETTERS
     {
         $s->{$field->name} = CUSTOM_FIELD_VALIDATORS->{$field->type};
     }
-    $class->OVERRIDE_SETTERS($s);
+    my $ns = $class->OVERRIDE_SETTERS($s);
+    if ($ns ne $s && ref $ns)
+    {
+        $s = { %$s, %$ns };
+    }
 
     $cache->{setters}->{$class} = $s;
     return $cache->{setters}->{$class};

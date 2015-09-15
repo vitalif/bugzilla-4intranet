@@ -28,7 +28,6 @@ use constant OVERRIDE_SETTERS => {
 };
 
 use constant is_active => 1;
-use constant is_default => 0;
 use constant bug_count => 0;
 
 sub _set_name

@@ -2125,7 +2125,7 @@ sub _set_product
     # Check that the product exists and that the user
     # is allowed to enter bugs into this product.
     Bugzilla->user->can_enter_product($name, THROW_ERROR);
-    # can_enter_product already does everything that check_product
+    # can_enter_product already does everything that Bugzilla::Product->check
     # would do for us, so we don't need to use it.
     my $product = new Bugzilla::Product({ name => $name });
     if (($self->product_id || 0) != $product->id)

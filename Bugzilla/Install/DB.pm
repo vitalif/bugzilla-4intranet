@@ -4251,8 +4251,11 @@ sub _add_class_schema
             user => [
                 [ 'login_name', 'Login', FIELD_TYPE_FREETEXT ],
                 [ 'realname', 'Real Name', FIELD_TYPE_FREETEXT ],
+                [ 'mybugslink', 'Show "My Bugs" link', FIELD_TYPE_BOOLEAN ],
                 [ 'disabledtext', 'Disabled Text', FIELD_TYPE_TEXTAREA ],
                 [ 'disable_mail', 'Disable Bugmail', FIELD_TYPE_BOOLEAN ],
+                [ 'is_enabled', 'Is Enabled', FIELD_TYPE_BOOLEAN ],
+                [ 'last_seen_date', 'Last seen date', FIELD_TYPE_DATETIME ],
             ],
             classification => [
                 [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
@@ -4261,7 +4264,7 @@ sub _add_class_schema
             ],
             product => [
                 [ 'name', 'Name', FIELD_TYPE_FREETEXT ],
-                [ 'classification_id', 'Classification', FIELD_TYPE_SINGLE, 'classification' ],
+                [ 'classification', 'Classification', FIELD_TYPE_SINGLE, 'classification' ],
                 [ 'description', 'Description', FIELD_TYPE_TEXTAREA ],
                 [ 'entryheaderhtml', 'Bug entry header HTML', FIELD_TYPE_TEXTAREA ],
                 [ 'isactive', 'Open for bug entry', FIELD_TYPE_BOOLEAN ],
@@ -4333,7 +4336,7 @@ sub _add_class_schema
                 [ 'type_id', 'Flag Type', FIELD_TYPE_SINGLE, 'flagtype' ],
                 [ 'status', 'Status', FIELD_TYPE_FREETEXT ],
                 [ 'bug_id', 'Bug', FIELD_TYPE_SINGLE, 'bug' ],
-                [ 'attach_id', 'ID', FIELD_TYPE_SINGLE, 'attachment' ],
+                [ 'attach_id', 'Attachment', FIELD_TYPE_SINGLE, 'attachment' ],
                 [ 'creation_date', 'Creation Time', FIELD_TYPE_DATETIME ],
                 [ 'modification_date', 'Modification Time', FIELD_TYPE_DATETIME ],
                 [ 'setter_id', 'Setter', FIELD_TYPE_SINGLE, 'user' ],

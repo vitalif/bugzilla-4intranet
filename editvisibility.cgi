@@ -12,7 +12,6 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::User;
 use Bugzilla::Field;
-use Bugzilla::Field::Choice;
 use Bugzilla::Token;
 
 my $ARGS = Bugzilla->input_params;

@@ -98,7 +98,7 @@
       </tr>
     [% END %]
 
-    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=product.field this_value=product %]
+    [% INCLUDE "admin/fieldvalues/control-list-common.html.tmpl" this_field=Bugzilla.get_field('product') this_value=product %]
 
     <tr>
       <th align="left" valign="top">

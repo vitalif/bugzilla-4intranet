@@ -137,7 +137,7 @@ function showbugcomma()
   <ul class="zero_result_links">
     <li><a href="enter_bug.cgi?[% urlquerypart | html %]">Create new [% terms.bug %] with the same fields</a></li>
     <li>[% PROCESS enter_bug_link %]</li>
-    [% IF one_product.defined %]
+    [% IF one_product %]
       <li><a href="enter_bug.cgi">File a new [% terms.bug %] in a
         different product</a></li>
     [% END %]
@@ -265,7 +265,7 @@ function showbugcomma()
 
 <p>
   Query executed in [% query_sql_time %] seconds. Page generated in $_query_template_time seconds.
-  [%+ IF one_product.defined && bugs.size %][% PROCESS enter_bug_link %][% END %]
+  [%+ IF one_product && bugs.size %][% PROCESS enter_bug_link %][% END %]
 </p>
 
 [%############################################################################%]
@@ -281,10 +281,10 @@ function showbugcomma()
 
 [% BLOCK enter_bug_link %]
   <a href="enter_bug.cgi
-           [%- IF one_product.defined %]?product=
+           [%- IF one_product %]?product=
              [%- one_product.name FILTER url_quote %][% END %]">File
     a new [% terms.bug %]
-   [% IF one_product.defined %]
+   [% IF one_product %]
      in the "[% one_product.name FILTER html %]" product
    [% END %]</a>
 [% END %]
