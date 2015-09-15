@@ -707,7 +707,8 @@ WHERE description LIKE \'%[CC:%]%\'');
 
     # Change types of all ID fields to INT4
     if ($dbh->bz_column_info('bugs', 'bug_id')->{TYPE} ne 'INTSERIAL' ||
-        $dbh->bz_column_info('fieldvaluecontrol', 'field_id')->{TYPE} ne 'INT4')
+        $dbh->bz_column_info('fieldvaluecontrol', 'field_id')->{TYPE} ne 'INT4' ||
+        $dbh->bz_column_info('flagtypes', 'sortkey')->{TYPE} ne 'INT4')
     {
         _change_int_keys_to_int4();
     }
@@ -3997,7 +3998,7 @@ sub _change_int_keys_to_int4
 {
     my $dbh = Bugzilla->dbh;
 
-    print "-- Changing all integer ID fields to INT4 (32-bit) --\n";
+    print "-- Changing all ID and most integer fields to INT4 (32-bit) --\n";
     my $sch_real = $dbh->_bz_real_schema;
     my $sch_abstract = $dbh->_bz_schema;
     my $real_tables = { map { lc $_ => 1 } $dbh->bz_table_list_real };
