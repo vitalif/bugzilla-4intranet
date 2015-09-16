@@ -2,18 +2,24 @@
 
 UI improvements:
 
+* Separate localisation layer - now it's possible to translate Bugzilla UI
+  without copying templates!
+
+== 2015.09: 2015-09-18, commit dc07c69094f616d1eb3e523181283dcdbca0499e ==
+
+UI improvements:
+
 * Redesign of bug entry form - now it has 2 columns, one with "bigger" fields
   like description and "textarea" custom fields, and another with "smaller"
   selectbox, user, and text edit fields.
 * Redesign of bug change form - now fields are displayed in 4 columns,
   and editboxes are under their labels instead of being in the next column.
-* Separate localisation layer - now it's possible to translate Bugzilla UI
-  without copying templates!
 * More cute Mozilla skin integrated and used by default.
 * Simple "responsive layout" using CSS media queries in Mozilla skin:
  ** On the bug entry form, 2 columns become 1 on a narrow screen.
  ** On the bug change form, 4 columns become 2 or also 1 based on the screen width.
 * Gravatar support.
+* Allow some safe HTML in comments.
 * Various general style improvements.
 
 Backports from original Bugzilla 4.4:
@@ -84,7 +90,6 @@ Bugfixes:
   and is capable of copying custom field tables.
 * Oracle support fixed and works again.
 * Make "Clear flag requests when closing bugs" preference actually work.
-* Remove hack that was used to force Firefox to reset bug form on pressing Reload.
 
 Refactoring:
 
@@ -115,7 +120,7 @@ Refactoring:
 * Convert Keywords into a standard multi-select field.
 * Update code style for all *.cgi, for all *.js and for most Bugzilla modules.
 
-== 2014.08.2: 2014-10-07, commit 4a695e3e71555bb2981e9f5851881f6a714944de ==
+== v2014.08.2: 2014-10-07, commit 5ee699208f21c8379ed234db137088d2edd16da5 ==
 
 Features:
 
@@ -127,7 +132,7 @@ Bugfixes:
 * Fix midair collision change detection.
 * Several other bugfixes.
 
-== 2014.08.1: 2014-08-07, commit 549c8bb08977119b61b9327eae1706468a51edae ==
+== v2014.08: 2014-08-07, commit 148cb3f1b566ea1e7d19e3595cf32790ba4ea65d ==
 
 Features:
 
@@ -157,7 +162,7 @@ Refactoring:
 * Move some CustIS-specific code to custishacks, some non-specific - back to core.
 * Merge create/edit templates for components.
 
-== 2014.05.1: 2014-05-16, commit 7f53f7a7fd3eb103389b1f086445fc7248179287 ==
+== v2014.05: 2014-05-16, commit b901f7c9f725b3635447053f8dd3b06e06bcf4ea ==
 
 Searching and reporting:
 
@@ -204,7 +209,7 @@ Refactoring:
 * Do not send flag mail in case of transaction abort (for example on validator failure).
 * Use Email::Sender instead of outdated Email::Send.
 
-== 2012.05.1: 2012-05-03, commit 33ad4caee03ba4ccb4c433ec7b4b4b9edbaee294 ==
+== v2012.05: 2012-05-03, commit fffa9a25d23672efc36857e6e5d5a72ac548235f ==
 
 Searching and reporting:
 
@@ -245,7 +250,7 @@ Other features:
 * Merge WebServices from Bugzilla 4.0.1.
 * Fix several vulnerabilities, like in original Bugzilla.
 
-== 2011.03.1: 2011-03-25, commit d50f1d10c165d60bc3313752c7643e11a25e0c82 ==
+== v2011.03: 2011-03-25, commit e4b255cfc99e39a2557dd508f347dd71b9ee6176 ==
 
 * Based on Bugzilla 3.6.4.
 * Bug change validators ("Checkers").
@@ -298,7 +303,7 @@ Bug field improvements:
 * Lock bug rows in the DB during update (SELECT FOR UPDATE) to avoid deadlocks.
 * Some API functions for custom field values.
 
-== 2010.05.1: 2010-05-13, commit bb684a5f909660a69701694ae2bf76eca7d9907a ==
+== v2010.05: 2010-05-13, commit 0804786698562b0ff67bbfb27c4eb2f52dff8cb2 ==
 
 * Based on Bugzilla 3.4.6.
 * Allow to make auto-refreshable MySQL Views from bug lists.
@@ -336,7 +341,7 @@ Other improvements:
 * Some bug cloning changes.
 * Various minor changes.
 
-== 2009.07.1: 2009-07-28, commit 1867a99935bd5f3795e4fcce962dda7a4c91cadf ==
+== v2009.07: 2009-07-28, commit 1867a99935bd5f3795e4fcce962dda7a4c91cadf ==
 
 * Based on Bugzilla 3.2.4.
 * Store all attachments in FS instead of DB by default.
