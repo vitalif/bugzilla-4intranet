@@ -19,21 +19,12 @@ my $template = Bugzilla->template;
 my $ARGS     = Bugzilla->input_params;
 my $vars     = {};
 
-Bugzilla->user->in_group('editvalues')
-|| $ARGS->{class} eq 'keyword' && Bugzilla->user->in_group('editkeywords')
-|| ThrowUserError('auth_failure', {
-    group  => 'editvalues',
-    action => 'edit',
-    object => 'field_values',
-});
-
 my $action = trim($ARGS->{action} || '');
 my $token  = $ARGS->{token};
 
 # Object classes listed here must not be edited from this interface.
 my %block_list = map { $_ => 1 } qw(
-    bug attachment comment user group flagtype flag
-    classification product component
+    bug attachment comment user group flagtype flag product component
 );
 
 if (!$ARGS->{class})
@@ -54,6 +45,16 @@ if ($block_list{$class->name})
 {
     ThrowUserError('class_blocked', { class => $ARGS->{class} });
 }
+
+my $grp = $ARGS->{class} eq 'milestone' || $ARGS->{class} eq 'version' ? undef :
+    ($ARGS->{class} eq 'keyword' ? 'editkeywords' :
+    ($ARGS->{class} eq 'classification' ? 'editclassifications' : 'editvalues'));
+
+!$grp || Bugzilla->user->in_group($grp) || ThrowUserError('auth_failure', {
+    group  => $grp,
+    action => 'edit',
+    class  => $ARGS->{class},
+});
 
 my $obj = $class->type->new(int($ARGS->{id} || 0) || undef);
 if ($class->name eq 'version' || $class->name eq 'milestone')
@@ -124,7 +125,8 @@ if ($action eq 'add' || $action eq 'edit' || $action eq 'del')
         $vars->{obj} = $obj;
     }
     $vars->{token} = issue_session_token($action eq 'del' ? 'delete_object' : 'save_object');
-    $template->process("admin/fieldvalues/".($action eq 'del' ? 'confirm-delete' : 'edit').".html.tmpl", $vars)
+    my $tpl = "admin/fieldvalues/".($action eq 'del' ? 'confirm-delete' : 'edit').".html.tmpl";
+    $template->process($tpl, $vars)
         || ThrowTemplateError($template->error());
     exit;
 }
@@ -139,6 +141,7 @@ else
 {
     $vars->{values} = [ $class->type->get_all(INCLUDE_DISABLED) ];
 }
-$template->process("admin/fieldvalues/list.html.tmpl", $vars)
+
+$template->process($class->name eq 'classification' ? 'admin/classifications/select.html.tmpl' : 'admin/fieldvalues/list.html.tmpl', $vars)
     || ThrowTemplateError($template->error());
 exit;

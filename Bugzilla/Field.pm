@@ -1101,7 +1101,7 @@ sub clear_default_values
 sub count_value_objects
 {
     my $self = shift;
-    return 0 if !$self->is_select;
+    return 0 if !$self->is_select || $self->class->name eq 'bug' && $self->name eq 'classification'; # FIXME classification should not be a field of bugs
     my ($value_id) = @_;
     my ($n) = Bugzilla->dbh->selectrow_array(
         "SELECT COUNT(*) FROM ".

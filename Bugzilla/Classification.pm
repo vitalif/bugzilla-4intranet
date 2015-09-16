@@ -30,6 +30,16 @@ use constant OVERRIDE_SETTERS => {
 use constant is_active => 1;
 use constant bug_count => 0;
 
+sub remove_from_db
+{
+    my $self = shift;
+    if ($self->id == 1)
+    {
+        ThrowUserError("classification_not_deletable");
+    }
+    $self->SUPER::remove_from_db(@_);
+}
+
 sub _set_name
 {
     my ($self, $name) = @_;

@@ -42,6 +42,33 @@
         </td>
       </tr>
     [% END %]
+    [% IF obj_class.name == 'classification' && obj.id %]
+    <tr valign=top>
+      <th align="right">
+        Edit Products:
+      </th>
+      <td>
+        [% IF obj.products.size > 0 %]
+          <table>
+            [% FOREACH p = obj.products %]
+              <tr>
+                <th align="left" valign="top" style="padding-right: 10px"><a href="editproducts.cgi?classification=[% obj.name | uri %]&product=[% p.name | uri %]">[% p.name | html %]</a></th>
+                <td valign="top">
+                  [% IF p.description %]
+                    [% p.description | html_light %]
+                  [% ELSE %]
+                    <font color="red">description missing</font>
+                  [% END %]
+                </td>
+              </tr>
+            [% END %]
+          </table>
+        [% ELSE %]
+          <font color="red">none</font>
+        [% END %]
+      </td>
+    </tr>
+    [% END %]
     [% FOREACH f = Bugzilla.get_class_fields({ 'value_class_id' => obj_class.id }) %]
       [% SET show_vis = f.value_field && (f.class.name != 'bug' || f.name != 'target_milestone' && f.name != 'version') %]
       [% SET show_def = f.default_value_hash.${obj.id} %]

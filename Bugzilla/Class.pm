@@ -141,12 +141,6 @@ sub id_field { $_[0]->type->ID_FIELD }
 sub list_order { $_[0]->{list_order} }
 sub db_table { $_[0]->{db_table} }
 
-sub activity_table
-{
-    my $self = shift;
-    return $self->db_table.'_activity';
-}
-
 sub name_field
 {
     my $self = shift;

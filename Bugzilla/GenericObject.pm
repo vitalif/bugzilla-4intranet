@@ -281,7 +281,7 @@ sub remove_from_db
     my $changes = {};
     for my $f (grep { $_ ne $self->ID_FIELD && $_ ne 'delta_ts' && $_ ne 'lastdiffed' } $self->DB_COLUMNS)
     {
-        $changes->{$f} = [ $self->{$f->db_column}, '' ];
+        $changes->{$f} = [ $self->{$f}, '' ];
     }
     for my $f (map { $_->name } Bugzilla->get_fields({
         class_id => $self->CLASS_ID,

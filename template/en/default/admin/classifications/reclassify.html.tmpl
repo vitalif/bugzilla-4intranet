@@ -26,13 +26,13 @@
   <table border=0 cellpadding=4 cellspacing=0>
     <tr>
       <td valign="top">Classification:</td>
-      <td valign="top" colspan=3>[% classification.name FILTER html %]</td>
+      <td valign="top" colspan=3>[% classification.name | html %]</td>
 
     </tr><tr>
       <td valign="top">Description:</td>
       <td valign="top" colspan=3>
         [% IF classification.description %]
-          [% classification.description FILTER html_light %]
+          [% classification.description | html_light %]
         [% ELSE %]
           <font color="red">description missing</font>
         [% END %]
@@ -40,7 +40,7 @@
 
     </tr><tr>
       <td valign="top">Sortkey:</td>
-      <td valign="top" colspan=3>[% classification.sortkey FILTER html %]</td>
+      <td valign="top" colspan=3>[% classification.sortkey | html %]</td>
 
     </tr><tr>
       <td valign="top">Products:</td>
@@ -54,9 +54,9 @@
       <select name="prodlist" id="prodlist" multiple="multiple" size="20">
         [% FOREACH class = classifications %]
           [% IF class.id != classification.id %]
-            [% FOREACH product = class.products %]
-              <option value="[% product.name FILTER html %]">
-                [[% class.name FILTER html %]]&nbsp;[% product.name FILTER html %]
+            [% FOREACH p = class.products %]
+              <option value="[% p.name | html %]">
+                [[% class.name | html %]]&nbsp;[% p.name | html %]
               </option>
             [% END %]
           [% END %]
@@ -64,15 +64,15 @@
       </select></td>
 
       <td align="center">
-        <input type=submit value="     Add &gt;&gt;  " name="add_products" /><br /><br />
-        <input type=submit value="&lt;&lt; Remove" name="remove_products" />
+        <input type="submit" value="Add &gt;&gt;" name="add_products" style="display: block; width: 100%; margin-bottom: 20px" />
+        <input type="submit" value="&lt;&lt; Remove" name="remove_products" style="display: block; width: 100%; margin-bottom: 20px" />
       </td>
 
       <td valign="middle" rowspan=2>
         <select name="myprodlist" id="myprodlist" multiple="multiple" size="20">
-          [% FOREACH product = classification.products %]
-            <option value="[% product.name FILTER html %]">
-              [% product.name FILTER html %]
+          [% FOREACH p = classification.products %]
+            <option value="[% p.name | html %]">
+              [% p.name | html %]
             </option>
           [% END %]
       </select></td>
@@ -80,11 +80,10 @@
   </table>
 
   <input type=hidden name="action" value="reclassify" />
-  <input type=hidden name="classification" value="[% classification.name FILTER html %]" />
-  <input type="hidden" name="token" value="[% token FILTER html %]" />
+  <input type=hidden name="classification" value="[% classification.name | html %]" />
+  <input type="hidden" name="token" value="[% token | html %]" />
 </form>
 
-[% PROCESS admin/classifications/footer.html.tmpl %]
+[% PROCESS admin/fieldvalues/footer.html.tmpl obj=classification obj_class=Bugzilla.get_class('classification') %]
 
 [% PROCESS global/footer.html.tmpl %]
-
