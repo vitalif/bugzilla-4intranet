@@ -6,8 +6,8 @@ function onChangeType()
 {
     var type_field = document.getElementById('type');
     var value_field = document.getElementById('value_field_id');
-    if (type_field.value == constants.FIELD_TYPE_SINGLE_SELECT ||
-        type_field.value == constants.FIELD_TYPE_MULTI_SELECT)
+    if (type_field.value == constants.FIELD_TYPE_SINGLE ||
+        type_field.value == constants.FIELD_TYPE_MULTI)
     {
         value_field.disabled = false;
         document.getElementById('value_field_row').style.display = '';
@@ -28,27 +28,28 @@ function onChangeType()
         }
     }
     document.getElementById('default_value_row').style.display =
-        type_field.value == constants.FIELD_TYPE_BUG_ID_REV ||
-        type_field.value == constants.FIELD_TYPE_SINGLE_SELECT ||
-        type_field.value == constants.FIELD_TYPE_MULTI_SELECT ? 'none' : '';
-    var rev_value_field = document.getElementById('bug_id_rev_value_field_id');
-    if (type_field.value == constants.FIELD_TYPE_BUG_ID_REV)
+        type_field.value == constants.FIELD_TYPE_REVERSE ||
+        type_field.value == constants.FIELD_TYPE_SINGLE ||
+        type_field.value == constants.FIELD_TYPE_MULTI ? 'none' : '';
+    var rev_value_field = document.getElementById('reverse_value_field_id');
+    if (type_field.value == constants.FIELD_TYPE_REVERSE)
     {
         rev_value_field.name = 'value_field_id';
         value_field.name = '';
-        document.getElementById('bug_id_rev_row').style.display = '';
+        document.getElementById('reverse_row').style.display = '';
     }
     else
     {
         rev_value_field.name = '';
         value_field.name = 'value_field_id';
-        document.getElementById('bug_id_rev_row').style.display = 'none';
+        document.getElementById('reverse_row').style.display = 'none';
     }
-    document.getElementById('add_to_deps_row').style.display
-        = type_field.value == constants.FIELD_TYPE_BUG_ID ? '' : 'none';
-    var u = document.getElementById('nullable');
-    u.disabled = type_field.value == constants.FIELD_TYPE_MULTI_SELECT ||
-        type_field.value == constants.FIELD_TYPE_BUG_ID_REV;
+    var u = document.getElementById('add_to_deps_row');
+    if (u)
+        u.style.display = type_field.value == constants.FIELD_TYPE_BUG_ID ? '' : 'none';
+    u = document.getElementById('nullable');
+    u.disabled = type_field.value == constants.FIELD_TYPE_MULTI ||
+        type_field.value == constants.FIELD_TYPE_REVERSE;
     if (u.disabled)
         u.checked = false;
     u = type_field.value == constants.FIELD_TYPE_EXTURL;

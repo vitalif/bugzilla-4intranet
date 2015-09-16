@@ -113,7 +113,6 @@
          content = c.content
          content_values = c.content_values
          align = c.align
-         class = c.class
          allow_html_content = c.allow_html_content
          yesno_field = c.yesno_field
          block_name = c.block_name
@@ -140,7 +139,7 @@
       [% END %]
 
       <td [% IF align %] align="[% align FILTER html %]" [% END %]
-          [% IF class %] class="[% class FILTER html %]" [% END %]>
+          [% IF c.class %] class="[% c.class FILTER html %]" [% END %]>
 
       [% IF block_name %]
         [% block_name FILTER process %]

@@ -1,22 +1,11 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Dan Mosedale <dmose@mozilla.org>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Myk Melez <myk@mozilla.org>
-#                 Greg Hendricks <ghendricks@novell.com>
-#
-# Deep refactoring by Vitaliy Filippov <vitalif@mail.ru>
-# http://wiki.4intra.net/Bugzilla4Intranet
+# Class representing a field of other object class
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   still contains some original code from:
+#   Dan Mosedale <dmose@mozilla.org>
+#   Frédéric Buclin <LpSolit@gmail.com>
+#   Myk Melez <myk@mozilla.org>
+#   Greg Hendricks <ghendricks@novell.com>
 
 =head1 NAME
 
@@ -643,7 +632,7 @@ sub rel_value_id
 {
     my $self = shift;
     return 'user_id' if $self->name eq 'cc' && $self->class->name eq 'component';
-    return 'object_id';
+    return 'value_id';
 }
 
 # Value class for this field
@@ -1013,7 +1002,7 @@ sub remove_from_db
     }
 
     # Update some other field (refresh the cache)
-    Bugzilla->get_class_field($self->class->type->ID_FIELD, $self->class->id)->touch;
+    Bugzilla->get_class_fields({ class_id => $self->class->id })->[0]->touch;
 
     $dbh->bz_commit_transaction();
 }

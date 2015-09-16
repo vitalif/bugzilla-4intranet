@@ -1,17 +1,9 @@
 #!/usr/bin/perl -wT
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Frédéric Buclin <LpSolit@gmail.com>
+# Class field editor
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   still contains some original code from:
+#   Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
 use lib qw(. lib);
@@ -36,7 +28,10 @@ $user->in_group('editfields') || ThrowUserError('auth_failure', {
 });
 
 my $action = trim($ARGS->{action} || '');
-my $token  = $ARGS->{token};
+my $token = $ARGS->{token};
+my $class = $vars->{class} = $ARGS->{class} ? Bugzilla->get_class($ARGS->{class}) : undef;
+$class ||= Bugzilla->get_class('bug');
+$vars->{class} = $class;
 
 $vars->{field_types} = Bugzilla->messages->{field_types};
 $vars->{object_classes} = Bugzilla->get_classes;
@@ -59,7 +54,7 @@ elsif ($action eq 'new')
 
     my $field = $vars->{field} = Bugzilla::Field->create({
         (map { ($_ => $ARGS->{$_}) } Bugzilla::Field->DB_COLUMNS),
-        class_id => Bugzilla->get_class('bug')->id,
+        class_id => $class->id,
         custom => 1,
         is_mandatory => !$ARGS->{nullable},
     });
@@ -69,15 +64,15 @@ elsif ($action eq 'new')
 
     delete_token($token);
 
-    Bugzilla->add_result_message({ message => 'custom_field_created', field => { name => $field->name } });
+    Bugzilla->add_result_message({ message => 'custom_field_created', field => { class => $field->class->name, name => $field->name } });
     Bugzilla->save_session_data;
-    print Bugzilla->cgi->redirect('editfields.cgi');
+    print Bugzilla->cgi->redirect('editfields.cgi?class='.$class->id);
     exit;
 }
 elsif ($action eq 'edit')
 {
     my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
-    my $field = Bugzilla->get_field($name);
+    my $field = Bugzilla->get_class_field($name, $class);
     $field || ThrowUserError('customfield_nonexistent', { name => $name });
 
     $vars->{field} = $field;
@@ -91,7 +86,7 @@ elsif ($action eq 'update')
     check_token_data($token, 'edit_field');
 
     my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
-    my $field = Bugzilla->get_field($name);
+    my $field = Bugzilla->get_class_field($name, $class);
     $field || ThrowUserError('customfield_nonexistent', { name => $name });
     $vars->{field} = $field;
 
@@ -158,15 +153,15 @@ elsif ($action eq 'update')
 
     delete_token($token);
 
-    Bugzilla->add_result_message({ message => 'custom_field_updated', field => { name => $field->name } });
+    Bugzilla->add_result_message({ message => 'custom_field_updated', field => { class => $field->class->name, name => $field->name } });
     Bugzilla->save_session_data;
-    print Bugzilla->cgi->redirect('editfields.cgi');
+    print Bugzilla->cgi->redirect('editfields.cgi?class='.$class->id);
     exit;
 }
 elsif ($action eq 'del')
 {
     my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
-    my $field = Bugzilla->get_field($name);
+    my $field = Bugzilla->get_class_field($name, $class);
     $field || ThrowUserError('customfield_nonexistent', { name => $name });
     $field->custom || ThrowUserError('field_not_custom', { name => $name });
     $field->obsolete || ThrowUserError('field_not_obsolete', { name => $name });
@@ -181,7 +176,7 @@ elsif ($action eq 'delete')
 {
     check_token_data($token, 'delete_field');
     my $name = $ARGS->{name} || ThrowUserError('field_missing_name');
-    my $field = Bugzilla->get_field($name);
+    my $field = Bugzilla->get_class_field($name, $class);
     $field || ThrowUserError('customfield_nonexistent', { name => $name });
 
     # Calling remove_from_db will check if field can be deleted.
@@ -190,9 +185,9 @@ elsif ($action eq 'delete')
 
     delete_token($token);
 
-    Bugzilla->add_result_message({ message => 'custom_field_deleted', field => { name => $field->name } });
+    Bugzilla->add_result_message({ message => 'custom_field_deleted', field => { class => $field->class->name, name => $field->name } });
     Bugzilla->save_session_data;
-    print Bugzilla->cgi->redirect('editfields.cgi');
+    print Bugzilla->cgi->redirect('editfields.cgi?class='.$class->id);
     exit;
 }
 else

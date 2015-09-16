@@ -27,11 +27,11 @@
 
 [% javascript = BLOCK %]
 var constants = {
-  FIELD_TYPE_SINGLE_SELECT: [% constants.FIELD_TYPE_SINGLE_SELECT %],
-  FIELD_TYPE_MULTI_SELECT: [% constants.FIELD_TYPE_MULTI_SELECT %],
+  FIELD_TYPE_SINGLE: [% constants.FIELD_TYPE_SINGLE %],
+  FIELD_TYPE_MULTI: [% constants.FIELD_TYPE_MULTI %],
   FIELD_TYPE_BUG_ID: [% constants.FIELD_TYPE_BUG_ID %],
   FIELD_TYPE_EXTURL: [% constants.FIELD_TYPE_EXTURL %],
-  FIELD_TYPE_BUG_ID_REV: [% constants.FIELD_TYPE_BUG_ID_REV %]
+  FIELD_TYPE_REVERSE: [% constants.FIELD_TYPE_REVERSE %]
 };
 [% END %]
 
@@ -42,7 +42,13 @@ var constants = {
   javascript_urls = [ "js/cf-edit.js" ]
 %]
 
-[% IF !field.id %]
+[% IF field.id %]
+<h2>[% class.description | html %] &mdash; Field '[% field.description %]'</h2>
+[% ELSE %]
+<h2>[% class.description | html %] &mdash; Add field</h2>
+[% END %]
+
+[% IF !field.id && class.name == 'bug' %]
 <p style="font-size: 120%">
   Adding custom fields can make the interface of [% terms.Bugzilla %] very
   complicated. Many admins who are new to [% terms.Bugzilla %] start off
@@ -62,7 +68,7 @@ var constants = {
 [% END %]
 
 [% SET has_help = { 'classification' => 1, 'votes' => 1, 'alias' => 1, 'see_also' => 1 } %]
-[% IF field.id && !field.custom && has_help.${field.name} %]
+[% IF class.name == 'bug' && field.id && !field.custom && has_help.${field.name} %]
 <table><tr>
   <td><img style="margin: 0 8px 0 0" src="images/info.png" /></td>
   <td>
@@ -88,6 +94,7 @@ var constants = {
 [% END %]
 
 <form id="edit_field" action="editfields.cgi" method="POST">
+<input type="hidden" name="class" value="[% class.id %]" />
 
 <table border="0" cellspacing="0" cellpadding="0">
   <tr valign="top"><td>
@@ -98,7 +105,7 @@ var constants = {
           [% IF field.id %]
             [% field.name | html %]<input type="hidden" name="name" value="[% field.name | html %]" />
           [% ELSE %]
-            <input type="text" id="name" name="name" value="cf_" size="40" maxlength="64" />
+            <input type="text" id="name" name="name" value="[% 'cf_' IF class.name == 'bug' %]" size="40" maxlength="64" />
           [% END %]
         </td>
       </tr>
@@ -133,7 +140,8 @@ var constants = {
                 [%# Types "Bug URLs" and "Keywords" are rudiments from original Bugzilla %]
                 [% NEXT IF type == constants.FIELD_TYPE_UNKNOWN ||
                   type == constants.FIELD_TYPE_BUG_URLS ||
-                  type == constants.FIELD_TYPE_KEYWORDS %]
+                  type == constants.FIELD_TYPE_KEYWORDS ||
+                  type == constants.FIELD_TYPE_BUG_ID && class.name != 'bug' %]
                 <option value="[% type | html %]">[% field_types.$type | html %]</option>
               [% END %]
             </select>
@@ -149,9 +157,10 @@ var constants = {
           [% END %]
         </td>
       </tr>
-      [% IF !field.id || field.type && field.type != constants.FIELD_TYPE_BUG_ID_REV %]
+      [% IF class.name == 'bug' && (!field.id || field.type == constants.FIELD_TYPE_BUG_ID) ||
+        field.is_select AND field.value_class.name != 'product' AND field.id %]
       <tr id="add_to_deps_row">
-        [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID %]
+        [% IF class.name == 'bug' && (!field.id || field.type == constants.FIELD_TYPE_BUG_ID) %]
         <th align="left"><label for="add_to_deps">Deps:</label></th>
         <td>
           <select name="add_to_deps" id="add_to_deps">
@@ -160,7 +169,7 @@ var constants = {
             <option value="dependson" [% ' selected="selected"' IF field.add_to_deps == constants.BUG_ID_ADD_TO_DEPENDSON %]>Add field value to blockers</option>
           </select>
         </td>
-        [% ELSIF field.is_select AND field.name != 'product' AND field.id %]
+        [% ELSIF field.is_select AND field.value_class.name != 'product' AND field.id %]
         <td></td>
         <td><a href="editvalues.cgi?class=[% field.value_class.name | url_quote %]">Edit legal values for this field</a></td>
         [% END %]
@@ -184,14 +193,14 @@ var constants = {
       [% IF !field.id || field.can_tweak('mailhead') %]
       <tr>
         <th align="left">
-          <label for="mailhead">Displayed in [% terms.bug %]mail for new [% terms.bugs %]:</label>
+          <label for="mailhead">Displayed in mail for new objects:</label>
         </th>
         <td><input type="checkbox" id="mailhead" name="mailhead" value="1" [%- ' checked="checked"' IF field.in_new_bugmail %] /></td>
       </tr>
       [% END %]
       [% IF !field.id || field.can_tweak('clone_bug') %]
       <tr>
-        <th align="left"><label for="clone_bug">Is copied into the cloned [% terms.bug %]:</label></th>
+        <th align="left"><label for="clone_bug">Is copied during cloning:</label></th>
         <td><input type="checkbox" id="clone_bug" name="clone_bug" value="1" [%- ' checked="checked"' IF field.clone_bug %] onclick="onChangeCloned()" /></td>
       </tr>
       [% END %]
@@ -241,7 +250,7 @@ var constants = {
     <td style="padding: 5px">
       <select style="width: 400px" name="visibility_field_id" id="visibility_field_id">
         <option value="">---</option>
-        [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+        [% FOREACH sel_field = Bugzilla.get_class_fields({ class_id => class.id, is_select => 1 }) %]
           <option value="[% sel_field.id | html %]"
             [% ' selected="selected"' IF sel_field.id == field.visibility_field.id %]>
             [% sel_field.description | html %]
@@ -261,7 +270,7 @@ var constants = {
     <td style="padding: 5px">
       <select style="width: 400px" name="null_field_id" id="null_field_id">
         <option value="">---</option>
-        [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+        [% FOREACH sel_field = Bugzilla.get_class_fields({ class_id => class.id, is_select => 1 }) %]
           <option value="[% sel_field.id | html %]"
             [% ' selected="selected"' IF sel_field.id == field.null_field.id %]>
             [% sel_field.description | html %]
@@ -281,7 +290,7 @@ var constants = {
     <td style="padding: 5px">
       <select style="width: 400px" name="clone_field_id" id="clone_field_id">
         <option value="">---</option>
-        [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+        [% FOREACH sel_field = Bugzilla.get_class_fields({ class_id => class.id, is_select => 1 }) %]
           <option value="[% sel_field.id | html %]"
             [% ' selected="selected"' IF sel_field.id == field.clone_field.id %]>
             [% sel_field.description | html %]
@@ -301,7 +310,7 @@ var constants = {
     <td style="padding: 5px">
       <select style="width: 400px" name="default_field_id" id="default_field_id">
         <option value="">---</option>
-        [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+        [% FOREACH sel_field = Bugzilla.get_class_fields({ class_id => class.id, is_select => 1 }) %]
           [% NEXT IF sel_field.id == field.id %]
           <option value="[% sel_field.id | html %]"
             [% ' selected="selected"' IF sel_field.id == field.default_field.id %]>
@@ -322,7 +331,7 @@ var constants = {
     <td style="padding: 5px">
       <select style="width: 400px" name="value_field_id" id="value_field_id">
         <option value="">---</option>
-        [% FOREACH sel_field = Bugzilla.get_fields({ is_select => 1 }) %]
+        [% FOREACH sel_field = Bugzilla.get_class_fields({ class_id => class.id, is_select => 1 }) %]
           [% NEXT IF sel_field.id == field.id %]
           <option value="[% sel_field.id | html %]"
             [% ' selected="selected"' IF sel_field.id == field.value_field.id %]>
@@ -335,21 +344,20 @@ var constants = {
   </tr>
   [% END %]
 
-  [% IF !field.id || field.type == constants.FIELD_TYPE_BUG_ID_REV %]
-  <tr valign="top" id="bug_id_rev_row">
-    <th style="padding: 5px" align="left"><label for="bug_id_rev_value_field_id">
-      Direct Bug ID field for this reverse one:
+  [% IF !field.id || field.type == constants.FIELD_TYPE_REVERSE %]
+  <tr valign="top" id="reverse_row">
+    <th style="padding: 5px" align="left"><label for="reverse_value_field_id">
+      Direct field for this reverse one:
     </label></th>
     <td style="padding: 5px">
       [%# Duplicate name will be cleared by JS on creation form %]
-      <select style="width: 400px" name="value_field_id" id="bug_id_rev_value_field_id">
+      <select style="width: 400px" name="value_field_id" id="reverse_value_field_id">
         <option value="">---</option>
-        [% FOREACH sel_field = Bugzilla.get_fields({ custom => 1, type => constants.FIELD_TYPE_BUG_ID }) %]
+        [% FOREACH sel_field = Bugzilla.get_class_fields({ type => constants.FIELD_TYPE_SINGLE, value_class_id => class.id, sort => 'name' }) %]
           [% NEXT IF sel_field.id == field.id %]
           <option value="[% sel_field.id | html %]"
             [% ' selected="selected"' IF sel_field.id == field.value_field.id %]>
-            [% sel_field.description | html %]
-            ([% sel_field.name | html %])
+            [% sel_field.class.description %] &rarr; [% sel_field.description | html %]
           </option>
         [% END %]
       </select>

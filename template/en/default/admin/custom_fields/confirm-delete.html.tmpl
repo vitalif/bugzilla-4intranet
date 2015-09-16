@@ -29,8 +29,8 @@
 
 <table class="admin_table">
 <tr>
-  <th valign="top" align="left">Property</th>
-  <th valign="top" align="left">Value</th>
+  <td valign="top">Class:</td>
+  <td valign="top">[% class.name | html %]</td>
 </tr>
 <tr>
   <td valign="top">Custom Field:</td>
@@ -51,11 +51,11 @@
 <p>
   Are you sure you want to remove this field from the database?<br />
   <em>This action will only be successful if the field is obsolete,
-  and cleared in all [% terms.bugs | html %].</em>
+  and cleared in all [% class.description | html %] objects.</em>
 </p>
 
-<a href="editfields.cgi?action=delete&amp;name=[% field.name | html %]&amp;token=[% token | html %]">
-  Delete field '[% field.description | html %]'</a>
+<a href="editfields.cgi?action=delete&class=[% class.id %]&name=[% field.name | uri %]&token=[% token | uri %]">
+  Delete field '[% field.description | html %]' of class '[% class.description | html %]'</a>
 
 <p>
   <a href="editfields.cgi">Back to the list of existing custom fields</a>

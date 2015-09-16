@@ -121,10 +121,12 @@ sub set
 # Set all field values from $params
 sub set_all
 {
-    my ($self, $params) = @_;
-    for my $field (keys %$params)
+    my ($self, $params, $prefix) = @_;
+    for my $key (keys %$params)
     {
-        $self->set($field, $params->{$field});
+        my $field = $key;
+        next if $prefix && substr($field, 0, length $prefix, '') ne $prefix;
+        $self->set($field, $params->{$key});
     }
 }
 

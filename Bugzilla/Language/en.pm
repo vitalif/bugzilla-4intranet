@@ -66,17 +66,17 @@ $Bugzilla::messages->{en} = {
     },
     field_types => {
         FIELD_TYPE_UNKNOWN()       => 'Unknown Type',
-        FIELD_TYPE_FREETEXT()      => 'Free Text',
+        FIELD_TYPE_FREETEXT()      => 'String',
         FIELD_TYPE_SINGLE_SELECT() => 'Single Select',
         FIELD_TYPE_MULTI_SELECT()  => 'Multiple Select',
         FIELD_TYPE_TEXTAREA()      => 'Large Text Box',
         FIELD_TYPE_DATETIME()      => 'Date/Time',
         FIELD_TYPE_BUG_ID()        => $terms->{Bug}.' ID',
-        FIELD_TYPE_BUG_URLS()      => $terms->{Bug}.' URLs',
-        FIELD_TYPE_KEYWORDS()      => '(Invalid type) Keywords',
+        FIELD_TYPE_BUG_URLS()      => $terms->{Bug}.' URLs', # Rudiment
+        FIELD_TYPE_KEYWORDS()      => '(Invalid type) Keywords', # Rudiment
         FIELD_TYPE_NUMERIC()       => 'Numeric',
         FIELD_TYPE_EXTURL()        => 'External URL',
-        FIELD_TYPE_BUG_ID_REV()    => $terms->{Bug}.' ID reverse',
+        FIELD_TYPE_BUG_ID_REV()    => 'Reverse for select',
         FIELD_TYPE_BOOLEAN()       => 'Boolean',
         FIELD_TYPE_INTEGER()       => 'Integer',
     },

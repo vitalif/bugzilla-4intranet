@@ -22,13 +22,11 @@
   doc_section = "custom-fields.html"
 %]
 
-[% delete_contentlink = BLOCK %]editfields.cgi?action=del&amp;name=%%name%%[% END %]
-
 [% columns = [
      {
        name => "name"
        heading => "Edit custom field..."
-       contentlink => "editfields.cgi?action=edit&amp;name=%%name%%"
+       contentlink => "editfields.cgi?action=edit&class=" _ class.id _ "&name=%%name%%"
      },
      {
        name => "description"
@@ -86,18 +84,18 @@
 
 [% overrides.obsolete.obsolete.1 = {
   override_contentlink => 1
-  contentlink => delete_contentlink
+  contentlink => 'editfields.cgi?action=del&class=' _ class.id _ '&name=%%name%%'
   content_values => ''
   override_content => 1
   content => 'Yes, Delete'
 } %]
 
-<h2>Custom fields</h2>
+<h2>[% class.description | html %] &mdash; Custom fields</h2>
 
 [% PROCESS admin/table.html.tmpl
   columns = columns
   overrides = overrides
-  data = Bugzilla.get_fields({custom => 1, sort => 1})
+  data = Bugzilla.get_class_fields({ class_id => class.id, custom => 1, sort => 1 })
 %]
 
 <p>
@@ -106,10 +104,10 @@
   to satisfy your needs before doing this.
 </p>
 <p>
-  <a href="editfields.cgi?action=add">Add a new custom field</a>
+  <a href="editfields.cgi?action=add&class=[% class.id %]">Add a new custom field</a>
 </p>
 
-<h2>Standard fields</h2>
+<h2>[% class.description | html %] &mdash; Standard fields</h2>
 
 <p>
   You can tweak the behaviour of standard [% terms.Bugzilla %] fields in various ways:
@@ -191,7 +189,7 @@
 [% PROCESS admin/table.html.tmpl
   columns = columns
   overrides = overrides
-  data = Bugzilla.get_fields({custom => 0, sort => 1})
+  data = Bugzilla.get_class_fields({class_id => class.id, custom => 0, sort => 1})
 %]
 
 [% PROCESS global/footer.html.tmpl %]

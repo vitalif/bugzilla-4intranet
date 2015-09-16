@@ -131,6 +131,29 @@
   </p>
 [% END %]
 
+[% BLOCK msg_custom_field_created %]
+  [% title = "Field Created" %]
+  [% field = Bugzilla.get_class_field(field.name, field.class) %]
+  <div class="message">
+    The field [% field.description %] is created for class [% field.class.description %].
+  </div>
+[% END %]
+
+[% BLOCK msg_custom_field_updated %]
+  [% title = "Field Updated" %]
+  [% field = Bugzilla.get_class_field(field.name, field.class) %]
+  <div class="message">
+    The field [% field.description %] of class [% field.class.description %] is updated.
+  </div>
+[% END %]
+
+[% BLOCK msg_custom_field_deleted %]
+  [% title = "Field Deleted" %]
+  <div class="message">
+    The field [% field.name %] of class [% Bugzilla.get_class(field.class).description %] is deleted.
+  </div>
+[% END %]
+
 [% BLOCK msg_object_created %]
   [% title = "New Object Created" %]
   [% cl = Bugzilla.get_class(class_id) %]
