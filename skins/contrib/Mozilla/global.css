@@ -102,6 +102,10 @@ a:hover, #header a:hover, #footer a:hover {
     color: #00539f;
 }
 
+p {
+    margin: .5em 0;
+}
+
 #page_index, select, textarea, .text_input, input[type="text"], input[type="password"], input:not([type]) {
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;

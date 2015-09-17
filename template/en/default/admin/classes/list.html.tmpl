@@ -1,0 +1,29 @@
+[%# Class list
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author(s): Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[% PROCESS global/header.html.tmpl title="Object classes" %]
+
+<h2>Object classes</h2>
+
+<p><a href="editclasses.cgi?action=add">Add new class</a></p>
+
+<table id="admin_table" class="admin_table">
+<tr>
+    <th>Edit class...</th>
+    <th>Description</th>
+    <th>Name field</th>
+    <th>List order</th>
+</tr>
+[% FOR c = classes %]
+<tr>
+    <td><a href="editclasses.cgi?action=edit&id=[% c.id %]">[% c.name | html %]</a></td>
+    <td>[% c.description | html %]</td>
+    <td>[% c.name_field.description | html %]</td>
+    <td>[% c.list_order | html %]</td>
+</tr>
+[% END %]
+</table>
+
+[% PROCESS global/footer.html.tmpl %]

@@ -87,13 +87,19 @@ sub _after_update
     $any_field->touch;
 }
 
-# Removes class with history!
-sub remove_from_db
+sub object_count
 {
     my $self = shift;
     my $table = $self->db_table;
     my ($count) = Bugzilla->dbh->selectrow_array("SELECT COUNT(*) FROM $table");
-    ThrowUserError('class_delete_objects') if $count;
+    return $count;
+}
+
+# Removes class with history!
+sub remove_from_db
+{
+    my $self = shift;
+    ThrowUserError('class_delete_objects') if $self->object_count;
     ThrowUserError('class_used_in_fields') if Bugzilla->get_class_fields({ value_class_id => $self->id });
     for my $field (Bugzilla->get_class_fields({ class_id => $self->id }))
     {

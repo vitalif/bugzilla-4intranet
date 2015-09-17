@@ -1,0 +1,94 @@
+[%# Edit form / confirm deletion page for class editor
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author(s): Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[% title = BLOCK %]
+  [% IF class %]
+    Object class '[% class.description | html %]'
+  [% ELSE %]
+    Create a new object class
+  [% END %]
+[% END %]
+
+[% PROCESS global/header.html.tmpl title = title %]
+
+<form action="?" method="POST">
+<input type="hidden" name="action" value="save" />
+<input type="hidden" name="id" value="[% class.id %]" />
+<input type="hidden" name="token" value="[% token | html %]" />
+
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr valign="top"><td>
+    <table border="0" cellspacing="0" cellpadding="5">
+      <tr>
+        <th align="left">Class name:</th>
+        <td>
+          [% IF class.id %]
+            [% class.name | html %]
+          [% ELSE %]
+            <input type="text" id="name" name="_name" value="[% class.name | html %]" size="40" maxlength="64" />
+          [% END %]
+        </td>
+      </tr>
+      <tr>
+        <th align="left"><label for="description">Title:</label></th>
+        <td><input type="text" id="description" name="_description" style="width: 400px" value="[% class.description | html %]" /></td>
+      </tr>
+      [% IF class.id %]
+      <tr>
+        <th align="left"><label for="name_field_id">Name field:</label></th>
+        <td>
+          <select id="name_field_id" name="_name_field_id" style="width: 400px">
+            <option value="">---</option>
+            [% FOREACH f = possible_name_fields %]
+              <option value="[% f.id | html %]" [% ' selected="selected"' IF f.id == class.name_field_id %]>
+                [% f.description | html %] ([% f.name | html %])
+              </option>
+            [% END %]
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <th align="left"><label for="list_order">Default list order:</label></th>
+        <td><input type="text" id="list_order" name="_list_order" style="width: 400px" value="[% class.list_order | html %]" /></td>
+      </tr>
+      [% END %]
+    </table>
+
+    <input type="submit" value="[% IF class.id %]Save[% ELSE %]Create[% END %]" />
+
+    [% IF class.id %]
+      [% FOR f = Bugzilla.get_class_fields({ value_class_id => class.id }) %]
+      <p>This class is used for <a href="editfields.cgi?class=[% f.class.id %]&name=[% f.name | uri %]&action=edit">[% f.class.description | html %] &rarr; [% f.description | html %]</a> attribute.</p>
+      [% END %]
+      <p>[% class.object_count %] object(s) of this class exist.</p>
+      [% IF !class.object_count && !Bugzilla.get_class_fields({ value_class_id => class.id }) %]
+      <p><a href="editclasses.cgi?action=delete&token=[% token | uri %]&id=[% class.id %]"
+          onclick="if (!confirm('Really delete this class?')) { event.preventDefault && event.preventDefault(); return false; }">
+          Permanently delete this class with all change history
+      </a></p>
+      [% ELSE %]
+      <p>All objects and fields using this class must be deleted before deleting it.</p>
+      [% END %]
+    [% END %]
+
+    <p><a href="editclasses.cgi">Back to the list of existing classes</a></p>
+
+  </td><td style="padding: 0 10px">
+    [%# FIXME Fields should be edited from this same form %]
+    [% IF class.id %]
+    <p>Current fields of this class (<a href="editfields.cgi?class=[% class.id %]">add/edit</a>):</p>
+    <p>
+      [% FOR f = class.get_fields({ sort => 'id' }) %]
+        [% f.description | html %] ([% field_types.${f.type} %][% IF f.is_select %] of [% f.value_class.description | html %][% END %])<br />
+      [% END %]
+    </p>
+    [% END %]
+  </td></tr>
+
+</table>
+
+</form>
+
+[% PROCESS global/footer.html.tmpl %]

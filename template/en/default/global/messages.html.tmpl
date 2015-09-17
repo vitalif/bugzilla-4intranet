@@ -131,26 +131,19 @@
   </p>
 [% END %]
 
-[% BLOCK msg_custom_field_created %]
-  [% title = "Field Created" %]
-  [% field = Bugzilla.get_class_field(field.name, field.class) %]
-  <div class="message">
-    The field [% field.description %] is created for class [% field.class.description %].
-  </div>
-[% END %]
-
 [% BLOCK msg_custom_field_updated %]
-  [% title = "Field Updated" %]
-  [% field = Bugzilla.get_class_field(field.name, field.class) %]
+  [% title = "Field " _ (action == 'create' ? 'created' : (action == 'update' ? 'updated' : 'deleted')) %]
+  [% f = Bugzilla.get_class_field(field.name, field.class) %]
   <div class="message">
-    The field [% field.description %] of class [% field.class.description %] is updated.
+    The field [% f.description || field.name | html %] of class [% Bugzilla.get_class(field.class).description %] is [% action == 'create' ? 'created' : (action == 'update' ? 'updated' : 'deleted') %].
   </div>
 [% END %]
 
-[% BLOCK msg_custom_field_deleted %]
-  [% title = "Field Deleted" %]
+[% BLOCK msg_class_updated %]
+  [% title = "Class " _ (action == 'create' ? 'created' : (action == 'update' ? 'updated' : 'deleted')) %]
+  [% c = Bugzilla.get_class(class.name) %]
   <div class="message">
-    The field [% field.name %] of class [% Bugzilla.get_class(field.class).description %] is deleted.
+    The class [% c.description || class.name | html %] is [% action == 'create' ? 'created' : (action == 'update' ? 'updated' : 'deleted') %].
   </div>
 [% END %]
 

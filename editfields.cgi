@@ -64,7 +64,7 @@ elsif ($action eq 'new')
 
     delete_token($token);
 
-    Bugzilla->add_result_message({ message => 'custom_field_created', field => { class => $field->class->name, name => $field->name } });
+    Bugzilla->add_result_message({ message => 'custom_field_updated', action => 'create', field => { class => $field->class->name, name => $field->name } });
     Bugzilla->save_session_data;
     print Bugzilla->cgi->redirect('editfields.cgi?class='.$class->id);
     exit;
@@ -153,7 +153,7 @@ elsif ($action eq 'update')
 
     delete_token($token);
 
-    Bugzilla->add_result_message({ message => 'custom_field_updated', field => { class => $field->class->name, name => $field->name } });
+    Bugzilla->add_result_message({ message => 'custom_field_updated', action => 'update', field => { class => $field->class->name, name => $field->name } });
     Bugzilla->save_session_data;
     print Bugzilla->cgi->redirect('editfields.cgi?class='.$class->id);
     exit;
@@ -185,7 +185,7 @@ elsif ($action eq 'delete')
 
     delete_token($token);
 
-    Bugzilla->add_result_message({ message => 'custom_field_deleted', field => { class => $field->class->name, name => $field->name } });
+    Bugzilla->add_result_message({ message => 'custom_field_updated', action => 'delete', field => { class => $field->class->name, name => $field->name } });
     Bugzilla->save_session_data;
     print Bugzilla->cgi->redirect('editfields.cgi?class='.$class->id);
     exit;
