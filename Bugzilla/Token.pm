@@ -75,14 +75,15 @@ sub issue_new_user_account_token {
     ThrowUserError('too_soon_for_new_token', {'type' => 'account'}) if $pending_requests;
 
     my ($token, $token_ts) = _create_token(undef, 'account', $login_name);
+    (undef, undef, $login_name) = Bugzilla::Token::GetTokenData($token);
 
-    $vars->{'email'} = $login_name . Bugzilla->params->{'emailsuffix'};
-    $vars->{'expiration_ts'} = ctime($token_ts + MAX_TOKEN_AGE * 86400);
-    $vars->{'token'} = $token;
+    $vars->{email} = $login_name . Bugzilla->params->{emailsuffix};
+    $vars->{expiration_ts} = ctime($token_ts + MAX_TOKEN_AGE * 86400);
+    $vars->{token} = $token;
 
     my $message;
     $template->process('account/email/request-new.txt.tmpl', $vars, \$message)
-      || ThrowTemplateError($template->error());
+        || ThrowTemplateError($template->error());
 
     # In 99% of cases, the user getting the confirmation email is the same one
     # who made the request, and so it is reasonable to send the email in the same

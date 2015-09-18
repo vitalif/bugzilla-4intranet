@@ -719,7 +719,7 @@ sub validate_email_syntax
 {
     my ($addr) = @_;
     my $match = Bugzilla->params->{emailregexp};
-    my $ret = ($addr =~ /$match/ && $addr !~ /[\\\(\)<>&,;:\"\[\] \t\r\n]/);
+    my $ret = ($addr =~ /$match/ && $addr !~ /[\\\(\)<>&,;:\"\[\] \t\r\n]/ && length $addr <= 255);
     if ($ret)
     {
         # We assume these checks to suffice to consider the address untainted.
