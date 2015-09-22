@@ -19,10 +19,10 @@
       <th align="left">Description:</th>
       <td>[% group.description | html %]</td>
     </tr>
-    [% IF group.regexp %]
+    [% IF group.userregexp %]
     <tr class="even_row">
       <th align="left">Regexp:</th>
-      <td>[% group.regexp | html %]</td>
+      <td>[% group.userregexp | html %]</td>
     </tr>
     [% END %]
   </table>

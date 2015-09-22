@@ -349,29 +349,29 @@ sub doGroupChanges
 
     if (defined $ARGS->{regexp})
     {
-        $group->set_user_regexp($ARGS->{regexp});
+        $group->set('userregexp', $ARGS->{regexp});
     }
 
     if ($group->is_bug_group)
     {
         if (defined $ARGS->{name})
         {
-            $group->set_name($ARGS->{name});
+            $group->set('name', $ARGS->{name});
         }
         if (defined $ARGS->{desc})
         {
-            $group->set_description($ARGS->{desc});
+            $group->set('description', $ARGS->{desc});
         }
         # Only set isactive if we came from the right form.
         if (defined $ARGS->{regexp})
         {
-            $group->set_is_active($ARGS->{isactive});
+            $group->set('isactive', $ARGS->{isactive});
         }
     }
 
     if (defined $ARGS->{icon_url})
     {
-        $group->set_icon_url($ARGS->{icon_url});
+        $group->set('icon_url', $ARGS->{icon_url});
     }
 
     my $changes = $group->update();

@@ -1,30 +1,17 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Joel Peshkin <bugreport@peshkin.net>
-#                 Erik Stambaugh <erik@dasbistro.com>
-#                 Tiago R. Mello <timello@async.com.br>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
+#!/usr/bin/perl
+# Customisable group type (based on GenericObject)
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   Joel Peshkin <bugreport@peshkin.net>
+#   Erik Stambaugh <erik@dasbistro.com>
+#   Tiago R. Mello <timello@async.com.br>
+#   Max Kanat-Alexander <mkanat@bugzilla.org>
 
 use strict;
 
 package Bugzilla::Group;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::GenericObject);
 
 use Bugzilla::Bug;
 use Bugzilla::Constants;
@@ -34,23 +21,10 @@ use Bugzilla::Util;
 use Bugzilla::Error;
 use Bugzilla::Config qw(:admin);
 
-###############################
-##### Module Initialization ###
-###############################
-
-use constant DB_COLUMNS => qw(
-    id
-    name
-    description
-    isbuggroup
-    userregexp
-    isactive
-    icon_url
-);
-
 use constant DB_TABLE => 'groups';
-
 use constant LIST_ORDER => 'isbuggroup, name';
+use constant NAME_FIELD => 'name';
+use constant CLASS_NAME => 'group';
 
 use constant VALIDATORS => {
     name        => \&_check_name,
@@ -61,30 +35,14 @@ use constant VALIDATORS => {
     icon_url    => \&_check_icon_url,
 };
 
-use constant REQUIRED_CREATE_FIELDS => qw(name description isbuggroup);
-
-use constant UPDATE_COLUMNS => qw(
-    name
-    description
-    userregexp
-    isactive
-    icon_url
-);
-
 # Parameters that are lists of groups.
 use constant GROUP_PARAMS => qw(chartgroup insidergroup timetrackinggroup querysharegroup);
 
-###############################
-####      Accessors      ######
-###############################
-
-sub description  { return $_[0]->{description};  }
 sub is_bug_group { return $_[0]->{isbuggroup};   }
 sub user_regexp  { return $_[0]->{userregexp};   }
 sub is_active    { return $_[0]->{isactive};     }
-sub icon_url     { return $_[0]->{icon_url};     }
 
-sub bugs
+sub _bugs
 {
     my $self = shift;
     return $self->{bugs} if exists $self->{bugs};
@@ -207,7 +165,7 @@ sub users_in_group
     return $users;
 }
 
-sub flag_types
+sub _flag_types
 {
     my $self = shift;
     require Bugzilla::FlagType;
@@ -249,7 +207,7 @@ sub granted_by_direct
     return $self->{granted_by_direct}->{$type};
 }
 
-sub products
+sub _products
 {
     my $self = shift;
     return $self->{products} if exists $self->{products};
@@ -277,21 +235,19 @@ sub products
     return $self->{products};
 }
 
-###############################
-####        Methods        ####
-###############################
-
-sub set_description { $_[0]->set('description', $_[1]); }
-sub set_is_active   { $_[0]->set('isactive', $_[1]);    }
-sub set_name        { $_[0]->set('name', $_[1]);        }
-sub set_user_regexp { $_[0]->set('userregexp', $_[1]);  }
-sub set_icon_url    { $_[0]->set('icon_url', $_[1]);    }
-
 sub update
 {
     my $self = shift;
+    my $old = $self->{_old_self};
     my $dbh = Bugzilla->dbh;
+
+    if (!$old && Bugzilla->usage_mode == USAGE_MODE_CMDLINE)
+    {
+        print get_text('install_group_create', { name => $self->name }) . "\n";
+    }
+
     $dbh->bz_start_transaction();
+
     my $changes = $self->SUPER::update(@_);
 
     if (exists $changes->{name})
@@ -309,10 +265,25 @@ sub update
         write_params() if $update_params;
     }
 
-    # If we've changed this group to be active, fix any Mandatory groups.
-    $self->_enforce_mandatory if exists $changes->{isactive} && $changes->{isactive}->[1];
+    if (!$old)
+    {
+        # Since we created a new group, give the "admin" group all privileges initially.
+        my $admin = new Bugzilla::Group({ name => 'admin' });
+        # This function is also used to create the "admin" group itself,
+        # so there's a chance it won't exist yet.
+        if ($admin)
+        {
+            $dbh->do(
+                'INSERT INTO group_group_map (member_id, grantor_id, grant_type) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?)',
+                undef, map { ($admin->id, $self->id, $_) } (GROUP_MEMBERSHIP, GROUP_BLESS, GROUP_VISIBLE)
+            );
+        }
+    }
 
-    $self->_rederive_regexp() if exists $changes->{userregexp};
+    # If we've changed this group to be active, fix any Mandatory groups.
+    $self->_enforce_mandatory if $old && exists $changes->{isactive} && $changes->{isactive}->[1];
+
+    $self->_rederive_regexp() if !$old && $self->user_regexp || exists $changes->{userregexp};
 
     Bugzilla::Hook::process('group_end_of_update', { group => $self, changes => $changes });
     $dbh->bz_commit_transaction();
@@ -350,9 +321,9 @@ sub check_remove
 
     my $cantdelete =
         @{$self->members_non_inherited} && !$params->{remove_from_users} ||
-        @{$self->bugs} && !$params->{remove_from_bugs} ||
-        @{$self->products} && !$params->{remove_from_products} ||
-        @{$self->flag_types} && !$params->{remove_from_flags};
+        @{$self->_bugs} && !$params->{remove_from_bugs} ||
+        @{$self->_products} && !$params->{remove_from_products} ||
+        @{$self->_flag_types} && !$params->{remove_from_flags};
 
     ThrowUserError('group_cannot_delete', { group => $self }) if $cantdelete;
 }
@@ -513,12 +484,6 @@ sub _enforce_mandatory
     }
 }
 
-sub is_active_bug_group
-{
-    my $self = shift;
-    return $self->is_active && $self->is_bug_group;
-}
-
 sub _rederive_regexp
 {
     my ($self) = @_;
@@ -581,43 +546,7 @@ sub flatten_group_membership
 #####  Module Subroutines    ###
 ################################
 
-sub create
-{
-    my $class = shift;
-    my ($params) = @_;
-    my $dbh = Bugzilla->dbh;
-
-    if (Bugzilla->usage_mode == USAGE_MODE_CMDLINE)
-    {
-        print get_text('install_group_create', { name => $params->{name} }) . "\n";
-    }
-
-    $dbh->bz_start_transaction();
-
-    my $group = $class->SUPER::create(@_);
-
-    # Since we created a new group, give the "admin" group all privileges
-    # initially.
-    my $admin = new Bugzilla::Group({name => 'admin'});
-    # This function is also used to create the "admin" group itself,
-    # so there's a chance it won't exist yet.
-    if ($admin)
-    {
-        my $sth = $dbh->prepare(
-            'INSERT INTO group_group_map (member_id, grantor_id, grant_type) VALUES (?, ?, ?)'
-        );
-        $sth->execute($admin->id, $group->id, GROUP_MEMBERSHIP);
-        $sth->execute($admin->id, $group->id, GROUP_BLESS);
-        $sth->execute($admin->id, $group->id, GROUP_VISIBLE);
-    }
-
-    $group->_rederive_regexp() if $group->user_regexp;
-
-    Bugzilla::Hook::process('group_end_of_create', { group => $group });
-    $dbh->bz_commit_transaction();
-    return $group;
-}
-
+# FIXME Remove ValidateGroupName()
 sub ValidateGroupName
 {
     my ($name, @users) = (@_);
@@ -726,7 +655,6 @@ Bugzilla::Group - Bugzilla group class.
     my $user_reg_exp = $group->user_reg_exp;
     my $is_active    = $group->is_active;
     my $icon_url     = $group->icon_url;
-    my $is_active_bug_group = $group->is_active_bug_group;
 
     my $group_id = Bugzilla::Group::ValidateGroupName('admin', @users);
     my @groups   = Bugzilla::Group->get_all;

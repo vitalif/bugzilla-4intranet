@@ -592,7 +592,7 @@ sub set_group_controls
 {
     my ($self, $group, $settings) = @_;
 
-    $group->is_active_bug_group || ThrowUserError('product_illegal_group', { group => $group });
+    $group->is_active && $group->is_bug_group || ThrowUserError('product_illegal_group', { group => $group });
 
     scalar(keys %$settings) || ThrowCodeError('product_empty_group_controls', { group => $group });
 
