@@ -4251,6 +4251,7 @@ sub _add_class_schema
             user => [
                 [ 'login_name', 'Login', FIELD_TYPE_FREETEXT ],
                 [ 'realname', 'Real Name', FIELD_TYPE_FREETEXT ],
+                [ 'extern_id', 'External ID', FIELD_TYPE_FREETEXT ],
                 [ 'mybugslink', 'Show "My Bugs" link', FIELD_TYPE_BOOLEAN ],
                 [ 'disabledtext', 'Disabled Text', FIELD_TYPE_TEXTAREA ],
                 [ 'disable_mail', 'Disable Bugmail', FIELD_TYPE_BOOLEAN ],

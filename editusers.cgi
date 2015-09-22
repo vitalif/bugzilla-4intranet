@@ -271,11 +271,13 @@ elsif ($action eq 'update')
     my $changes = {};
     if ($editusers)
     {
-        $otherUser->set_login($ARGS->{login});
-        $otherUser->set_realname($ARGS->{realname});
-        $otherUser->set_password($ARGS->{password}) if $ARGS->{password};
-        $otherUser->set_disabledtext($ARGS->{disabledtext});
-        $otherUser->set_disable_mail($ARGS->{disable_mail});
+        $otherUser->set_all({
+            login_name => $ARGS->{login},
+            realname => $ARGS->{realname},
+            disabledtext => $ARGS->{disabledtext},
+            disable_mail => $ARGS->{disable_mail},
+        });
+        $otherUser->set('cryptpassword', $ARGS->{password}) if $ARGS->{password};
         $changes = $otherUser->update();
     }
 

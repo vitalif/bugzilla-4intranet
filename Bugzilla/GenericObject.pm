@@ -39,7 +39,7 @@ sub DB_COLUMNS
     my $cache = Bugzilla->cache_fields;
     return @{$cache->{columns}->{$class}} if defined $cache->{columns}->{$class};
 
-    my @columns = qw(id);
+    my @columns = ($class->ID_FIELD);
     my $dbh = Bugzilla->dbh;
 
     push @columns, map { $_->db_column }
@@ -361,7 +361,7 @@ sub get_dependent_check_order
             {
                 unshift @a, $f;
                 delete $check{$f->id};
-                unshift @d, $f->visibility_field_id, $f->value_field_id, $f->null_field_id;
+                unshift @d, $f->visibility_field_id, $f->value_field_id, $f->null_field_id, $f->default_field_id;
             }
         }
         push @check, @a;
@@ -895,11 +895,11 @@ sub get_history
 }
 
 # Bug field permissions:
-# + anyone: comment
+# + group(access_group): read and comment
 # + group(product.editbugs): anything
 # + group(TimeTrackingGroup): timetracking fields
 # + group(product.canconfirm): bug_status from !is_confirmed -> is_confirmed
-# + assigned_to, qa_contact: anything
+# + assigned_to, qa_contact, cc: anything
 # + reporter: anything except assigned_to, qa_contact, target_milestone,
 #   priority (if !letsubmitterchoosepriority), unconfirm, change open state
 

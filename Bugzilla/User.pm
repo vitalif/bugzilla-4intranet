@@ -1,39 +1,20 @@
-# This module implements utilities for dealing with Bugzilla users.
-
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Myk Melez <myk@mozilla.org>
-#                 Erik Stambaugh <erik@dasbistro.com>
-#                 Bradley Baetz <bbaetz@acm.org>
-#                 Joel Peshkin <bugreport@peshkin.net>
-#                 Byron Jones <bugzilla@glob.com.au>
-#                 Shane H. W. Travis <travis@sedsystems.ca>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Gervase Markham <gerv@gerv.net>
-#                 Lance Larsh <lance.larsh@oracle.com>
-#                 Justin C. De Vries <judevries@novell.com>
-#                 Dennis Melentyev <dennis.melentyev@infopulse.com.ua>
-#                 Frédéric Buclin <LpSolit@gmail.com>
-#                 Mads Bondo Dydensborg <mbd@dbc.dk>
-
-################################################################################
-# Module Initialization
-################################################################################
+#!/usr/bin/perl
+# Customisable user type (based on GenericObject)
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   Myk Melez <myk@mozilla.org>
+#   Erik Stambaugh <erik@dasbistro.com>
+#   Bradley Baetz <bbaetz@acm.org>
+#   Joel Peshkin <bugreport@peshkin.net>
+#   Byron Jones <bugzilla@glob.com.au>
+#   Shane H. W. Travis <travis@sedsystems.ca>
+#   Max Kanat-Alexander <mkanat@bugzilla.org>
+#   Gervase Markham <gerv@gerv.net>
+#   Lance Larsh <lance.larsh@oracle.com>
+#   Justin C. De Vries <judevries@novell.com>
+#   Dennis Melentyev <dennis.melentyev@infopulse.com.ua>
+#   Frédéric Buclin <LpSolit@gmail.com>
+#   Mads Bondo Dydensborg <mbd@dbc.dk>
 
 use strict;
 
@@ -55,89 +36,46 @@ use DateTime::TimeZone;
 use Scalar::Util qw(blessed);
 use Storable qw(dclone);
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::GenericObject);
 # FIXME Remove procedural APIs
 @Bugzilla::User::EXPORT = qw(
     is_available_username login_to_id validate_password
 );
 
-#####################################################################
-# Constants
-#####################################################################
-
-use constant DEFAULT_USER => {
-    'userid'         => 0,
-    'realname'       => '',
-    'login_name'     => '',
-    'mybugslink'     => 0,
-    'disabledtext'   => '',
-    'disable_mail'   => 0,
-    'is_enabled'     => 1,
-};
-
-my $SUPERUSER = {};
-
 use constant DB_TABLE => 'profiles';
-
-# XXX Note that Bugzilla::User->name does not return the same thing
-# that you passed in for "name" to new(). That's because historically
-# Bugzilla::User used "name" for the realname field. This should be
-# fixed one day.
-use constant DB_COLUMNS => (
-    'userid',
-    'login_name',
-    'realname',
-    'mybugslink',
-    'disabledtext',
-    'disable_mail',
-    'is_enabled',
-    'last_seen_date',
-);
+use constant LIST_ORDER => 'login_name';
+use constant ID_FIELD => 'userid';
 use constant NAME_FIELD => 'login_name';
-use constant ID_FIELD   => 'userid';
-use constant LIST_ORDER => NAME_FIELD;
+use constant CLASS_NAME => 'user';
 
-use constant REQUIRED_CREATE_FIELDS => qw(login_name cryptpassword);
-
-use constant VALIDATORS => {
+use constant OVERRIDE_SETTERS => {
     cryptpassword => \&_check_password,
     disable_mail  => \&_check_disable_mail,
     disabledtext  => \&_check_disabledtext,
-    login_name    => \&check_login_name_for_creation,
-    realname      => \&_check_realname,
+    login_name    => \&_set_login,
+    realname      => \&_set_realname,
     extern_id     => \&_check_extern_id,
 };
+# FIXME add creation timestamp attribute
 
-sub UPDATE_COLUMNS
-{
-    my $self = shift;
-    my @cols = qw(
-        disable_mail
-        disabledtext
-        login_name
-        realname
-        extern_id
-        is_enabled
-    );
-    push @cols, 'cryptpassword' if exists $self->{cryptpassword};
-    return @cols;
-}
+use constant DEFAULT_USER => {
+    userid       => 0,
+    realname     => '',
+    login_name   => '',
+    mybugslink   => 0,
+    disabledtext => '',
+    disable_mail => 0,
+    is_enabled   => 1,
+};
 
-################################################################################
-# Functions
-################################################################################
+my $SUPERUSER;
 
 sub new
 {
-    my $invocant = shift;
-    my $class = ref($invocant) || $invocant;
-    my ($param) = @_;
-
-    my $user = DEFAULT_USER;
-    bless $user, $class;
-    return $user unless $param;
-
-    return $class->SUPER::new(@_);
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    %$self = (%$self, %{ DEFAULT_USER() }) unless @_;
+    return $self;
 }
 
 sub super_user
@@ -146,10 +84,12 @@ sub super_user
     my $class = ref($invocant) || $invocant;
     my ($param) = @_;
 
-    %$SUPERUSER = %{ DEFAULT_USER() };
-    $SUPERUSER->{groups} = [Bugzilla::Group->get_all];
-    $SUPERUSER->{bless_groups} = [Bugzilla::Group->get_all];
-    bless $SUPERUSER, $class;
+    if (!$SUPERUSER)
+    {
+        $SUPERUSER = { %{DEFAULT_USER()} };
+        $SUPERUSER->{groups} = $SUPERUSER->{bless_groups} = [ Bugzilla::Group->get_all ];
+        bless $SUPERUSER, $class;
+    }
 
     return $SUPERUSER;
 }
@@ -163,29 +103,53 @@ sub is_super_user
 sub update
 {
     my $self = shift;
+    my $old = $self->{_old_self};
 
     $self->{is_enabled} = !defined $self->{disabledtext} || $self->{disabledtext} eq '';
 
     my $changes = $self->SUPER::update(@_);
-    my $dbh = Bugzilla->dbh;
 
-    if (exists $changes->{login_name})
+    if (!$old)
+    {
+        # Turn on all email for the new user
+        foreach my $rel (RELATIONSHIPS)
+        {
+            foreach my $event (POS_EVENTS, NEG_EVENTS)
+            {
+                # These "exceptions" define the default email preferences.
+                #
+                # We enable mail unless the change was made by the user, or it's
+                # just a CC list addition and the user is not the reporter.
+                next if $event == EVT_CHANGED_BY_ME;
+                next if $event == EVT_CC && $rel != REL_REPORTER;
+                Bugzilla->dbh->do(
+                    'INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)',
+                    undef, $self->id, $rel, $event
+                );
+            }
+        }
+        foreach my $event (GLOBAL_EVENTS)
+        {
+            Bugzilla->dbh->do(
+                'INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)',
+                undef, $self->id, REL_ANY, $event
+            );
+        }
+    }
+
+    if (exists $changes->{login_name} || !$old)
     {
         # If we changed the login, silently delete any tokens.
-        $dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $self->id);
+        Bugzilla->dbh->do('DELETE FROM tokens WHERE userid = ?', undef, $self->id);
         # And rederive regex groups
         $self->derive_regexp_groups();
     }
 
     # Logout the user if necessary.
-    if (exists $changes->{login_name} || exists $changes->{disabledtext} ||
-        exists $changes->{cryptpassword})
+    if (exists $changes->{login_name} || exists $changes->{disabledtext} || exists $changes->{cryptpassword})
     {
-        Bugzilla->logout_user($self)
+        Bugzilla->logout_user($self);
     }
-
-    # XXX Can update profiles_activity here as soon as it understands
-    #     field names like login_name.
 
     return $changes;
 }
@@ -217,8 +181,15 @@ sub _check_extern_id
     return $extern_id;
 }
 
-# This is public since createaccount.cgi needs to use it before issuing
-# a token for account creation.
+sub _set_login
+{
+    my ($self, $login) = @_;
+    delete $self->{identity};
+    delete $self->{nick};
+    return $self->check_login_name_for_creation($login);
+}
+
+# This is public since createaccount.cgi needs to use it before issuing a token for account creation.
 sub check_login_name_for_creation
 {
     my ($invocant, $name) = @_;
@@ -245,31 +216,12 @@ sub _check_password
     return $cryptpassword;
 }
 
-sub _check_realname { return trim($_[1]) || ''; }
-
-################################################################################
-# Mutators
-################################################################################
-
-sub set_disabledtext { $_[0]->set('disabledtext', $_[1]); }
-sub set_disable_mail { $_[0]->set('disable_mail', $_[1]); }
-
-sub set_login
-{
-    my ($self, $login) = @_;
-    $self->set('login_name', $login);
-    delete $self->{identity};
-    delete $self->{nick};
-}
-
-sub set_realname
+sub _set_realname
 {
     my ($self, $name) = @_;
-    $self->set('realname', $name);
     delete $self->{identity};
+    return trim($name) || '';
 }
-
-sub set_password { $_[0]->set('cryptpassword', $_[1]); }
 
 sub update_last_seen_date
 {
@@ -286,17 +238,13 @@ sub update_last_seen_date
 # Methods
 ################################################################################
 
-# Accessors for user attributes
+# Attribute aliases
 sub name { $_[0]->{login_name} }
 sub login { $_[0]->{login_name} }
 sub email { $_[0]->login . Bugzilla->params->{emailsuffix}; }
-sub realname { $_[0]->{realname} }
-sub disabledtext { $_[0]->{disabledtext}; }
-sub is_enabled { $_[0]->{is_enabled} }
 sub showmybugslink { $_[0]->{mybugslink}; }
 sub email_disabled { $_[0]->{disable_mail}; }
 sub email_enabled { !($_[0]->{disable_mail}); }
-sub last_seen_date { $_[0]->{last_seen_date}; }
 
 sub cryptpassword
 {
@@ -1737,65 +1685,6 @@ sub wants_request_reminder
         $self->settings->{remind_me_about_flags}->{value} &&
         lc $self->settings->{remind_me_about_flags}->{value} ne 'off'
         ? 1 : 0;
-}
-
-sub create
-{
-    my $class = shift;
-    $class = ref($class) || $class;
-
-    my ($params) = @_;
-    my $dbh = Bugzilla->dbh;
-
-    $params->{is_enabled} = !defined $params->{disabledtext} || $params->{disabledtext} eq '';
-
-    $dbh->bz_start_transaction();
-
-    my $user = $class->SUPER::create($params);
-
-    # Turn on all email for the new user
-    foreach my $rel (RELATIONSHIPS)
-    {
-        foreach my $event (POS_EVENTS, NEG_EVENTS)
-        {
-            # These "exceptions" define the default email preferences.
-            #
-            # We enable mail unless the change was made by the user, or it's
-            # just a CC list addition and the user is not the reporter.
-            next if $event == EVT_CHANGED_BY_ME;
-            next if $event == EVT_CC && $rel != REL_REPORTER;
-            $dbh->do(
-                'INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)',
-                undef, $user->id, $rel, $event
-            );
-        }
-    }
-    foreach my $event (GLOBAL_EVENTS)
-    {
-        $dbh->do(
-            'INSERT INTO email_setting (user_id, relationship, event) VALUES (?, ?, ?)',
-            undef, $user->id, REL_ANY, $event
-        );
-    }
-
-    $user->derive_regexp_groups();
-
-    # Add the creation date to the profiles_activity table.
-    # $who is the user who created the new user account, i.e. either an
-    # admin or the new user himself.
-    my $who = Bugzilla->user->id || $user->id;
-    my $creation_date_fieldid = Bugzilla->get_field('creation_ts')->id;
-
-    $dbh->do(
-        'INSERT INTO profiles_activity (userid, who, profiles_when, fieldid, newvalue)'.
-        ' VALUES (?, ?, NOW(), ?, NOW())',
-        undef, $user->id, $who, $creation_date_fieldid
-    );
-
-    $dbh->bz_commit_transaction();
-
-    # Return the newly created user account.
-    return $user;
 }
 
 sub read_new_functionality

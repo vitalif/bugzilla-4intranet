@@ -90,7 +90,7 @@ sub check_credentials {
     # whatever hashing system we're using now.
     my $current_algorithm = PASSWORD_DIGEST_ALGORITHM;
     if ($real_password_crypted !~ /{\Q$current_algorithm\E}$/) {
-        $user->set_password($password);
+        $user->set('cryptpassword', $password);
         $user->update();
     }
 

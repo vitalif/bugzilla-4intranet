@@ -378,7 +378,7 @@ sub reset_password {
     my $user = Bugzilla::User->check($login);
     my $prompt = "\n" . get_text('install_reset_password', { user => $user });
     my $password = _prompt_for_password($prompt);
-    $user->set_password($password);
+    $user->set('cryptpassword', $password);
     $user->update();
     print "\n", get_text('install_reset_password_done'), "\n";
 }

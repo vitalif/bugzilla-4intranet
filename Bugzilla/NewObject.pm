@@ -96,6 +96,12 @@ sub make_dirty
     return $self;
 }
 
+sub is_dirty
+{
+    my $self = shift;
+    return !$self->id || $self->{_old_self};
+}
+
 sub _check_field_permission
 {
 }
