@@ -1,23 +1,10 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Myk Melez <myk@mozilla.org>
-#                 Kevin Benton <kevin.benton@amd.com>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+#!/usr/bin/perl
+# Customisable flag type class (based on GenericObject)
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   Myk Melez <myk@mozilla.org>
+#   Kevin Benton <kevin.benton@amd.com>
+#   Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
 
@@ -28,39 +15,19 @@ use Bugzilla::Error;
 use Bugzilla::Util;
 use Bugzilla::Group;
 
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::GenericObject);
 
 use constant DB_TABLE => 'flagtypes';
 use constant LIST_ORDER => 'sortkey, name';
+use constant NAME_FIELD => 'name';
+use constant CLASS_NAME => 'flagtype';
 
-use constant DB_COLUMNS => qw(
-    id
-    name
-    description
-    target_type
-    sortkey
-    is_active
-    is_requestable
-    is_requesteeble
-    is_multiplicable
-    grant_group_id
-    request_group_id
-);
-use constant UPDATE_COLUMNS => grep { $_ ne 'id' } DB_COLUMNS;
-use constant REQUIRED_CREATE_FIELDS => UPDATE_COLUMNS;
-
-use constant VALIDATORS => {
+use constant OVERRIDE_SETTERS => {
     name => \&_check_name,
     description => \&_check_description,
     target_type => \&_check_target_type,
     sortkey => \&_check_sortkey,
-    is_active => \&Bugzilla::Object::check_boolean,
-    is_requestable => \&Bugzilla::Object::check_boolean,
-    is_requesteeble => \&Bugzilla::Object::check_boolean,
-    is_multiplicable => \&Bugzilla::Object::check_boolean,
-    grant_group_id => \&_check_group,
-    request_group_id => \&_check_group,
-    cc_list => \&_check_cc_list,
+    cc_list => \&_set_cc_list,
 };
 
 =head1 NAME
@@ -130,10 +97,10 @@ must be in order to grant or deny a request.
 Returns the group (as a Bugzilla::Group object) in which a user
 must be in order to request or clear a flag.
 
-=item B<cc_list_obj>, B<cc_list_str>
+=item B<cc_list_obj>
 
 Returns the flag type's CC list as an arrayref of Bugzilla::User
-objects or as a string.
+objects.
 
 =item B<flag_count>
 
@@ -153,55 +120,9 @@ explicitly excluded from the flagtype.
 
 =cut
 
-sub id               { return $_[0]->{id};               }
-sub name             { return $_[0]->{name};             }
-sub description      { return $_[0]->{description};      }
-sub target_type      { return $_[0]->{target_type} eq 'b' ? 'bug' : 'attachment'; }
-sub is_active        { return $_[0]->{is_active};        }
-sub is_requestable   { return $_[0]->{is_requestable};   }
-sub is_requesteeble  { return $_[0]->{is_requesteeble};  }
-sub is_multiplicable { return $_[0]->{is_multiplicable}; }
-sub sortkey          { return $_[0]->{sortkey};          }
-sub request_group_id { return $_[0]->{request_group_id}; }
-sub grant_group_id   { return $_[0]->{grant_group_id};   }
-
-sub cc_list_obj
-{
-    my $self = shift;
-    return $self->{cc_list} if $self->{cc_list};
-    $self->{cc_list} = Bugzilla->dbh->selectall_arrayref(
-        'SELECT p.* FROM profiles p, flagtype_cc_list c'.
-        ' WHERE c.value_id=p.userid AND c.object_id=?', {Slice=>{}}, $self->id
-    );
-    bless $_, 'Bugzilla::User' for @{$self->{cc_list}};
-    return $self->{cc_list};
-}
-
-sub cc_list_str
-{
-    my $self = shift;
-    return join(', ', map { $_->login } @{$self->cc_list_obj});
-}
-
-sub grant_group
-{
-    my $self = shift;
-    if (!defined $self->{grant_group} && $self->{grant_group_id})
-    {
-        $self->{grant_group} = new Bugzilla::Group($self->{grant_group_id});
-    }
-    return $self->{grant_group};
-}
-
-sub request_group
-{
-    my $self = shift;
-    if (!defined $self->{request_group} && $self->{request_group_id})
-    {
-        $self->{request_group} = new Bugzilla::Group($self->{request_group_id});
-    }
-    return $self->{request_group};
-}
+sub target_type { return $_[0]->{target_type} eq 'b' ? 'bug' : 'attachment'; }
+sub grant_group { return $_[0]->get_object('grant_group_id'); }
+sub request_group { return $_[0]->get_object('request_group_id'); }
 
 sub flag_count
 {
@@ -247,37 +168,6 @@ Returns the total number of flag types matching the given criteria.
 =back
 
 =cut
-
-sub create
-{
-    my ($class, $params) = @_;
-    my $cc = $class->_check_cc_list(delete $params->{cc_list});
-    my $self = $class->SUPER::create($params);
-    $self->{cc_list} = $cc;
-    $self->save_cc_list;
-    return $self;
-}
-
-sub update
-{
-    my $self = shift;
-    my $ch = $self->SUPER::update(@_);
-    $self->save_cc_list;
-    return $ch;
-}
-
-sub save_cc_list
-{
-    my $self = shift;
-    Bugzilla->dbh->do("DELETE FROM flagtype_cc_list WHERE object_id=?", undef, $self->id);
-    if (@{$self->{cc_list}})
-    {
-        Bugzilla->dbh->do(
-            "INSERT INTO flagtype_cc_list (object_id, value_id) VALUES ".
-            join(', ', map { "(?, ?)" } @{$self->{cc_list}}), undef, map { ($self->id, $_->id) } @{$self->{cc_list}}
-        );
-    }
-}
 
 sub match
 {
@@ -352,28 +242,11 @@ sub _check_sortkey
     return $sortkey;
 }
 
-sub _check_group
+sub _set_cc_list
 {
-    my ($invocant, $group, $field) = @_;
-    # Convert group names to group IDs
-    if ($group)
-    {
-        trick_taint($group);
-        my $gid = Bugzilla->dbh->selectrow_array('SELECT id FROM groups WHERE name=?', undef, $group);
-        $gid || ThrowUserError("group_unknown", { name => $group });
-        $group = $gid;
-    }
-    else
-    {
-        $group = undef;
-    }
-    return $group;
-}
-
-sub _check_cc_list
-{
-    my ($invocant, $cc_list) = @_;
-    return Bugzilla::User->match({ login_name => [ split /[\s,]*,[\s,]*/, $cc_list ] });
+    my ($self, $cc_list) = @_;
+    $cc_list = [ split /[\s,]*,[\s,]*/, trim($cc_list) ] if !ref $cc_list;
+    return $self->_set_multi_field($cc_list, 'cc_list');
 }
 
 ######################################################################

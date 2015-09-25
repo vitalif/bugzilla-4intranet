@@ -4332,6 +4332,7 @@ sub _add_class_schema
                 [ 'sortkey', 'Sortkey', FIELD_TYPE_INTEGER ],
                 [ 'grant_group_id', 'Grant Group', FIELD_TYPE_SINGLE, 'group' ],
                 [ 'request_group_id', 'Request Group', FIELD_TYPE_SINGLE, 'group' ],
+                # FIXME: add inclusions/exclusions
             ],
             flag => [
                 [ 'type_id', 'Flag Type', FIELD_TYPE_SINGLE, 'flagtype' ],

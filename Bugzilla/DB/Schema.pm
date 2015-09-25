@@ -521,7 +521,7 @@ use constant ABSTRACT_SCHEMA => {
             id               => {TYPE => 'INTSERIAL', NOTNULL => 1, PRIMARYKEY => 1},
             name             => {TYPE => 'varchar(255)', NOTNULL => 1},
             description      => {TYPE => 'MEDIUMTEXT', NOTNULL => 1},
-            target_type      => {TYPE => 'char(1)', NOTNULL => 1, DEFAULT => "'b'"},
+            target_type      => {TYPE => 'char(1)', NOTNULL => 1, DEFAULT => "'b'"}, # FIXME change to INT
             is_active        => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'TRUE'},
             is_requestable   => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             is_requesteeble  => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
