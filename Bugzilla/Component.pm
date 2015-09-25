@@ -253,8 +253,11 @@ sub flag_types
             $cl->add(DefaultAssignee => $_) for $self->default_assignee || ();
             $cl->add(CompQA => $_) for $self->default_qa_contact || ();
             $cl->add(CC => @{ $self->initial_cc || [] });
-            $type->{custom_list} = $cl;
-            $type->{allow_other} = 1;
+            $type = {
+                type => $type,
+                custom_list => $cl,
+                allow_other => 1,
+            };
         }
     }
     return $self->{flag_types};

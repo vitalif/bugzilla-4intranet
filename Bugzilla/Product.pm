@@ -849,23 +849,22 @@ sub flag_types
             {
                 foreach my $flagtype (@{$component->flag_types->{$type}})
                 {
-                    if (!$flagtypes{$flagtype->{id}})
+                    if (!$flagtypes{$flagtype->{type}->id})
                     {
-                        $flagtypes{$flagtype->{id}} = $flagtype;
+                        $flagtypes{$flagtype->{type}->id} = $flagtype;
                     }
                     else
                     {
                         # Merge custom user lists
                         my $cl = new Bugzilla::FlagType::UserList;
-                        $cl->merge($flagtypes{$flagtype->{id}}->{custom_list});
+                        $cl->merge($flagtypes{$flagtype->{type}->id}->{custom_list});
                         $cl->merge($flagtype->{custom_list});
-                        $flagtypes{$flagtype->{id}}->{custom_list} = $cl;
+                        $flagtypes{$flagtype->{type}->id}->{custom_list} = $cl;
                     }
                 }
             }
             $self->{flag_types}->{$type} = [
-                sort { $a->{sortkey} <=> $b->{sortkey}
-                     || $a->{name} cmp $b->{name} }
+                sort { $a->{sortkey} <=> $b->{sortkey} || $a->{name} cmp $b->{name} }
                 values %flagtypes
             ];
         }

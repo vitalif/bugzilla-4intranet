@@ -1225,8 +1225,8 @@ sub _flag_types
     my $flag_data = $cache->{$vars->{component_id}} ||= Bugzilla::FlagType::match($vars);
     my $flag_types = dclone($flag_data);
 
-    $_->{flags} = [] foreach @$flag_types;
-    my %flagtypes = map { $_->id => $_ } @$flag_types;
+    $_ = { type => $_, flags => [] } foreach @$flag_types;
+    my %flagtypes = map { $_->{type}->id => $_ } @$flag_types;
 
     # Group existing flags per type, and skip those becoming invalid
     # (which can happen when a bug is being moved into a new product
@@ -1253,7 +1253,7 @@ sub _flag_types
         $type->{allow_other} = 1;
         foreach my $flag (@{$type->{flags}})
         {
-            unless ($type->is_active && $type->is_requestable && $type->is_requesteeble)
+            unless ($type->{type}->is_active && $type->{type}->is_requestable && $type->{type}->is_requesteeble)
             {
                 # In case there was already a requestee, the only valid action
                 # is to remove the requestee or leave it alone.
@@ -1269,12 +1269,12 @@ sub _flag_types
             }
             $st = [];
             # FIXME remove hardcoded status list
-            push @$st, 'X' if $user->can_request_flag($type) || $flag->setter_id == $user->id;
-            if ($type->is_active)
+            push @$st, 'X' if $user->can_request_flag($type->{type}) || $flag->setter_id == $user->id;
+            if ($type->{type}->is_active)
             {
-                push @$st, '?' if $type->is_requestable && $user->can_request_flag($type) || $flag->status eq '?';
-                push @$st, '+' if $user->can_set_flag($type) || $flag->status eq '+';
-                push @$st, '-' if $user->can_set_flag($type) || $flag->status eq '-';
+                push @$st, '?' if $type->{type}->is_requestable && $user->can_request_flag($type->{type}) || $flag->status eq '?';
+                push @$st, '+' if $user->can_set_flag($type->{type}) || $flag->status eq '+';
+                push @$st, '-' if $user->can_set_flag($type->{type}) || $flag->status eq '-';
             }
             else
             {

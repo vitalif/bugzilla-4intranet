@@ -47,20 +47,20 @@
   [% END %]
 
   [%# Step 1: Display every flag type (except inactive types with no flags). %]
-  [% FOREACH type = flag_types %]
+  [% FOREACH t = flag_types %]
 
     [%# Step 1: Display existing flag(s). %]
-    [% FOREACH flag = type.flags %]
+    [% FOREACH flag = t.flags %]
       <tr>
         <td>
           <a href="#[% flag.creation_date | timestamp %]">[% flag.setter.nick | html %]</a>:&nbsp;
-          [%%]<label title="[% type.description | html %]" for="flag-[% flag.id %]" style="white-space: nowrap">[%- type.name | html -%]</label>
+          [%%]<label title="[% t.type.description | html %]" for="flag-[% flag.id %]" style="white-space: nowrap">[%- t.type.name | html -%]</label>
         </td>
         <td>
           <select id="flag-[% flag.id %]" name="flag-[% flag.id %]" 
-                  title="[% type.description | html %]"
+                  title="[% t.type.description | html %]"
                   onchange="toggleRequesteeField(this);"
-                  class="flag_select flag_type-[% type.id %]">
+                  class="flag_select flag_type-[% t.type.id %]">
             [% FOR st = flag.statuses %]
               <option value="[% st | html %]"[% ' selected="selected"' IF flag.status == st %]>[% st | html %]</option>
             [% END %]
@@ -68,7 +68,7 @@
         </td>
         [% IF any_flags_requesteeble %]
           <td width="100%">
-            [% IF (type.is_active && type.is_requestable && type.is_requesteeble) || flag.requestee %]
+            [% IF (t.type.is_active && t.type.is_requestable && t.type.is_requesteeble) || flag.requestee %]
               <span style="white-space: nowrap;">
                 [% INCLUDE "global/userselect.html.tmpl"
                     name     => "requestee-$flag.id"
@@ -87,7 +87,7 @@
     [% END %]
 
     [%# Step 2: Display UI for setting flag. %]
-    [% IF (!type.flags || type.flags.size == 0 || type.is_multiplicable) && type.is_active %]
+    [% IF (!t.flags || t.flags.size == 0 || t.type.is_multiplicable) && t.type.is_active %]
       [% PROCESS flag_row %]
     [% END %]
   [% END %]
@@ -96,14 +96,14 @@
 [% ELSE %]
   [%# The user is logged out. Display flags as read-only. %]
   [% header_displayed = 0 %]
-  [% FOREACH type = flag_types %]
-    [% FOREACH flag = type.flags %]
+  [% FOREACH t = flag_types %]
+    [% FOREACH flag = t.flags %]
       [% IF !flag_no_header AND !header_displayed %]
         <p><b>Flags:</b></p>
         [% header_displayed = 1 %]
       [% END %]
       [% flag.setter.nick | html %]:
-      [%+ type.name | html | no_break %][% flag.status %]
+      [%+ t.type.name | html | no_break %][% flag.status %]
       [% IF flag.requestee %]
         ([% flag.requestee.nick | html %])
       [% END %]<br />
@@ -117,37 +117,36 @@
   <tr>
     <td>
       [% addl_text | html %]
-      <label title="[% type.description | html %]" for="flag_type-[% type.id %]" style="white-space: nowrap">[%- type.name | html %]</label>
+      <label title="[% t.type.description | html %]" for="flag_type-[% t.type.id %]" style="white-space: nowrap">[%- t.type.name | html %]</label>
     </td>
     <td>
-      <select id="flag_type-[% type.id %]" name="flag_type-[% type.id %]"
-              title="[% type.description | html %]"
-              [% " disabled=\"disabled\"" UNLESS (type.is_requestable && user.can_request_flag(type)) || user.can_set_flag(type) %]
+      <select id="flag_type-[% t.type.id %]" name="flag_type-[% t.type.id %]"
+              title="[% t.type.description | html %]"
+              [% " disabled=\"disabled\"" UNLESS (t.type.is_requestable && user.can_request_flag(t.type)) || user.can_set_flag(t.type) %]
               onchange="toggleRequesteeField(this);"
-              class="flag_select flag_type-[% type.id %]">
+              class="flag_select flag_type-[% t.type.id %]">
         <option value="X"></option>
-        [% IF type.is_requestable && user.can_request_flag(type) %]
-          <option value="?"[% ' selected="selected"' IF type.default_value == "?" %]>?</option>
+        [% IF t.type.is_requestable && user.can_request_flag(t.type) %]
+          <option value="?">?</option>
         [% END %]
-        [% IF user.can_set_flag(type) %]
-          <option value="+"[% ' selected="selected"' IF type.default_value == "+" %]>+</option>
-          <option value="-"[% ' selected="selected"' IF type.default_value == "-" %]>-</option>
+        [% IF user.can_set_flag(t.type) %]
+          <option value="+">+</option>
+          <option value="-">-</option>
         [% END %]
       </select>
     </td>
     [% IF any_flags_requesteeble %]
       <td width="100%">
-        [% IF type.is_requestable && type.is_requesteeble %]
+        [% IF t.type.is_requestable && t.type.is_requesteeble %]
           <span style="white-space: nowrap;">
             [% INCLUDE "global/userselect.html.tmpl"
                 name => "requestee_type-$type.id"
                 id => "requestee_type-$type.id"
                 size => 20
                 style => "width: 100%"
-                value => type.default_requestee
-                multiple => type.is_multiplicable
-                emptyok => !type.is_multiplicable
-                custom_userlist => type.custom_list && type.custom_list.ready_list
+                multiple => t.type.is_multiplicable
+                emptyok => !t.type.is_multiplicable
+                custom_userlist => t.custom_list && t.custom_list.ready_list
             %]
           </span>
         [% END %]
