@@ -1,25 +1,13 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is James Robson.
-# Portions created by James Robson are Copyright (c) 2009 James Robson.
-# All rights reserved.
-#
-# Contributor(s): James Robson <arbingersys@gmail.com> 
+#!/usr/bin/perl
+# Bug comment class (based on GenericObject)
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   James Robson <arbingersys@gmail.com>
 
 package Bugzilla::Comment;
 
 use strict;
-use base qw(Bugzilla::Object);
+use base qw(Bugzilla::GenericObject);
 
 use Bugzilla::Attachment;
 use Bugzilla::Constants;
@@ -28,37 +16,14 @@ use Bugzilla::User;
 use Bugzilla::Util;
 use Bugzilla::Template;
 
-###############################
-####    Initialization     ####
-###############################
-
-use constant DB_COLUMNS => qw(
-    comment_id
-    bug_id
-    who
-    bug_when
-    work_time
-    thetext
-    isprivate
-    already_wrapped
-    type
-    extra_data
-);
-
-use constant UPDATE_COLUMNS => qw(
-    type
-    extra_data
-);
-
 use constant DB_TABLE => 'longdescs';
 use constant ID_FIELD => 'comment_id';
 use constant LIST_ORDER => 'bug_when';
+use constant NAME_FIELD => 'comment_id';
+use constant CLASS_NAME => 'comment';
 
-use constant VALIDATORS => {
+use constant OVERRIDE_SETTERS => {
     type => \&_check_type,
-};
-
-use constant UPDATE_VALIDATORS => {
     extra_data => \&_check_extra_data,
 };
 
@@ -74,8 +39,7 @@ sub update
     return $changes;
 }
 
-# Speeds up displays of comment lists by loading all ->author objects
-# at once for a whole list.
+# Speeds up displays of comment lists by loading all ->author objects at once for a whole list.
 sub preload
 {
     my ($class, $comments) = @_;
@@ -84,7 +48,7 @@ sub preload
     my %user_map = map { $_->id => $_ } @$users;
     foreach my $comment (@$comments)
     {
-        $comment->{author} = $user_map{$comment->{who}};
+        $comment->{who_obj} = $user_map{$comment->{who}};
     }
 }
 
@@ -92,14 +56,10 @@ sub preload
 ####      Accessors      ######
 ###############################
 
-sub already_wrapped { $_[0]->{already_wrapped} }
-sub bug_id          { $_[0]->{bug_id}          }
-sub creation_ts     { $_[0]->{bug_when}        }
-sub is_private      { $_[0]->{isprivate}       }
-sub work_time       { $_[0]->{work_time}       }
-sub type            { $_[0]->{type}            }
-sub extra_data      { $_[0]->{extra_data}      }
-sub who             { $_[0]->{who}             }
+sub creation_ts { $_[0]->{bug_when} }
+sub is_private  { $_[0]->{isprivate} }
+sub bug         { $_[0]->get_object('bug_id') }
+sub author      { $_[0]->get_object('who') }
 
 sub body
 {
@@ -117,14 +77,6 @@ sub body
     return $_[0]->{thetext};
 }
 
-sub bug
-{
-    my $self = shift;
-    require Bugzilla::Bug;
-    $self->{bug} ||= new Bugzilla::Bug($self->bug_id);
-    return $self->{bug};
-}
-
 sub is_about_attachment
 {
     my ($self) = @_;
@@ -138,13 +90,6 @@ sub attachment
     return undef if not $self->is_about_attachment;
     $self->{attachment} ||= new Bugzilla::Attachment($self->extra_data);
     return $self->{attachment};
-}
-
-sub author
-{
-    my $self = shift;
-    $self->{author} ||= new Bugzilla::User($self->{'who'});
-    return $self->{author};
 }
 
 # %$params:
@@ -204,19 +149,6 @@ sub check_length
     return $length <= Bugzilla->params->{preview_comment_lines};
 }
 
-############
-# Mutators #
-############
-
-sub set_extra_data { $_[0]->set('extra_data', $_[1]); }
-
-sub set_type
-{
-    my ($self, $type, $extra_data) = @_;
-    $self->set('type', $type);
-    $self->set_extra_data($extra_data);
-}
-
 ##############
 # Validators #
 ##############
@@ -268,7 +200,6 @@ sub _check_type
 }
 
 1;
-
 __END__
 
 =head1 NAME

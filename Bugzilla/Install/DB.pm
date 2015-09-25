@@ -4305,6 +4305,7 @@ sub _add_class_schema
                 [ 'work_time', 'Work Time', FIELD_TYPE_NUMERIC ],
                 [ 'thetext', 'Text', FIELD_TYPE_TEXTAREA ],
                 [ 'isprivate', 'Is Private', FIELD_TYPE_BOOLEAN ],
+                [ 'already_wrapped', 'Already wrapped', FIELD_TYPE_BOOLEAN ],
                 [ 'type', 'Type', FIELD_TYPE_INTEGER ],
                 [ 'extra_data', 'Extra Data', FIELD_TYPE_FREETEXT ],
             ],
