@@ -899,8 +899,9 @@ sub get_history
 # + group(product.editbugs): anything
 # + group(TimeTrackingGroup): timetracking fields
 # + group(product.canconfirm): bug_status from !is_confirmed -> is_confirmed
-# + assigned_to, qa_contact, cc: anything
-# + reporter: anything except assigned_to, qa_contact, target_milestone,
+# + assigned_to, qa_contact: anything
+# + if (cclist_accessible) => cc: anything
+# + if (reporter_accessible) => reporter: anything except assigned_to, qa_contact, target_milestone,
 #   priority (if !letsubmitterchoosepriority), unconfirm, change open state
 
 #####################################################################
@@ -1018,11 +1019,72 @@ sub _validate_attribute
             # multiselect, reverse fields
             (map { $_->name => 1 } Bugzilla->get_fields({ class_id => $class->CLASS_ID, type => [ FIELD_TYPE_MULTI, FIELD_TYPE_REVERSE ] })),
             # get_object accessors
-            (map { $_->name.'_obj' => 1 } Bugzilla->get_fields({ class_id => $class->CLASS_ID, type => [ FIELD_TYPE_SINGLE, FIELD_TYPE_MULTI ] })),
+            (map { $_->name.'_obj' => 1 } Bugzilla->get_fields({ class_id => $class->CLASS_ID, type => [ FIELD_TYPE_SINGLE, FIELD_TYPE_MULTI, FIELD_TYPE_REVERSE ] })),
         };
     }
 
     return $valid_attributes->{$class}->{$attr} ? 1 : 0;
+}
+
+# Get attribute value in the default format
+sub get_value
+{
+    my ($self, $attr) = @_;
+    my $field = Bugzilla->get_class_field($attr, $self->CLASS_ID);
+
+    if (defined $self->{$attr})
+    {
+        $self->{$attr} =~ s/((\.\d*[1-9])|\.)0+$/$2/so if $field && $field->type == FIELD_TYPE_NUMERIC;
+        return $self->{$attr};
+    }
+
+    if ($attr =~ /^(.*)_obj$/s)
+    {
+        return $self->get_object($1);
+    }
+
+    if ($field)
+    {
+        if ($field->type == FIELD_TYPE_MULTI)
+        {
+            return $self->{$attr} if $self->{$attr};
+            my $t = $field->value_type;
+            my $order = $t->LIST_ORDER;
+            $order =~ s/((?:^|,\s*)\S)/o.$1/;
+            $self->{$attr} = Bugzilla->dbh->selectcol_arrayref(
+                "SELECT o.".$t->ID_FIELD." FROM ".$field->rel_table." r, ".$t->DB_TABLE.
+                " o WHERE r.".$field->rel_value_id."=o.".$t->ID_FIELD." AND r.".$field->rel_object_id."=? ORDER BY $order",
+                undef, $self->id
+            );
+            return $self->{$attr};
+        }
+        elsif ($field->type == FIELD_TYPE_REVERSE)
+        {
+            return $self->{$attr} if $self->{$attr};
+            my $vf = $field->value_field;
+            my $t = $vf->value_type;
+            my $order = $t->LIST_ORDER;
+            $order =~ s/((?:^|,\s*)\S)/o.$1/;
+            if ($vf->type == FIELD_TYPE_SINGLE || $vf->type == FIELD_TYPE_BUG_ID)
+            {
+                $self->{$attr} = Bugzilla->dbh->selectcol_arrayref(
+                    "SELECT o.".$t->ID_FIELD." FROM ".$t->DB_TABLE." o WHERE ".$vf->db_column." = ?",
+                    undef, $self->id
+                );
+            }
+            elsif ($vf->type == FIELD_TYPE_MULTI)
+            {
+                $self->{$attr} = Bugzilla->dbh->selectcol_arrayref(
+                    "SELECT o.".$t->ID_FIELD." FROM ".$vf->rel_table." r, ".$t->DB_TABLE.
+                    " o WHERE r.".$vf->rel_object_id."=o.".$t->ID_FIELD." AND r.".$vf->rel_value_id." = ? ORDER BY $order",
+                    undef, $self->id
+                );
+            }
+            return $self->{$attr};
+        }
+    }
+
+    return '';
 }
 
 our $AUTOLOAD;
@@ -1034,66 +1096,13 @@ sub AUTOLOAD
     $attr =~ s/.*:://;
     return unless $attr =~ /[^A-Z]/;
 
-    if (!$_[0]->_validate_attribute($attr))
+    if (!$class->_validate_attribute($attr))
     {
         die "invalid attribute $attr for class ".$class->CLASS_NAME;
     }
 
     no strict 'refs';
-    *$AUTOLOAD = sub
-    {
-        my $self = shift;
-        return $self->{$attr} if defined $self->{$attr};
-
-        if ($attr =~ /^(.*)_obj$/s)
-        {
-            return $self->get_object($1);
-        }
-
-        my $field = Bugzilla->get_class_field($attr, $self->CLASS_ID);
-        if ($field)
-        {
-            if ($field->type == FIELD_TYPE_MULTI)
-            {
-                return $self->{$attr} if $self->{$attr};
-                my $t = $field->value_type;
-                my $order = $t->LIST_ORDER;
-                $order =~ s/((?:^|,\s*)\S)/o.$1/;
-                $self->{$attr} = Bugzilla->dbh->selectcol_arrayref(
-                    "SELECT o.".$t->ID_FIELD." FROM ".$field->rel_table." r, ".$t->DB_TABLE.
-                    " o WHERE r.".$field->rel_value_id."=o.".$t->ID_FIELD." AND r.".$field->rel_object_id."=? ORDER BY $order",
-                    undef, $self->id
-                );
-                return $self->{$attr};
-            }
-            elsif ($field->type == FIELD_TYPE_REVERSE)
-            {
-                return $self->{$attr} if $self->{$attr};
-                my $vf = $field->value_field;
-                my $t = $vf->value_type;
-                my $order = $t->LIST_ORDER;
-                $order =~ s/((?:^|,\s*)\S)/o.$1/;
-                if ($vf->type == FIELD_TYPE_SINGLE || $vf->type == FIELD_TYPE_BUG_ID)
-                {
-                    $self->{$attr} = Bugzilla->dbh->selectcol_arrayref(
-                        "SELECT o.".$t->ID_FIELD." FROM ".$t->DB_TABLE." o WHERE ".$vf->db_column." = ?",
-                        undef, $self->id
-                    );
-                }
-                elsif ($vf->type == FIELD_TYPE_MULTI)
-                {
-                    $self->{$attr} = Bugzilla->dbh->selectcol_arrayref(
-                        "SELECT o.".$t->ID_FIELD." FROM ".$vf->rel_table." r, ".$t->DB_TABLE.
-                        " o WHERE r.".$vf->rel_object_id."=o.".$t->ID_FIELD." AND r.".$vf->rel_value_id." = ? ORDER BY $order",
-                        undef, $self->id
-                    );
-                }
-                return $self->{$attr};
-            }
-        }
-
-        return '';
-    };
+    *$AUTOLOAD = sub { $_[0]->get_value($attr) };
 
     goto &$AUTOLOAD;
 }
