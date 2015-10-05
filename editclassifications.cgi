@@ -82,7 +82,7 @@ LoadTemplate('select') unless $action;
 if ($action eq 'add')
 {
     $vars->{token} = issue_session_token('add_classification');
-    LoadTemplate($action);
+    LoadTemplate('edit');
 }
 
 #
@@ -127,7 +127,7 @@ if ($action eq 'del')
     $vars->{classification} = $classification;
     $vars->{token} = issue_session_token('delete_classification');
 
-    LoadTemplate($action);
+    LoadTemplate('del');
 }
 
 #
@@ -158,7 +158,7 @@ if ($action eq 'edit')
     $vars->{classification} = $classification;
     $vars->{token} = issue_session_token('edit_classification');
 
-    LoadTemplate($action);
+    LoadTemplate('edit');
 }
 
 #
@@ -224,7 +224,7 @@ if ($action eq 'reclassify')
     $vars->{classification} = $classification;
     $vars->{token} = issue_session_token('reclassify_classifications');
 
-    LoadTemplate($action);
+    LoadTemplate('reclassify');
 }
 
 #
