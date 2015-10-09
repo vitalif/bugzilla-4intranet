@@ -201,6 +201,7 @@ if ($action eq 'new')
     if ($useclassification)
     {
         $vars->{classification} = new Bugzilla::Classification($product->classification_id);
+        $vars->{classifications} = [ Bugzilla::Classification->get_all ];
     }
     $vars->{token} = issue_session_token('edit_product');
 
