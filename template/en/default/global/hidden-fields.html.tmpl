@@ -27,7 +27,7 @@
 [% p = Bugzilla.input_params %]
 [% FOREACH field = p.keys %]
   [% NEXT IF exclude_hash && exclude_hash.$field %]
-  [% NEXT IF exclude && field.search(exclude) %]
+  [% NEXT IF exclude && field.match(exclude) %]
   [% IF blessed(p.$field) %]
     <div class="box">
       <p>

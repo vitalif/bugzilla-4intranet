@@ -77,7 +77,7 @@
   </table>
 
   [% PROCESS "global/hidden-fields.html.tmpl"
-     exclude="^Bugzilla_(login|password|restrictlogin)$" %]
+     exclude="^Bugzilla_(login|password|restrictlogin)$|^logout$|^GoAheadAndLogIn$" %]
 
   <input type="submit" name="GoAheadAndLogIn" value="Log in" id="log_in" />
   

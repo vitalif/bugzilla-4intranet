@@ -39,7 +39,7 @@
   <label for="Bugzilla_restrictlogin" title="Restrict this session to this IP address (using this option improves security)">Restrict to IP</label>
 
   [% PROCESS "global/hidden-fields.html.tmpl"
-     exclude="^Bugzilla_(login|password|restrictlogin)$" %]
+     exclude="^Bugzilla_(login|password|restrictlogin)$|^logout$|^GoAheadAndLogIn$" %]
 
   <input type="submit" name="GoAheadAndLogIn" value="Log in to [% terms.Bugzilla %]" id="log_in" />
 
