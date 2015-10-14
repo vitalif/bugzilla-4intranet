@@ -1,6 +1,4 @@
 #!/usr/bin/perl -wT
-# -*- Mode: perl; indent-tabs-mode: nil -*-
-#
 # The contents of this file are subject to the Mozilla Public
 # License Version 1.1 (the "License"); you may not use this file
 # except in compliance with the License. You may obtain a copy of
@@ -20,10 +18,6 @@
 #
 # Contributor(s): Erik Stambaugh <erik@dasbistro.com>
 
-################################################################################
-# Script Initialization
-################################################################################
-
 use strict;
 
 use lib qw(. lib);
@@ -36,40 +30,17 @@ use Bugzilla::Mailer;
 use Bugzilla::Util;
 use Bugzilla::Group;
 
-# create some handles that we'll need
-my $template = Bugzilla->template;
-my $dbh      = Bugzilla->dbh;
-my $sth;
-
-# @seen_schedules is a list of all of the schedules that have already been
-# touched by reset_timer.  If reset_timer sees a schedule more than once, it
+# %seen_schedules is a list of all of the schedules that have already been
+# touched by reset_timer. If reset_timer sees a schedule more than once, it
 # sets it to NULL so it won't come up again until the next execution of
 # whine.pl
-my @seen_schedules = ();
-
-# These statement handles should live outside of their functions in order to
-# allow the database to keep their SQL compiled.
-my $sth_run_queries = $dbh->prepare(
-    "SELECT query_name, title, onemailperbug " .
-    "FROM whine_queries WHERE eventid=? ORDER BY sortkey"
-);
-
-# get the event that's scheduled with the lowest run_next value
-my $sth_next_scheduled_event = $dbh->prepare(
-    "SELECT s.eventid, e.owner_userid, e.subject, e.body, e.mailifnobugs" .
-    " FROM whine_schedules s LEFT JOIN whine_events e ON e.id = s.eventid" .
-    " WHERE run_next <= NOW() ORDER BY run_next" . $dbh->sql_limit(1)
-);
-
-# get all pending schedules matching an eventid
-my $sth_schedules_by_event = $dbh->prepare(
-    "SELECT id, mailto_type, mailto FROM whine_schedules " .
-    "WHERE eventid=? AND run_next <= NOW()"
-);
+my %seen_schedules;
 
 ################################################################################
 # Main Body Execution
 ################################################################################
+
+my $dbh = Bugzilla->dbh;
 
 # This script needs to check through the database for schedules that have
 # run_next set to NULL, which means that schedule is new or has been altered.
@@ -108,12 +79,12 @@ if (($now_year % 4 == 0) && (($now_year % 100 != 0) || ($now_year % 400 == 0)))
 #
 # We go over each uninitialized schedule record and use its settings to
 # determine what the next time it runs should be
-my $sched_h = $dbh->prepare(
+for my $row (@{$dbh->selectall_arrayref(
     "SELECT id, run_day, run_time FROM whine_schedules WHERE run_next IS NULL"
-);
-$sched_h->execute();
-while (my ($schedule_id, $day, $time) = $sched_h->fetchrow_array)
+) || []})
 {
+    my ($schedule_id, $day, $time) = @$row;
+
     # fill in some defaults in case they're blank
     $day  ||= '0';
     $time ||= '0';
@@ -122,24 +93,22 @@ while (my ($schedule_id, $day, $time) = $sched_h->fetchrow_array)
     # run at a particular hour.  If so, we set it for that hour, and if not,
     # it runs at an interval over the course of a day, which means we should
     # set it to run immediately.
-    if (&check_today($day))
+    if (check_today($day))
     {
         # Values that are not entirely numeric are intervals, like "30min"
         if ($time !~ /^\d+$/)
         {
             # set it to now
-            $sth = $dbh->prepare("UPDATE whine_schedules SET run_next=NOW() WHERE id=?");
-            $sth->execute($schedule_id);
+            $dbh->do("UPDATE whine_schedules SET run_next=NOW() WHERE id=?", undef, $schedule_id);
         }
         # A time greater than now means it still has to run today
         elsif ($time >= $now_hour)
         {
             # set it to today + number of hours
-            $sth = $dbh->prepare(
+            $dbh->do(
                 "UPDATE whine_schedules SET run_next = " .
-                $dbh->sql_date_math('CURRENT_DATE', '+', '?', 'HOUR') . " WHERE id = ?"
+                $dbh->sql_date_math('CURRENT_DATE', '+', '?', 'HOUR') . " WHERE id = ?", undef, $time, $schedule_id
             );
-            $sth->execute($time, $schedule_id);
         }
         # the target time is less than the current time
         else
@@ -150,8 +119,10 @@ while (my ($schedule_id, $day, $time) = $sched_h->fetchrow_array)
                 '(' . $dbh->sql_date_math('CURRENT_DATE', '+', '?', 'DAY') . ')',
                 '+', '?', 'HOUR'
             );
-            $sth = $dbh->prepare("UPDATE whine_schedules SET run_next = $run_next WHERE id = ?");
-            $sth->execute($day, $time, $schedule_id);
+            $dbh->do(
+                "UPDATE whine_schedules SET run_next = $run_next WHERE id = ?",
+                undef, $day, $time, $schedule_id
+            );
         }
     }
     # If the schedule is not supposed to run today, we set it to run on the
@@ -161,124 +132,12 @@ while (my ($schedule_id, $day, $time) = $sched_h->fetchrow_array)
         my $target_date = get_next_date($day);
         # If configured for a particular time, set it to that, otherwise midnight
         my $target_time = ($time =~ /^\d+$/) ? $time : 0;
-
         my $run_next = $dbh->sql_date_math(
             '(' . $dbh->sql_date_math('CURRENT_DATE', '+', '?', 'DAY') . ')',
             '+', '?', 'HOUR'
         );
-        $sth = $dbh->prepare("UPDATE whine_schedules SET run_next=$run_next WHERE id=?");
-        $sth->execute($target_date, $target_time, $schedule_id);
+        $dbh->do("UPDATE whine_schedules SET run_next=$run_next WHERE id=?", undef, $target_date, $target_time, $schedule_id);
     }
-}
-$sched_h->finish();
-
-# get_next_event
-#
-# This function will:
-#   1. Lock whine_schedules
-#   2. Grab the most overdue pending schedules on the same event that must run
-#   3. Update those schedules' run_next value
-#   4. Unlock the table
-#   5. Return an event hashref
-#
-# The event hashref consists of:
-#   eventid - ID of the event
-#   author  - user object for the event's creator
-#   users   - array of user objects for recipients
-#   subject - Subject line for the email
-#   body    - the text inserted above the bug lists
-#   mailifnobugs - send message even if there are no query or query results
-
-sub get_next_event
-{
-    my $event = {};
-
-    # Loop until there's something to return
-    until (scalar keys %{$event})
-    {
-        $dbh->bz_start_transaction();
-
-        # Get the event ID for the first pending schedule
-        $sth_next_scheduled_event->execute;
-        my $fetched = $sth_next_scheduled_event->fetch;
-        $sth_next_scheduled_event->finish;
-        return undef unless $fetched;
-        my ($eventid, $owner_id, $subject, $body, $mailifnobugs) = @$fetched;
-
-        my $owner = Bugzilla::User->new($owner_id);
-
-        my $whineatothers = $owner->in_group('bz_canusewhineatothers');
-
-        my %user_objects;   # Used for keeping track of who has been added
-
-        # Get all schedules that match that event ID and are pending
-        $sth_schedules_by_event->execute($eventid);
-
-        # Add the users from those schedules to the list
-        while (my $row = $sth_schedules_by_event->fetch)
-        {
-            my ($sid, $mailto_type, $mailto) = @$row;
-
-            # Only bother doing any work if this user has whine permission
-            if ($owner->in_group('bz_canusewhines'))
-            {
-                if ($mailto_type == MAILTO_USER)
-                {
-                    if (not defined $user_objects{$mailto})
-                    {
-                        if ($mailto == $owner_id)
-                        {
-                            $user_objects{$mailto} = $owner;
-                        }
-                        elsif ($whineatothers)
-                        {
-                            $user_objects{$mailto} = Bugzilla::User->new($mailto);
-                        }
-                    }
-                }
-                elsif ($mailto_type == MAILTO_GROUP)
-                {
-                    my $sth = $dbh->prepare("SELECT name FROM groups WHERE id=?");
-                    $sth->execute($mailto);
-                    my $groupname = $sth->fetch->[0];
-                    my $group_id = Bugzilla::Group::ValidateGroupName($groupname, $owner);
-                    if ($group_id)
-                    {
-                        my $glist = join(',', @{Bugzilla::Group->flatten_group_membership($group_id)});
-                        $sth = $dbh->prepare(
-                            "SELECT user_id FROM user_group_map WHERE group_id IN ($glist)"
-                        );
-                        $sth->execute();
-                        for my $row (@{$sth->fetchall_arrayref})
-                        {
-                            if (not defined $user_objects{$row->[0]})
-                            {
-                                $user_objects{$row->[0]} = Bugzilla::User->new($row->[0]);
-                            }
-                        }
-                    }
-                }
-            }
-            reset_timer($sid);
-        }
-
-        $dbh->bz_commit_transaction();
-
-        # Only set $event if the user is allowed to do whining
-        if ($owner->in_group('bz_canusewhines'))
-        {
-            my @users = values %user_objects;
-            $event = {
-                eventid => $eventid,
-                author  => $owner,
-                mailto  => \@users,
-                subject => $subject,
-                body    => $body,
-                mailifnobugs => $mailifnobugs,
-            };
-        }
-    }
-    return $event;
 }
 
 # Run the queries for each event
@@ -333,6 +192,111 @@ while (my $event = get_next_event())
 # Functions
 ################################################################################
 
+# get_next_event
+#
+# This function will:
+#   1. Lock whine_schedules
+#   2. Grab the most overdue pending schedules on the same event that must run
+#   3. Update those schedules' run_next value
+#   4. Unlock the table
+#   5. Return an event hashref
+#
+# The event hashref consists of:
+#   eventid - ID of the event
+#   author  - user object for the event's creator
+#   users   - array of user objects for recipients
+#   subject - Subject line for the email
+#   body    - the text inserted above the bug lists
+#   mailifnobugs - send message even if there are no query or query results
+sub get_next_event
+{
+    my $event = {};
+    my $dbh = Bugzilla->dbh;
+
+    # Loop until there's something to return
+    until (scalar keys %{$event})
+    {
+        $dbh->bz_start_transaction();
+
+        # Get the event ID for the first pending schedule
+        my ($eventid, $owner_id, $subject, $body, $mailifnobugs) = Bugzilla->dbh->selectrow_array(
+            "SELECT s.eventid, e.owner_userid, e.subject, e.body, e.mailifnobugs" .
+            " FROM whine_schedules s LEFT JOIN whine_events e ON e.id = s.eventid" .
+            " WHERE run_next <= NOW() ORDER BY run_next" . $dbh->sql_limit(1)
+        );
+        return undef unless $eventid;
+
+        my $owner = Bugzilla::User->new($owner_id);
+
+        my $whineatothers = $owner->in_group('bz_canusewhineatothers');
+
+        my %user_objects;   # Used for keeping track of who has been added
+
+        # Get all schedules that match that event ID and are pending
+        my $rows = Bugzilla->dbh->selectall_arrayref(
+            "SELECT id, mailto_type, mailto FROM whine_schedules " .
+            "WHERE eventid=? AND run_next <= NOW()"
+        ) || [];
+
+        # Add the users from those schedules to the list
+        for my $row (@$rows)
+        {
+            my ($sid, $mailto_type, $mailto) = @$row;
+
+            # Only bother doing any work if this user has whine permission
+            if ($owner->in_group('bz_canusewhines'))
+            {
+                if ($mailto_type == MAILTO_USER)
+                {
+                    if (not defined $user_objects{$mailto})
+                    {
+                        if ($mailto == $owner_id)
+                        {
+                            $user_objects{$mailto} = $owner;
+                        }
+                        elsif ($whineatothers)
+                        {
+                            $user_objects{$mailto} = Bugzilla::User->new($mailto);
+                        }
+                    }
+                }
+                elsif ($mailto_type == MAILTO_GROUP)
+                {
+                    my $group = Bugzilla::Group->new($mailto);
+                    if ($group)
+                    {
+                        for my $u (@{$group->users_in_group})
+                        {
+                            if ($u->{member_indirect} || $u->{member_direct} || $u->{member_regexp})
+                            {
+                                $user_objects{$u->{user}->id} ||= $u->{user};
+                            }
+                        }
+                    }
+                }
+            }
+            reset_timer($sid);
+        }
+
+        $dbh->bz_commit_transaction();
+
+        # Only set $event if the user is allowed to do whining
+        if ($owner->in_group('bz_canusewhines'))
+        {
+            my @users = values %user_objects;
+            $event = {
+                eventid => $eventid,
+                author  => $owner,
+                mailto  => \@users,
+                subject => $subject,
+                body    => $body,
+                mailifnobugs => $mailifnobugs,
+            };
+        }
+    }
+    return $event;
+}
+
 # The mail and run_queries functions use an anonymous hash ($args) for their
 # arguments, which are then passed to the templates.
 #
@@ -353,7 +317,7 @@ while (my $event = get_next_event())
 #
 sub mail
 {
-    my $args = shift;
+    my ($args) = @_;
     my $addressee = $args->{recipient};
     # Don't send mail to someone whose bugmail notification is disabled.
     return if $addressee->email_disabled;
@@ -392,7 +356,6 @@ sub mail
 
     delete $args->{boundary};
     delete $args->{alternatives};
-
 }
 
 # run_queries runs all of the queries associated with a schedule ID, adding
@@ -400,23 +363,17 @@ sub mail
 # messages for each bug
 sub run_queries
 {
-    my $args = shift;
+    my ($args) = @_;
     my $return_queries = [];
+    my $dbh = Bugzilla->dbh;
 
-    $sth_run_queries->execute($args->{eventid});
-    my @queries = ();
-    for (@{$sth_run_queries->fetchall_arrayref})
+    my $queries = $dbh->selectall_arrayref(
+        "SELECT query_name, title, onemailperbug FROM whine_queries".
+        " WHERE eventid=? ORDER BY sortkey", {Slice=>{}}
+    );
+    foreach my $thisquery (@$queries)
     {
-        push @queries, {
-            name          => $_->[0],
-            title         => $_->[1],
-            onemailperbug => $_->[2],
-            bugs          => [],
-        };
-    }
-
-    foreach my $thisquery (@queries)
-    {
+        $thisquery->{bugs} = [];
         next unless $thisquery->{name}; # named query is blank
 
         my $savedquery = Bugzilla::Search::Saved->new({ name => $thisquery->{name}, user => $args->{author} });
@@ -441,7 +398,7 @@ sub run_queries
             user   => $args->{recipient}, # the search runs as the recipient
         );
         my $sqlquery = $search->getSQL();
-        $sth = $dbh->prepare($sqlquery);
+        my $sth = $dbh->prepare($sqlquery);
         $sth->execute;
 
         while (my @row = $sth->fetchrow_array)
@@ -485,10 +442,9 @@ sub run_queries
 #   - 'last' for the last day of the month
 #   - 'All' for every day
 #   - 'MF' for every weekday
-
 sub check_today
 {
-    my $run_day  = shift;
+    my ($run_day) = @_;
     if ($run_day eq 'MF' && $now_weekday > 0 && $now_weekday < 6)
     {
         return 1;
@@ -511,23 +467,23 @@ sub check_today
 # should do that itself.
 sub reset_timer
 {
-    my $schedule_id = shift;
+    my ($schedule_id) = @_;
+    my $dbh = Bugzilla->dbh;
 
     # Schedules may not be executed more than once for each invocation of
     # whine.pl -- there are legitimate circumstances that can cause this, like
     # a set of whines that take a very long time to execute, so it's done
     # quietly.
-    if (grep { $_ == $schedule_id } @seen_schedules)
+    if ($seen_schedules{$schedule_id})
     {
         null_schedule($schedule_id);
         return;
     }
-    push @seen_schedules, $schedule_id;
+    $seen_schedules{$schedule_id} = 1;
 
-    $sth = $dbh->prepare("SELECT run_day, run_time FROM whine_schedules WHERE id=?");
-    $sth->execute($schedule_id);
-    my ($run_day, $run_time) = $sth->fetchrow_array;
-
+    my ($run_day, $run_time) = $dbh->selectrow_array(
+        "SELECT run_day, run_time FROM whine_schedules WHERE id=?", undef, $schedule_id
+    );
     # It may happen that the run_time field is NULL or blank due to
     # a bug in editwhines.cgi when this field was initially 0.
     $run_time ||= 0;
@@ -569,8 +525,10 @@ sub reset_timer
             '(' . $dbh->sql_date_math('CURRENT_DATE', '+', '?', 'DAY') . ')',
             '+', '?', 'HOUR'
         );
-        $sth = $dbh->prepare("UPDATE whine_schedules SET run_next=$run_next WHERE id=?");
-        $sth->execute($nextdate, $target_time, $schedule_id);
+        $dbh->do(
+            "UPDATE whine_schedules SET run_next=$run_next WHERE id=?",
+            undef, $nextdate, $target_time, $schedule_id
+        );
         return;
     }
 
@@ -582,8 +540,7 @@ sub reset_timer
             undef, $minute_offset
         );
         $next_run = format_time($next_run, "%Y-%m-%d %R");
-        $sth = $dbh->prepare("UPDATE whine_schedules SET run_next=? WHERE id=?");
-        $sth->execute($next_run, $schedule_id);
+        Bugzilla->dbh->do("UPDATE whine_schedules SET run_next=? WHERE id=?", undef, $next_run, $schedule_id);
     }
     else
     {
@@ -599,9 +556,8 @@ sub reset_timer
 # rescheduled, which only happens when whine.pl starts.
 sub null_schedule
 {
-    my $schedule_id = shift;
-    $sth = $dbh->prepare("UPDATE whine_schedules SET run_next = NULL WHERE id=?");
-    $sth->execute($schedule_id);
+    my ($schedule_id) = @_;
+    Bugzilla->dbh->do("UPDATE whine_schedules SET run_next = NULL WHERE id=?", undef, $schedule_id);
 }
 
 # get_next_date determines the difference in days between now and the next
@@ -611,7 +567,7 @@ sub null_schedule
 # and returns an integer, representing a number of days.
 sub get_next_date
 {
-    my $day = shift;
+    my ($day) = @_;
     my $add_days = 0;
     if ($day eq 'All')
     {
