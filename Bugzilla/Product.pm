@@ -1007,7 +1007,11 @@ sub flag_types
 
 sub allows_unconfirmed { return $_[0]->{allows_unconfirmed}; }
 sub description       { return $_[0]->{description};       }
+sub isactive          { return $_[0]->{isactive};          }
 sub is_active         { return $_[0]->{isactive};          }
+sub votesperuser      { return $_[0]->{votesperuser};      }
+sub maxvotesperbug    { return $_[0]->{maxvotesperbug};    }
+sub votestoconfirm    { return $_[0]->{votestoconfirm};    }
 sub votes_per_user    { return $_[0]->{votesperuser};      }
 sub max_votes_per_bug { return $_[0]->{maxvotesperbug};    }
 sub votes_to_confirm  { return $_[0]->{votestoconfirm};    }

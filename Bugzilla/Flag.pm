@@ -150,6 +150,7 @@ sub status       { return $_[0]->{status};       }
 sub setter_id    { return $_[0]->{setter_id};    }
 sub requestee_id { return $_[0]->{requestee_id}; }
 sub creation_date { return $_[0]->{creation_date}; }
+sub modification_date { return $_[0]->{modification_date}; }
 
 ###############################
 ####       Methods         ####

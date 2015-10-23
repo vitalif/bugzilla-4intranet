@@ -144,7 +144,7 @@ function userAutocomplete(hint, emptyOptions, loadAllOnEmpty)
     }
 
     var u = window.location.href.replace(/[^\/]+$/, '');
-    u += 'xml.cgi?method=User.get&output=json&excludedisabled=1&maxusermatches=';
+    u += 'xml.cgi?method=User.get&output=json&excludedisabled=1&include_fields=id&include_fields=real_name&include_fields=email&maxusermatches=';
     if (hint.input.value)
     {
         u += '20';
