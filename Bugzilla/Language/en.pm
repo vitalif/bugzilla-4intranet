@@ -219,6 +219,7 @@ $Bugzilla::messages->{en} = {
         tweakparams         => 'Allows to <a href="editparams.cgi">change Parameters</a>.',
         editusers           => 'Allows to <a href="editusers.cgi">edit or disable users</a> and include/exclude them from <b>all</b> groups.',
         creategroups        => 'Allows to <a href="editgroups.cgi">create, destroy and edit groups</a>.',
+        createproducts      => 'Allows to <a href="editproducts.cgi">create new products</a>.',
         editclassifications => 'Allows to <a href="editclassifications.cgi">create, destroy and edit classifications</a>.',
         editcomponents      => 'Allows to <a href="editproducts.cgi">create, destroy and edit all products, components, versions and milestones</a>.',
         editkeywords        => 'Allows to <a href="editvalues.cgi?field=keywords">create, destroy and edit keywords</a>.',

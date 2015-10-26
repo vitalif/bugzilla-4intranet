@@ -51,7 +51,7 @@
    ]
 %]
 
-[% IF user.in_group('editcomponents') %]
+[% IF user.in_group('editcomponents') || user.in_group('createproducts') %]
   [% columns.push({
        heading => "Action..."
        content => "Add product"
@@ -63,6 +63,10 @@
      columns = columns
      data = classifications
 %]
+
+[% IF user.in_group('createproducts') && !user.in_group('editcomponents') %]
+<p><a href="editproducts.cgi?action=add">Add product</a></p>
+[% END %]
 
 [%# No need for the standard edit products footer, as we have an 'add'
     link in the table %]

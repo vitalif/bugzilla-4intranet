@@ -50,6 +50,7 @@ my $vars = {};
 $vars->{doc_section} = 'products.html';
 
 $user->in_group('editcomponents') ||
+    $user->in_group('createproducts') ||
     scalar(@{$user->get_editable_products}) ||
     ThrowUserError('auth_failure', {
         group  => 'editcomponents',
@@ -71,12 +72,12 @@ my $useclassification = Bugzilla->get_field('classification')->enabled;
 # classifications enabled)
 #
 
-if ($useclassification && !$classification_name && !$product_name)
+if (!$action && $useclassification && !$classification_name && !$product_name)
 {
     my $class;
     if ($user->in_group('editcomponents'))
     {
-        $class = [Bugzilla::Classification->get_all];
+        $class = [ Bugzilla::Classification->get_all ];
     }
     else
     {
@@ -84,7 +85,7 @@ if ($useclassification && !$classification_name && !$product_name)
         # which you can administer.
         my $products = $user->get_editable_products;
         my %class_ids = map { $_->classification_id => 1 } @$products;
-        $class = Bugzilla::Classification->new_from_list([keys %class_ids]);
+        $class = Bugzilla::Classification->new_from_list([ keys %class_ids ]);
     }
     $vars->{classifications} = $class;
 
@@ -130,18 +131,17 @@ if (!$action && !$product_name)
 
 if ($action eq 'add')
 {
-    # The user must have the global editcomponents privs to add
-    # new products.
-    $user->in_group('editcomponents') || ThrowUserError('auth_failure', {
-        group  => 'editcomponents',
-        action => 'add',
-        object => 'products',
-    });
-
+    # The user must have the createproducts or global editcomponents privs to add new products.
+    $user->in_group('editcomponents') ||
+        $user->in_group('createproducts') ||
+        ThrowUserError('auth_failure', {
+            group  => 'editcomponents',
+            action => 'add',
+            object => 'products',
+        });
     if ($useclassification)
     {
-        my $classification = Bugzilla::Classification->check($classification_name);
-        $vars->{classification} = $classification;
+        $vars->{classification} = $classification_name ? Bugzilla::Classification->new($classification_name) : undef;
         $vars->{classifications} = [ Bugzilla::Classification->get_all ];
     }
     $vars->{token} = issue_session_token('add_product');
@@ -159,13 +159,14 @@ if ($action eq 'add')
 
 if ($action eq 'new')
 {
-    # The user must have the global editcomponents privs to add
-    # new products.
-    $user->in_group('editcomponents') || ThrowUserError('auth_failure', {
-        group  => 'editcomponents',
-        action => 'add',
-        object => 'products',
-    });
+    # The user must have the createproducts or global editcomponents privs to add new products.
+    $user->in_group('editcomponents') ||
+        $user->in_group('createproducts') ||
+        ThrowUserError('auth_failure', {
+            group  => 'editcomponents',
+            action => 'add',
+            object => 'products',
+        });
 
     check_token_data($token, 'add_product');
 
@@ -189,6 +190,13 @@ if ($action eq 'new')
         $create_params{votestoconfirm} = $ARGS->{votestoconfirm};
     }
     my $product = Bugzilla::Product->create(\%create_params);
+
+    if (!$user->in_group('editcomponents'))
+    {
+        # User has no global editcomponents permission, so grant 'createproducts'
+        # group the right to manage his newly created product
+        $product->_create_bug_group(1);
+    }
 
     # Create groups and series for the new product, if requested.
     $product->_create_bug_group() if $ARGS->{makeproductgroup};
