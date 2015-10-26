@@ -141,7 +141,7 @@ if ($action eq 'add')
         });
     if ($useclassification)
     {
-        $vars->{classification} = $classification_name ? Bugzilla::Classification->new($classification_name) : undef;
+        $vars->{classification} = $classification_name ? Bugzilla::Classification->new({ name => $classification_name }) : undef;
         $vars->{classifications} = [ Bugzilla::Classification->get_all ];
     }
     $vars->{token} = issue_session_token('add_product');
