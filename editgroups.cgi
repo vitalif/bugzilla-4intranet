@@ -106,22 +106,22 @@ sub get_current_and_available
         push @bless_to_available, $group_option if !$bless_to_current->{$group_option->id};
     }
 
-    $vars->{members_current}     = [ values %$members_current ];
-    $vars->{members_available}   = \@members_available;
-    $vars->{member_of_current}   = [ values %$member_of_current ];
-    $vars->{member_of_available} = \@member_of_available;
+    $vars->{members_current}     = [ sort { $a->name cmp $b->name } values %$members_current ];
+    $vars->{members_available}   = [ sort { $a->name cmp $b->name } @members_available ];
+    $vars->{member_of_current}   = [ sort { $a->name cmp $b->name } values %$member_of_current ];
+    $vars->{member_of_available} = [ sort { $a->name cmp $b->name } @member_of_available ];
 
-    $vars->{bless_from_current}   = [ values %$bless_from_current ];
-    $vars->{bless_from_available} = \@bless_from_available;
-    $vars->{bless_to_current}     = [ values %$bless_to_current ];
-    $vars->{bless_to_available}   = \@bless_to_available;
+    $vars->{bless_from_current}   = [ sort { $a->name cmp $b->name } values %$bless_from_current ];
+    $vars->{bless_from_available} = [ sort { $a->name cmp $b->name } @bless_from_available ];
+    $vars->{bless_to_current}     = [ sort { $a->name cmp $b->name } values %$bless_to_current ];
+    $vars->{bless_to_available}   = [ sort { $a->name cmp $b->name } @bless_to_available ];
 
     if (Bugzilla->params->{usevisibilitygroups})
     {
-        $vars->{visible_from_current}    = [ values %$visible_from_current ];
-        $vars->{visible_from_available}  = \@visible_from_available;
-        $vars->{visible_to_me_current}   = [ values %$visible_to_me_current ];
-        $vars->{visible_to_me_available} = \@visible_to_me_available;
+        $vars->{visible_from_current}    = [ sort { $a->name cmp $b->name } values %$visible_from_current ];
+        $vars->{visible_from_available}  = [ sort { $a->name cmp $b->name } @visible_from_available ];
+        $vars->{visible_to_me_current}   = [ sort { $a->name cmp $b->name } values %$visible_to_me_current ];
+        $vars->{visible_to_me_available} = [ sort { $a->name cmp $b->name } @visible_to_me_available ];
     }
 }
 
