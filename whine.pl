@@ -222,7 +222,7 @@ sub get_next_event
         my ($eventid, $owner_id, $subject, $body, $mailifnobugs) = Bugzilla->dbh->selectrow_array(
             "SELECT s.eventid, e.owner_userid, e.subject, e.body, e.mailifnobugs" .
             " FROM whine_schedules s LEFT JOIN whine_events e ON e.id = s.eventid" .
-            " WHERE run_next <= NOW() ORDER BY run_next" . $dbh->sql_limit(1)
+            " WHERE run_next <= NOW() ORDER BY run_next " . $dbh->sql_limit(1)
         );
         return undef unless $eventid;
 
