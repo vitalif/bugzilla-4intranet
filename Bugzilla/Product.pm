@@ -609,15 +609,19 @@ use constant is_default => 0;
 sub _create_bug_group
 {
     my $self = shift;
+    my ($create_admin_group) = @_;
     my $dbh = Bugzilla->dbh;
 
-    my $group_name = $self->name;
+    my $group_name = ($create_admin_group ? 'admin-' : '') . $self->name;
     my $i = 1;
     while (new Bugzilla::Group({ name => $group_name }))
     {
-        $group_name = $self->name . ($i++);
+        $group_name = ($create_admin_group ? 'admin-' : '') . $self->name . ($i++);
     }
-    my $group_description = get_text('bug_group_description', { product => $self });
+    my $group_description = get_text(
+        $create_admin_group ? 'admin_group_description' : 'bug_group_description',
+        { product => $self }
+    );
 
     my $group = Bugzilla::Group->create({
         name        => $group_name,
@@ -627,8 +631,15 @@ sub _create_bug_group
 
     # Associate the new group and new product.
     $dbh->do(
-        'INSERT INTO group_control_map (group_id, product_id, membercontrol, othercontrol)'.
-        ' VALUES (?, ?, ?, ?)', undef, $group->id, $self->id, CONTROLMAPDEFAULT, CONTROLMAPNA
+        'INSERT INTO group_control_map (group_id, product_id, membercontrol, othercontrol, editcomponents)'.
+        ' VALUES (?, ?, ?, ?, ?)', undef, $group->id, $self->id,
+        ($create_admin_group ? (0, 0, 1) : (CONTROLMAPMANDATORY, CONTROLMAPMANDATORY, 0))
+    );
+
+    # Grant current user permission to edit the new group and include him in it
+    $dbh->do(
+        'INSERT INTO user_group_map (user_id, group_id, isbless, grant_type) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+        undef, Bugzilla->user->id, $group->id, 1, 0, Bugzilla->user->id, $group->id, 0, 0
     );
 }
 

@@ -653,17 +653,16 @@ sub get_products_by_permission
 sub get_editable_products
 {
     my ($self, $classification_id) = @_;
-    my $sql = "SELECT DISTINCT products.id FROM products";
-    my $t = "WHERE";
+    my $sql = "SELECT DISTINCT p.id FROM products p";
     if (!$self->in_group('editcomponents'))
     {
-        $sql .= ", group_control_map WHERE editcomponents=1 AND group_id IN (".$self->groups_as_string.")";
-        $t = "AND";
+        $sql .= " INNER JOIN group_control_map gm ON gm.product_id=p.id".
+            " AND gm.editcomponents=1 AND gm.group_id IN (".$self->groups_as_string.")";
     }
     if ($classification_id)
     {
         # restrict product list by classification
-        $sql .= " $t classification_id=".int($classification_id);
+        $sql .= " WHERE classification_id=".int($classification_id);
     }
     return Bugzilla::Product->new_from_list(Bugzilla->dbh->selectcol_arrayref($sql) || []);
 }
@@ -971,7 +970,7 @@ sub check_can_admin_product
     # First make sure the product name is valid.
     my $product = Bugzilla::Product::check_product($product_name);
 
-    ($self->in_group('editcomponents', $product->id) && $self->can_see_product($product->name))
+    $self->in_group('editcomponents', $product->id)
         || $self->in_group('editcomponents')
         || ThrowUserError('product_admin_denied', {product => $product->name});
 

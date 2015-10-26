@@ -1,9 +1,24 @@
-== UNRELEASED: beta ==
+== branch: i18n ==
 
 UI improvements:
 
 * Separate localisation layer - now it's possible to translate Bugzilla UI
   without copying templates!
+
+== UNRELEASED: beta ==
+
+Backports from original Bugzilla:
+
+* WebServices from Bugzilla 5.0.1 (everything except tags).
+
+Other new features:
+
+* Separate "createproducts" role (group) that only allows to create new products,
+  but not to edit the existing ones.
+
+Bugfixes:
+
+* Whining now works again.
 
 == 2015.09: 2015-09-18, commit dc07c69094f616d1eb3e523181283dcdbca0499e ==
 

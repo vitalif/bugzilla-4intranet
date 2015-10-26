@@ -94,6 +94,7 @@ use constant SYSTEM_GROUPS => (
     { name => 'editusers' },
     { name => 'creategroups' },
     { name => 'editclassifications' },
+    { name => 'createproducts' },
     { name => 'editcomponents' },
     { name => 'editkeywords' },
     { name => 'editbugs', userregexp => '.*' },
@@ -111,7 +112,7 @@ use constant SYSTEM_GROUPS => (
     {
         name => 'admin_index',
         include => [
-            qw(tweakparams editusers editclassifications editcomponents creategroups
+            qw(tweakparams editusers editclassifications createproducts editcomponents creategroups
             editfields editflagtypes editkeywords bz_canusewhines bz_editcheckers)
         ],
     },
@@ -162,22 +163,33 @@ sub update_settings
 sub update_system_groups
 {
     my $dbh = Bugzilla->dbh;
-
     foreach my $definition (SYSTEM_GROUPS)
     {
-        my $exists = new Bugzilla::Group({ name => $definition->{name} });
+        my $grp = new Bugzilla::Group({ name => $definition->{name} });
         $definition->{isbuggroup} = 0;
         $definition->{description} = html_strip(Bugzilla->messages->{system_groups}->{$definition->{name}});
         my $include = delete $definition->{include};
-        if (!$exists)
+        if (!$grp)
         {
-            Bugzilla::Group->create($definition);
-            if ($include && @$include)
+            $grp = Bugzilla::Group->create($definition);
+        }
+        elsif ($definition->{name} ne 'admin_index')
+        {
+            # Always fix inclusions in admin_index
+            $include = undef;
+        }
+        if ($include && @$include)
+        {
+            my $cur = { map { $_ => 1 } @{$dbh->selectcol_arrayref(
+                'SELECT g.name FROM group_group_map gm, groups g'.
+                ' WHERE g.id=gm.member_id AND gm.grantor_id=? AND gm.grant_type=0', undef, $grp->id
+            ) || []} };
+            $include = [ grep { !$cur->{$_} } @$include ];
+            if (@$include)
             {
                 $dbh->do(
                     'INSERT INTO group_group_map (member_id, grantor_id, grant_type)'.
-                    ' SELECT g.id, ai.id, 0 FROM groups ai, groups g WHERE ai.name=?'.
-                    ' AND g.name IN (\''.join("','", @$include).'\')', undef, $definition->{name}
+                    ' SELECT g.id, ?, 0 FROM groups g WHERE g.name IN (\''.join("','", @$include).'\')', undef, $grp->id
                 );
             }
         }
