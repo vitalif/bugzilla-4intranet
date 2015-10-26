@@ -208,7 +208,7 @@
 
     [% FOREACH column = displaycolumns %]
     [% field_obj = Bugzilla.get_field(column) %]
-    <td class="bz_[% column FILTER css_class_quote %]_column bz_f[% field_obj.type %]
+    <td class="bz_[% column FILTER css_class_quote %]_column bz_f[% field_obj.type %][% " bz_customfield" IF field_obj.custom %]
         [%- IF COLUMNS.$column.subid %] bz_[% COLUMNS.$column.subid | css_class_quote %]_column[% END %]"
         [%- IF abbrev.$column.maxlength %] title="[%- bug.$column | html %]"[% END %]>
       [% IF abbrev.$column.format_value %]

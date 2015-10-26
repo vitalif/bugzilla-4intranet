@@ -87,7 +87,8 @@ td.bz_total {
 .bz_buglist .bz_flagtypes_name_column,
 .bz_buglist .bz_f1,
 .bz_buglist .bz_f4,
-.bz_buglist .bz_f7 { white-space: normal; }
+.bz_buglist .bz_f7,
+.bz_buglist .bz_customfield { white-space: normal; }
 
 .bz_buglist .bz_comment0_column,
 .bz_buglist .bz_lastcomment_column { width: 15%; white-space: normal; }

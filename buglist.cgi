@@ -1257,6 +1257,7 @@ $vars->{query_sql_time} = sprintf("%.2f", $query_sql_time);
 
 Bugzilla::Hook::process('after-buglist', { vars => $vars });
 
+# FIXME: Remove this hardcode
 $vars->{abbrev} = {
     bug_severity         => { maxlength => 3, title => "Sev" },
     priority             => { maxlength => 3, title => "Pri" },
@@ -1271,8 +1272,8 @@ $vars->{abbrev} = {
     resolution           => { maxlength => 4 },
     short_short_desc     => { maxlength => 60, ellipsis => "..." },
     status_whiteboard    => { title => "Whiteboard" },
-    component            => { maxlength => 8, title => "Comp" },
-    product              => { maxlength => 8 },
+    component            => { maxlength => 20, ellipsis => "...", title => "Comp" },
+    product              => { maxlength => 20, ellipsis => "..." },
     op_sys               => { maxlength => 4 },
     target_milestone     => { title => "Milestone" },
     percentage_complete  => { format_value => "%d %%" },
