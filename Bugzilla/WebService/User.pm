@@ -72,6 +72,13 @@ sub login {
             || ThrowCodeError('param_required', { param => $param });
     }
 
+    my $remember = $params->{Bugzilla_remember} || $params->{remember};
+    $remember = defined($remember) ? $remember : Bugzilla->params->{rememberlogin} eq 'defaulton';
+    my $input_params = Bugzilla->input_params;
+    $input_params->{Bugzilla_login} = $params->{Bugzilla_login} || $params->{login};
+    $input_params->{Bugzilla_password} = $params->{Bugzilla_password} || $params->{password};
+    $input_params->{Bugzilla_remember} = $remember ? 'on' : '';
+
     $user = Bugzilla->login();
     return $self->_login_to_hash($user);
 }
