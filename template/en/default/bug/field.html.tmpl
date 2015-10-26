@@ -71,7 +71,7 @@
     [% ELSIF !field.custom %]
       <a href="page.cgi?id=fields.html#[% field.name | url_quote %]">
     [% END -%]
-      [% custom_label || field_descs.${field.name} || field.description | html %]:
+      [% IF custom_label %][% custom_label | none %][% ELSE %][% field_descs.${field.name} || field.description | html %][% END %]:
     [%- '</a>' IF desc_url || !field.custom %]
     </label>
   [% END %]
@@ -80,7 +80,7 @@
 [% END %]
 [% IF NOT no_tds %]
   </th>
-  <td class="field_value" id="field_container_[% field.name | html %]"
+  <td class="field_value bug_field" id="field_container_[% field.name | html %]"
     [% " colspan=\"$value_span\"" | none IF value_span %]>
 [% END %]
 [% IF NOT editable AND show_search_link %]

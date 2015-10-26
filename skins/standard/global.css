@@ -469,12 +469,21 @@ div.user_match {
     }
 }
 
+.bz_show_bug_colpair table {
+    width: 98%;
+}
 .field_label {
     text-align: left;
     vertical-align: top;
+    width: 25%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.5em;
 }
 .bug_field {
     margin-bottom: 8px;
+    vertical-align: top;
+    line-height: 1.5em;
 }
 .bug_field label {
     font-weight: bold;
@@ -488,6 +497,9 @@ div.user_match {
 }
 .bug_field .text_input {
     width: 98%;
+}
+.bug_field table td {
+    padding: 0;
 }
 .bug_field table .text_input, .bug_field table .text_input {
     width: 100%;
@@ -574,8 +586,8 @@ form#Create .comment {
 /* FIXME remove bug_status hardcode */
 .bz_st_UNCONFIRMED, .bz_UNCONFIRMED td.first-child a { font-style: italic; }
 .bz_st_RESOLVED, .bz_RESOLVED td.first-child a { text-decoration: line-through; }
-.bz_st_VERIFIED, .bz_VERIFIED td.first-child a { text-decoration: line-through; border: 1px dashed #2f6fab; margin: 0 -1px; color: black; background-color: #f9f9f9; line-height: 1.1em; }
-.bz_st_CLOSED, .bz_CLOSED td.first-child a { text-decoration: line-through; border: 1px solid #2f6fab; margin: 0 -1px; background-color: #f9f9f9; line-height: 1.1em; }
+.bz_st_VERIFIED, .bz_VERIFIED td.first-child a { text-decoration: line-through; border: 1px dashed #2f6fab; margin: 0 -1px; color: black; background-color: #f9f9f9; }
+.bz_st_CLOSED, .bz_CLOSED td.first-child a { text-decoration: line-through; border: 1px solid #2f6fab; margin: 0 -1px; background-color: #f9f9f9; }
 
 table.alcontent { width: 100%; }
 

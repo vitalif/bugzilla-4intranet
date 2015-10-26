@@ -66,39 +66,39 @@ document.changeform = document.[% cfname %];
   <input type="hidden" name="token" value="[% issue_hash_token([bug.id, bug.delta_ts]) FILTER html %]" />
   <input type="hidden" name="force_work_time" value="1" />
 
-  [% SET use_divs = 1 %]
-  [% SET no_tds = 1 %]
+  [% SET use_divs = 0 %]
+  [% SET no_tds = 0 %]
 
   [% PROCESS section_title %]
 
   <div class="edit_form" id="bz_show_bug_table">
-    <div class="bz_show_bug_colpair">
-      <div id="bz_show_bug_column_1" class="bz_show_bug_column">
+    <div class="bz_show_bug_colpair" style="width: 33%">
+      <table>
         [% PROCESS section_status %]
         [% PROCESS section_details1 %]
         [% PROCESS section_people %]
-        [% PROCESS section_customfields part=1 %]
-      </div>
-      <div id="bz_show_bug_column_2" class="bz_show_bug_column">
         [% PROCESS section_details2 %]
         [% PROCESS section_keyword_whiteboard %]
-        [% PROCESS section_url %]
-        [% PROCESS section_customfields part=2 %]
-      </div>
+        [% PROCESS section_customfields part=1 %]
+      </table>
     </div>
-    <div class="bz_show_bug_colpair">
-      <div id="bz_show_bug_column_3" class="bz_show_bug_column">
+    <div class="bz_show_bug_colpair" style="width: 33%">
+      <table>
         [% PROCESS section_dates %]
+        [% PROCESS section_url %]
         [% PROCESS section_see_also %]
         [% PROCESS section_dependson_blocks %]
+        [% PROCESS section_customfields part=2 %]
         [% PROCESS section_customfields part=3 %]
-      </div>
-      <div id="bz_show_bug_column_4" class="bz_show_bug_column">
+      </table>
+    </div>
+    <div class="bz_show_bug_colpair" style="width: 34%">
+      <table>
         [% PROCESS section_cclist %]
         [% PROCESS section_customfields part=4 %]
         [% Hook.process("after_custom_fields") %]
-        [% PROCESS section_flags %]
-      </div>
+      </table>
+      [% PROCESS section_flags %]
     </div>
     <hr id="bz_top_half_spacer" />
   </div>
@@ -205,20 +205,24 @@ document.changeform = document.[% cfname %];
 
 [% BLOCK section_details1 %]
 
+<tr id="field_row_product">
   [% INCLUDE bug/field.html.tmpl
      bug = bug, field = select_fields.product,
      desc_url = 'describecomponents.cgi', value = bug.product_id
      editable = bug.check_can_change_field('product', 0, 1) %]
-
+</tr>
+<tr id="field_row_component">
   [% INCLUDE bug/field.html.tmpl
     bug = bug, field = select_fields.component,
     value = bug.component_id,
     editable = bug.check_can_change_field('component', 0, 1) %]
-
+</tr>
+<tr id="field_row_version">
   [% INCLUDE bug/field.html.tmpl
     bug = bug, field = select_fields.version,
     value = bug.version,
     editable = bug.check_can_change_field('version', 0, 1) %]
+</tr>
 
   <script type="text/javascript">
     assignToDefaultOnChange(['product', 'component']);
@@ -231,8 +235,11 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 
 [% BLOCK section_status %]
-  <div class="bug_field">
+<tr>
+  <th class="field_label" id="field_label_bug_status">
     <label><a href="page.cgi?id=fields.html#status">Status</a>:</label><br />
+  </th>
+  <td class="bug_field field_value" id="field_container_bug_status">
     <span id="static_bug_status">
       [% bug.bug_status_obj.name FILTER html %]
       [% IF bug.resolution %]
@@ -246,7 +253,8 @@ document.changeform = document.[% cfname %];
             onclick="window.setTimeout(function() { document.getElementById('bug_status').focus(); }, 10)">edit</a>)
       [% END %]
     </span>
-  </div>
+  </td>
+</tr>
 [% END %]
 
 [%############################################################################%]
@@ -258,26 +266,35 @@ document.changeform = document.[% cfname %];
   [%###############################################################%]
   [%# Importance (priority, severity and votes) #%]
   [%###############################################################%]
-  <div class="bug_field">
+<tr>
+  <th class="field_label">
     <label for="priority" accesskey="i">
       <a href="page.cgi?id=fields.html#importance"><u>I</u>mportance</a>:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
+    <table style="width: auto"><tr><td style="padding-right: 5px">
     [% INCLUDE bug/field.html.tmpl
       bug = bug, field = select_fields.priority,
       value = bug.priority
       use_divs = 0
+      no_tds = 1
       no_search_link = 1
       style = "width: auto"
       editable = bug.check_can_change_field('priority', 0, 1) %]
+    </td><td style="padding-right: 5px">
     [%+ INCLUDE bug/field.html.tmpl
       bug = bug, field = select_fields.bug_severity,
       value = bug.bug_severity
       use_divs = 0
+      no_tds = 1
       no_search_link = 1
       style = "width: auto"
       editable = bug.check_can_change_field('bug_severity', 0, 1) %]
+    </td><td>
     <a href="buglist.cgi?query_format=advanced&amp;product=[% bug.product | uri %]&amp;bug_severity=[% bug.bug_severity_obj.name | uri %]"
       target="_blank" id="search_link_bug_severity" class="search-link">(search)</a>
+    </td></tr></table>
     [% IF bug.use_votes %]
       <span id="votes_container">
       [% IF bug.votes %]
@@ -293,7 +310,8 @@ document.changeform = document.[% cfname %];
       (<a href="votes.cgi?action=show_user&amp;bug_id=[% bug.bug_id %]#vote_[% bug.bug_id %]">vote</a>)
       </span>
     [% END %]
-  </div>
+  </td>
+</tr>
 
   [%###################%]
   [%# PLATFORM AND OS #%]
@@ -301,9 +319,12 @@ document.changeform = document.[% cfname %];
   [% IF (Bugzilla.get_field('rep_platform').enabled OR Bugzilla.get_field('op_sys').enabled) AND
     (bug.check_can_change_field('rep_platform', 0, 1) || bug.check_can_change_field('op_sys', 0, 1) ||
     bug.op_sys || bug.rep_platform) %]
-    <div class="bug_field">
+  <tr>
+    <th class="field_label">
       <label for="rep_platform" accesskey="h">OS/Platform:</label>
       <br />
+    </th>
+    <td class="bug_field field_value">
       [% IF Bugzilla.get_field('op_sys').enabled %]
         [% INCLUDE bug/field.html.tmpl
           bug = bug, field = select_fields.op_sys,
@@ -322,14 +343,17 @@ document.changeform = document.[% cfname %];
           style = "width: auto"
           editable = bug.check_can_change_field('rep_platform', 0, 1) %]
       [% END %]
-    </div>
+    </td>
+  </tr>
   [% END %]
 
   [% IF Bugzilla.get_field('target_milestone').enabled %]
+  <tr id="field_row_target_milestone">
     [% INCLUDE bug/field.html.tmpl
       bug = bug, field = select_fields.target_milestone,
       value = bug.target_milestone,
       editable = bug.check_can_change_field('target_milestone', 0, 1) %]
+  </tr>
   [% END %]
 
 [% END %]
@@ -340,9 +364,12 @@ document.changeform = document.[% cfname %];
 
 [% BLOCK section_people %]
 
-  <div class="bug_field" id="field_container_assigned_to">
+<tr id="field_row_assigned_to">
+  <th class="field_label">
     <label for="assigned_to"><a href="page.cgi?id=fields.html#assigned_to">Assigned To</a>:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     [% IF bug.check_can_change_field("assigned_to", 0, 1) %]
       <div id="bz_assignee_edit_container" class="bz_default_hidden">
         <span>
@@ -372,12 +399,16 @@ document.changeform = document.[% cfname %];
     [% ELSE %]
       [% INCLUDE global/user.html.tmpl who = bug.assigned_to %]
     [% END %]
-  </div>
+  </td>
+</tr>
 
   [% IF Bugzilla.get_field('qa_contact').enabled %]
-  <div class="bug_field" id="field_container_qa_contact">
+<tr id="field_row_qa_contact">
+  <th class="field_label">
     <label for="qa_contact" accesskey="q"><u>Q</u>A Contact:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     [% IF bug.check_can_change_field("qa_contact", 0, 1) %]
       [% IF bug.qa_contact != "" %]
        <div id="bz_qa_contact_edit_container" class="bz_default_hidden">
@@ -413,7 +444,8 @@ document.changeform = document.[% cfname %];
     [% ELSE %]
       [% INCLUDE global/user.html.tmpl who = bug.qa_contact %]
     [% END %]
-  </div>
+  </td>
+</tr>
   [% END %]
 
 [% END %]
@@ -426,7 +458,8 @@ document.changeform = document.[% cfname %];
   [% SET url_trimmed = bug.bug_file_loc.replace('^\s+|\s+$', '') %]
   [% SET chg = bug.check_can_change_field("bug_file_loc", 0, 1) %]
   [% IF chg OR url_trimmed != '' %]
-  <div class="bug_field" id="field_container_bug_file_loc">
+<tr id="field_row_bug_file_loc">
+  <th class="field_label">
     <label for="bug_file_loc" accesskey="u">
       [% IF is_safe_url(url_trimmed) %]
         <a href="[% url_trimmed FILTER html %]"><u>U</u>RL</a>
@@ -435,6 +468,8 @@ document.changeform = document.[% cfname %];
       [% END %]:
     </label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     [% IF chg %]
       <span id="bz_url_edit_container" class="bz_default_hidden">
       [% IF is_safe_url(url_trimmed) %]
@@ -465,7 +500,8 @@ document.changeform = document.[% cfname %];
         );
       </script>
     [% END %]
-  </div>
+  </td>
+</tr>
   [% END %]
 [% END %]
 
@@ -473,20 +509,27 @@ document.changeform = document.[% cfname %];
 
   [% IF Bugzilla.get_field('status_whiteboard').enabled &&
     (bug.status_whiteboard != '' OR bug.check_can_change_field('status_whiteboard', 0, 1)) %]
-    <div class="bug_field" id="field_container_status_whiteboard">
+  <tr id="field_row_status_whiteboard">
+    <th class="field_label">
       <label for="status_whiteboard" accesskey="w"><u>W</u>hiteboard:</label>
       <br />
+    </th>
+    <td class="bug_field field_value">
       [% PROCESS input inputname => "status_whiteboard" size => "40" colspan => 2 %]
-    </div>
+    </td>
+  </tr>
   [% END %]
 
   [% IF Bugzilla.has_keywords %]
     [% val = bug.get_string('keywords') %]
     [% chg = bug.check_can_change_field('keywords', 0, 1) %]
     [% IF val != '' OR chg %]
-    <div class="bug_field" id="field_container_keywords">
+  <tr id="field_row_keywords">
+    <th class="field_label">
       <label for="keywords" accesskey="k"><a href="describekeywords.cgi"><u>K</u>eywords</a>:</label>
       <br />
+    </th>
+    <td class="bug_field field_value">
       [% IF chg %]
         [% IF val != '' %]
           [% FOREACH keyword = bug.keywords_obj %]
@@ -519,7 +562,8 @@ document.changeform = document.[% cfname %];
       [% ELSE %]
         [% val | html %]
       [% END %]
-    </div>
+    </td>
+  </tr>
     [% END %]
   [% END %]
 
@@ -531,14 +575,17 @@ document.changeform = document.[% cfname %];
 [% BLOCK section_dependson_blocks %]
   [% PROCESS dependencies dep = { title => "Depends&nbsp;on", fieldname => "dependson" } %]
   [% IF bug.lastchangeddeps %]
-  <div>
-    <font size="-2">Blockers completed <b>~[% bug.depscompletedpercent %]%</b>, last changed <b>[% bug.lastchangeddeps %]</b></font>
-  </div>
+<tr>
+  <td></td><td style="font-size: 80%">
+    Blockers completed <b>~[% bug.depscompletedpercent %]%</b>, last changed <b>[% bug.lastchangeddeps %]</b>
+  </td>
+</tr>
   [% END %]
 
   [% PROCESS dependencies accesskey = "b" dep = { title => "<u>B</u>locks", fieldname => "blocked" } %]
 
-  <div id="show_dependency_tree_or_graph">
+<tr>
+  <td></td><td id="show_dependency_tree_or_graph" style="font-size: 80%">
     Show dependency <a href="showdependencytree.cgi?id=[% bug.bug_id %]&amp;hide_resolved=1">tree</a>
 
     [% IF Param('webdotbase') %]
@@ -546,7 +593,8 @@ document.changeform = document.[% cfname %];
     [% END %]
 
     [% PROCESS scrum_cards %]
-  </div>
+  </td>
+</tr>
 [% END %]
 
 
@@ -653,27 +701,38 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 
 [% BLOCK section_dates %]
-  <div class="bug_field">
+<tr>
+  <th class="field_label">
     <label>Reported:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     [% bug.creation_ts FILTER time %] by [% INCLUDE global/user.html.tmpl who = bug.reporter %]
-  </div>
+  </td>
+</tr>
 
-  <div class="bug_field">
+<tr>
+  <th class="field_label">
     <label>Modified:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     [% bug.delta_ts FILTER time FILTER replace(':\d\d$', '') FILTER replace(':\d\d ', ' ')%]
     (<a href="show_activity.cgi?id=[% bug.bug_id %]">[%# terms.Bug %]History</a>)
-  </div>
+  </td>
+</tr>
 [% END %]
 
 [%############################################################################%]
 [%# Block for CC LIST                                                        #%]
 [%############################################################################%]
 [% BLOCK section_cclist %]
-  <div class="bug_field" id="field_container_cc">
+<tr id="field_row_cc">
+  <th class="field_label">
     <label for="newcc" accesskey="a">CC List:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     [% chg = bug.check_can_change_field('cc', 0, 1) %]
     <span id="cc_list_num_users"[% IF chg %] class="bz_default_hidden"[% END %]>
       [% bug.cc.size || 0 FILTER html %] [%+ bug.cc.size > 1 ? 'users' : 'user' %]
@@ -735,7 +794,8 @@ document.changeform = document.[% cfname %];
       );
     </script>
     [% END %]
-  </div>
+  </td>
+</tr>
 [% END %]
 
 [%############################################################################%]
@@ -743,11 +803,13 @@ document.changeform = document.[% cfname %];
 [%############################################################################%]
 [% BLOCK section_see_also %]
   [% IF Bugzilla.get_field('see_also').enabled || bug.see_also.size %]
+  <tr id="field_row_see_also">
     [% INCLUDE bug/field.html.tmpl
       field    = Bugzilla.get_field('see_also')
       value    = bug.see_also
       editable = bug.check_can_change_field('see_also', 0, 1)
     %]
+  </tr>
   [% END %]
 [% END %]
 
@@ -783,10 +845,12 @@ document.changeform = document.[% cfname %];
 [% BLOCK section_customfields %]
   [% FOREACH field = Bugzilla.active_custom_fields %]
     [% IF (part == 1 || field.sortkey >= (part - 1)*1000) && (part == 4 || field.sortkey < part*1000) %]
+    <tr id="field_row_[% field.name %]">
       [% INCLUDE bug/field.html.tmpl
         value = bug.${field.name}
         editable = bug.check_can_change_field(field.name, 0, 1)
-        value_span = 2 %]
+        custom_label = html(field.description.replace('(.{12,}?\s)', '$1\n')).replace('\\\\n', '<br />') %]
+    </tr>
     [% END %]
   [% END %]
 [% END %]
@@ -800,10 +864,13 @@ document.changeform = document.[% cfname %];
   [% chg = bug.check_can_change_field(dep.fieldname, 0, 1) %]
 
   [% IF chg || bug.${dep.fieldname}.size %]
-  <div class="bug_field" id="field_container_[% dep.fieldname %]">
+<tr id="field_row_[% dep.fieldname %]">
+  <th class="field_label">
     <label for="[% dep.fieldname %]"[% " accesskey=\"$accesskey\"" IF accesskey %]>
     [% dep.title %]:</label>
     <br />
+  </th>
+  <td class="bug_field field_value">
     <span id="[% dep.fieldname %]_input_area">
       [% IF chg %]
         <input name="[% dep.fieldname %]" id="[% dep.fieldname %]"
@@ -827,7 +894,8 @@ document.changeform = document.[% cfname %];
                           "[% bug.${dep.fieldname}.join(', ') %]");
       </script>
     [% END %]
-  </div>
+  </td>
+</tr>
   [% END %]
 
   [% accesskey = undef %]
