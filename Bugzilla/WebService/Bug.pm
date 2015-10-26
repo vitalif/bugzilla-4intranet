@@ -369,7 +369,7 @@ sub _translate_comment {
         text       => $self->type('string', $comment->body_full),
         rawtext    => $self->type('string', $comment->body),
         attachment_id => $self->type('int', $attach_id),
-        count      => $self->type('int', $comment->count),
+        count      => $self->type('int', $comment->{count}),
     };
 
     return filter($filters, $comment_hash, $types, $prefix);
