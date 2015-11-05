@@ -34,7 +34,7 @@ sub _in_eval
     my $in = -$IN_EVAL;
     for (my $stack = 1; my $sub = (caller($stack))[3]; $stack++)
     {
-        $in--, last if $sub =~ /^Bugzilla::HTTPServerSimple/;
+        last if $sub =~ /^Bugzilla::HTTPServerSimple/;
         last if $sub =~ /^ModPerl/;
         if ($sub =~ /^\(eval\)/)
         {

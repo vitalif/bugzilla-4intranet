@@ -120,6 +120,7 @@ sub new
     {
         for (glob $script)
         {
+            ($_) = /^(.*)$/so;
             eval
             {
                 $self->load_script($_);
@@ -252,6 +253,7 @@ sub run_script
     my ($script) = @_;
     $self->load_script($script);
     my $start = [gettimeofday];
+    $Bugzilla::Error::IN_EVAL++;
     $in_eval = 1;
     eval { &{$subs{$script}}(); };
     $self->check_errors($script);
@@ -289,6 +291,7 @@ sub check_errors
         print STDERR "Error in _cleanup():\n$@";
     }
     $in_eval = 0;
+    $Bugzilla::Error::IN_EVAL--;
     if ($err)
     {
         $self->internal_error($err);
