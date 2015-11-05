@@ -391,8 +391,8 @@ sub _user_in_any_group {
 sub read_new_functionality {
     my $time = time;
     my $cgi = Bugzilla->cgi;
-    my @lu = map { $_ - 0} Bugzilla->params->{new_functionality_tsp} =~ m/(\d+)/g;
-    my $last_updated = POSIX::mktime(@lu[5], @lu[4], @lu[3], @lu[2], @lu[1] - 1, @lu[0] - 1900);
+    my @lu = map { $_ - 0 } Bugzilla->params->{new_functionality_tsp} =~ m/(\d+)/g;
+    my $last_updated = POSIX::mktime($lu[5], $lu[4], $lu[3], $lu[2], $lu[1] - 1, $lu[0] - 1900);
     $time = $last_updated + 1 if $time < $last_updated;
     $cgi->send_cookie('-name', 'read_new_functionality', '-value', $time);
     return {status => 'ok'};

@@ -17,7 +17,7 @@ use Bugzilla::Error;
 
 use Storable qw(dclone);
 
-use parent qw(Exporter);
+use base qw(Exporter);
 
 # We have to "require", not "use" this, because otherwise it tries to
 # use features of Test::More during import().

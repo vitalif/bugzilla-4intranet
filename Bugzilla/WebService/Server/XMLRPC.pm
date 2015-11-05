@@ -1,62 +1,45 @@
-# -*- Mode: perl; indent-tabs-mode: nil -*-
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# Contributor(s): Marc Schumann <wurblzap@gmail.com>
-#                 Max Kanat-Alexander <mkanat@bugzilla.org>
-#                 Rosie Clarkson <rosie.clarkson@planningportal.gov.uk>
-#                 
-# Portions © Crown copyright 2009 - Rosie Clarkson (development@planningportal.gov.uk) for the Planning Portal
+# This Source Code Form is "Incompatible With Secondary Licenses", as
+# defined by the Mozilla Public License, v. 2.0.
 
 package Bugzilla::WebService::Server::XMLRPC;
 
+use 5.10.1;
 use strict;
-use SOAP::Transport::HTTP;
+use warnings;
+
 use XMLRPC::Transport::HTTP;
 use Bugzilla::WebService::Server;
-
-our @ISA = qw(Bugzilla::WebService::Server);
-push @ISA, 'XMLRPC::Transport::HTTP::' . ($ENV{MOD_PERL} ? 'Apache' : 'CGI');
+if ($ENV{MOD_PERL}) {
+    our @ISA = qw(XMLRPC::Transport::HTTP::Apache Bugzilla::WebService::Server);
+} else {
+    our @ISA = qw(XMLRPC::Transport::HTTP::CGI Bugzilla::WebService::Server);
+}
 
 use Bugzilla::WebService::Constants;
+use Bugzilla::Error;
+use Bugzilla::Util;
 
-sub initialize {
-    my $self = shift;
-    my %retval = $self->SUPER::initialize(@_);
-    $retval{'serializer'}   = Bugzilla::XMLRPC::Serializer->new;
-    $retval{'deserializer'} = Bugzilla::XMLRPC::Deserializer->new;
-    $retval{'dispatch_with'} = WS_DISPATCH;
-    return %retval;
-}
+use List::MoreUtils qw(none);
 
-sub make_response {
-    my $self = shift;
-
-    $self->SUPER::make_response(@_);
-
-    # XMLRPC::Transport::HTTP::CGI doesn't know about Bugzilla carrying around
-    # its cookies in Bugzilla::CGI, so we need to copy them over.
-    foreach (@{Bugzilla->cgi->{'Bugzilla_cookie_list'}}) {
-        $self->response->headers->push_header('Set-Cookie', $_);
+sub type {
+    my ($self, $type, $value) = @_;
+    if ($type eq 'dateTime') {
+        # This is the XML-RPC implementation,  see the README in Bugzilla/WebService/.
+        # Our "base" implementation is in Bugzilla::WebService::Server.
+        $value = Bugzilla::WebService::Server->datetime_format_outbound($value);
+        $value =~ s/-//g;
     }
-}
-
-sub handle_login {
-    my ($self, $classes, $action, $uri, $method) = @_;
-    my $class = $classes->{$uri};
-    my $full_method = $uri . "." . $method;
-    $self->SUPER::handle_login($class, $method, $full_method);
-    return;
+    elsif ($type eq 'email') {
+        $type = 'string';
+        if (Bugzilla->params->{'webservice_email_filter'}) {
+            $value = email_filter($value);
+        }
+    }
+    return XMLRPC::Data->type($type)->value($value);
 }
 
 # Patch SOAP::Transport::HTTP::CGI so it works under CGI like HTTP::Server::Simple
@@ -147,22 +130,101 @@ sub handle_login {
       $self->response->content;
 };
 
+sub initialize {
+    my $self = shift;
+    my %retval = $self->SUPER::initialize(@_);
+    $retval{'serializer'}   = Bugzilla::XMLRPC::Serializer->new;
+    $retval{'deserializer'} = Bugzilla::XMLRPC::Deserializer->new;
+    $retval{'dispatch_with'} = WS_DISPATCH;
+    return %retval;
+}
+
+sub make_response {
+    my $self = shift;
+    my $cgi = Bugzilla->cgi;
+
+    # Fix various problems with IIS.
+    if ($ENV{'SERVER_SOFTWARE'} =~ /IIS/) {
+        $ENV{CONTENT_LENGTH} = 0;
+        binmode(STDOUT, ':bytes');
+    }
+
+    $self->SUPER::make_response(@_);
+
+    # XMLRPC::Transport::HTTP::CGI doesn't know about Bugzilla carrying around
+    # its cookies in Bugzilla::CGI, so we need to copy them over.
+    foreach my $cookie (@{$cgi->{'Bugzilla_cookie_list'}}) {
+        $self->response->headers->push_header('Set-Cookie', $cookie);
+    }
+
+    # Copy across security related headers from Bugzilla::CGI
+    foreach my $header (split(/[\r\n]+/, $cgi->header)) {
+        my ($name, $value) = $header =~ /^([^:]+): (.*)/;
+        if ($name && !$self->response->headers->header($name)) {
+            $self->response->headers->header($name => $value);
+        }
+    }
+}
+
+sub handle_login {
+    my ($self, $classes, $action, $uri, $method) = @_;
+    my $class = $classes->{$uri};
+    my $full_method = $uri . "." . $method;
+    # Only allowed methods to be used from the module's whitelist
+    my $file = $class;
+    $file =~ s{::}{/}g;
+    $file .= ".pm";
+    require $file;
+    if (none { $_ eq $method } $class->PUBLIC_METHODS) {
+        ThrowCodeError('unknown_method', { method => $full_method });
+    }
+
+    $ENV{CONTENT_LENGTH} = 0 if $ENV{'SERVER_SOFTWARE'} =~ /IIS/;
+    $self->SUPER::handle_login($class, $method, $full_method);
+    return;
+}
+
 1;
 
 # This exists to validate input parameters (which XMLRPC::Lite doesn't do)
 # and also, in some cases, to more-usefully decode them.
 package Bugzilla::XMLRPC::Deserializer;
+
+use 5.10.1;
 use strict;
-# We can't use "use base" because XMLRPC::Serializer doesn't return
+use warnings;
+
+# We can't use "use parent" because XMLRPC::Serializer doesn't return
 # a true value.
 use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Deserializer);
 
 use Bugzilla::Error;
+use Bugzilla::WebService::Constants qw(XMLRPC_CONTENT_TYPE_WHITELIST);
+use Bugzilla::WebService::Util qw(fix_credentials);
 use Scalar::Util qw(tainted);
+
+sub new {
+    my $self = shift->SUPER::new(@_);
+    # Initialise XML::Parser to not expand references to entities, to prevent DoS
+    require XML::Parser;
+    my $parser = XML::Parser->new( NoExpand => 1, Handlers => { Default => sub {} } );
+    $self->{_parser}->parser($parser, $parser);
+    return $self;
+}
 
 sub deserialize {
     my $self = shift;
+
+    # Only allow certain content types to protect against CSRF attacks
+    my $content_type = lc($ENV{'CONTENT_TYPE'});
+    # Remove charset, etc, if provided
+    $content_type =~ s/^([^;]+);.*/$1/;
+    if (!grep($_ eq $content_type, XMLRPC_CONTENT_TYPE_WHITELIST)) {
+        ThrowUserError('xmlrpc_illegal_content_type',
+                       { content_type => $ENV{'CONTENT_TYPE'} });
+    }
+
     my ($xml) = @_;
     my $som = $self->SUPER::deserialize(@_);
     if (tainted($xml)) {
@@ -172,7 +234,13 @@ sub deserialize {
     my $params = $som->paramsin;
     # This allows positional parameters for Testopia.
     $params = {} if ref $params ne 'HASH';
+
+    # Update the params to allow for several convenience key/values
+    # use for authentication
+    fix_credentials($params);
+
     Bugzilla->input_params($params);
+
     return $som;
 }
 
@@ -236,7 +304,11 @@ sub _validation_subs {
 1;
 
 package Bugzilla::XMLRPC::SOM;
+
+use 5.10.1;
 use strict;
+use warnings;
+
 use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::SOM);
 use Bugzilla::WebService::Util qw(taint_data);
@@ -259,9 +331,13 @@ sub paramsin {
 # This package exists to fix a UTF-8 bug in SOAP::Lite.
 # See http://rt.cpan.org/Public/Bug/Display.html?id=32952.
 package Bugzilla::XMLRPC::Serializer;
-use Scalar::Util qw(blessed);
+
+use 5.10.1;
 use strict;
-# We can't use "use base" because XMLRPC::Serializer doesn't return
+use warnings;
+
+use Scalar::Util qw(blessed reftype);
+# We can't use "use parent" because XMLRPC::Serializer doesn't return
 # a true value.
 use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Serializer);
@@ -294,8 +370,8 @@ sub envelope {
     my $self = shift;
     my ($type, $method, $data) = @_;
     # If the type isn't a successful response we don't want to change the values.
-    if ($type eq 'response'){
-        $data = _strip_undefs($data);
+    if ($type eq 'response') {
+        _strip_undefs($data);
     }
     return $self->SUPER::envelope($type, $method, $data);
 }
@@ -306,7 +382,9 @@ sub envelope {
 # so it cannot be recursed like the other hash type objects.
 sub _strip_undefs {
     my ($initial) = @_;
-    if (ref $initial eq "HASH" || (blessed $initial && $initial->isa("HASH"))) {
+    my $type = reftype($initial) or return;
+
+    if ($type eq "HASH") {
         while (my ($key, $value) = each(%$initial)) {
             if ( !defined $value
                  || (blessed $value && $value->isa('XMLRPC::Data') && !defined $value->value) )
@@ -315,11 +393,11 @@ sub _strip_undefs {
                 delete $initial->{$key};
             }
             else {
-                $initial->{$key} = _strip_undefs($value);
+                _strip_undefs($value);
             }
         }
     }
-    if (ref $initial eq "ARRAY" || (blessed $initial && $initial->isa("ARRAY"))) {
+    elsif ($type eq "ARRAY") {
         for (my $count = 0; $count < scalar @{$initial}; $count++) {
             my $value = $initial->[$count];
             if ( !defined $value
@@ -330,11 +408,10 @@ sub _strip_undefs {
                 $count--;
             }
             else {
-                $initial->[$count] = _strip_undefs($value);
+                _strip_undefs($value);
             }
         }
     }
-    return $initial;
 }
 
 sub BEGIN {
@@ -436,3 +513,15 @@ perl-SOAP-Lite package in versions 0.68-1 and above.
 =head1 SEE ALSO
 
 L<Bugzilla::WebService>
+
+=head1 B<Methods in need of POD>
+
+=over
+
+=item make_response
+
+=item initialize
+
+=item handle_login
+
+=back

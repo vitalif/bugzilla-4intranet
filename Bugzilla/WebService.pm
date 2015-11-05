@@ -45,6 +45,12 @@ sub type {
     if ($type eq 'dateTime') {
         $value = $self->datetime_format_outbound($value);
     }
+    elsif ($type eq 'email') {
+        $type = 'string';
+        if (Bugzilla->params->{'webservice_email_filter'}) {
+            $value = email_filter($value);
+        }
+    }
     return XMLRPC::Data->type($type)->value($value);
 }
 
