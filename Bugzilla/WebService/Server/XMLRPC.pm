@@ -200,6 +200,7 @@ use XMLRPC::Lite;
 our @ISA = qw(XMLRPC::Deserializer);
 
 use Bugzilla::Error;
+use Bugzilla::Constants qw(ERROR_MODE_DIE_SOAP_FAULT);
 use Bugzilla::WebService::Constants qw(XMLRPC_CONTENT_TYPE_WHITELIST);
 use Bugzilla::WebService::Util qw(fix_credentials);
 use Scalar::Util qw(tainted);
@@ -214,6 +215,12 @@ sub new {
 }
 
 sub deserialize {
+    # SOAP::Lite resets SIG{__DIE__} in the beginning of handle() method, so we set it again here
+    if ($Bugzilla::Error::HAVE_DEVEL_STACKTRACE) {
+        Bugzilla->error_mode(ERROR_MODE_DIE_SOAP_FAULT);
+        $SIG{__DIE__} = \&Bugzilla::_die_error;
+    }
+
     my $self = shift;
 
     # Only allow certain content types to protect against CSRF attacks
