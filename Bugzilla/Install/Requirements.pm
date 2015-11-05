@@ -66,9 +66,7 @@ sub REQUIRED_MODULES {
     {
         package => 'CGI.pm',
         module  => 'CGI',
-        # 3.51 fixes a security problem that affects Bugzilla.
-        # (bug 591165)
-        version => '3.51',
+        version => '4.08',
     },
     {
         package => 'Digest-SHA',

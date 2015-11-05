@@ -270,7 +270,7 @@ sub param
     # When we are just requesting the value of a parameter...
     if (scalar(@_) == 1)
     {
-        my @result = $self->SUPER::param(@_);
+        my @result = $self->SUPER::multi_param(@_);
 
         # Also look at the URL parameters, after we look at the POST
         # parameters. This is to allow things like login-form submissions
