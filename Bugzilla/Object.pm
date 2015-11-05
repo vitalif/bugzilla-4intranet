@@ -121,6 +121,10 @@ sub _init
         $sql .= $dbh->FOR_UPDATE;
     }
 
+    # O_o some versions of Perl have a very annoying bug:
+    # class constants like DB_COLUMNS become tainted and the following select dies...
+    trick_taint($sql);
+
     $object = $dbh->selectrow_hashref($sql, undef, @values);
     return $object;
 }
@@ -284,7 +288,7 @@ sub _do_list_select
     # for the caller. So we copy the array. It's safe to untaint because
     # they're only used in placeholders here.
     my @untainted = @{ $values || [] };
-    trick_taint($_) foreach @untainted;
+    trick_taint($_) foreach $sql, @untainted; # O_o another taint workaround
     my $objects = $dbh->selectall_arrayref($sql, {Slice=>{}}, @untainted);
     bless ($_, $class) foreach @$objects;
     return $objects;
