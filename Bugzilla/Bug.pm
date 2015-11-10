@@ -1903,7 +1903,7 @@ sub _set_deadline
 
     # Validate entered deadline
     $date = trim($date);
-    return undef if !$date;
+    return '' if !$date;
 
     $date =~ s/\s+.*//s;
     validate_date($date) || ThrowUserError('illegal_date', { date => $date, format => 'YYYY-MM-DD' });
