@@ -3494,6 +3494,12 @@ sub ValidateTime
     return $time;
 }
 
+sub get_activity
+{
+    my $self = shift;
+    return GetBugActivity($self->id, @_);
+}
+
 # Get the activity of a bug, starting from $starttime (if given).
 # This routine assumes Bugzilla::Bug->check has been previously called.
 sub GetBugActivity
