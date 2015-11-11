@@ -467,7 +467,7 @@ sub history {
         # alias is returned in case users passes a mixture of ids and aliases
         # then they get to know which bug activity relates to which value  
         # they passed
-        $item{alias} = [ map { $self->type('string', $_) } @{ $bug->alias } ];
+        $item{alias} = [ map { $self->type('string', $_) } ($bug->alias) ];
 
         push(@return, \%item);
     }
@@ -678,7 +678,7 @@ sub update {
         # alias is returned in case users pass a mixture of ids and aliases,
         # so that they can know which set of changes relates to which value
         # they passed.
-        $hash{alias} = [ map { $self->type('string', $_) } @{ $bug->alias } ];
+        $hash{alias} = [ map { $self->type('string', $_) } ($bug->alias) ];
 
         my %changes = %{ $all_changes{$bug->id} };
         foreach my $field (keys %changes) {
