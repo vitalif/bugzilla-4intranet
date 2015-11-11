@@ -176,10 +176,8 @@ sub new_from_list
     my @detainted_ids;
     foreach my $id (@$id_list)
     {
-        detaint_natural($id) || ThrowCodeError('param_must_be_numeric', {function => $class . '::new_from_list'});
-        # Too large integers make PostgreSQL crash (FIXME: That's very STRANGE?!!)
-        next if $id > MAX_INT_32;
-        push(@detainted_ids, $id);
+        detaint_natural($id) || ThrowCodeError('param_must_be_numeric', {function => $class . '::new_from_list', id => $id_list->[scalar @detainted_ids]});
+        push @detainted_ids, $id;
     }
     # We don't do $invocant->match because some classes have
     # their own implementation of match which is not compatible
