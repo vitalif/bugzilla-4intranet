@@ -195,11 +195,9 @@ while (my $event = get_next_event())
 # get_next_event
 #
 # This function will:
-#   1. Lock whine_schedules
-#   2. Grab the most overdue pending schedules on the same event that must run
-#   3. Update those schedules' run_next value
-#   4. Unlock the table
-#   5. Return an event hashref
+#   1. Grab the most overdue pending schedules on the same event that must run
+#   2. Update those schedules' run_next value
+#   3. Return an event hashref
 #
 # The event hashref consists of:
 #   eventid - ID of the event
@@ -214,13 +212,13 @@ sub get_next_event
     my $dbh = Bugzilla->dbh;
 
     # Loop until there's something to return
-    until (scalar keys %{$event})
+    until (scalar keys %$event)
     {
         $dbh->bz_start_transaction();
 
         # Get the event ID for the first pending schedule
         my ($eventid, $owner_id, $subject, $body, $mailifnobugs) = Bugzilla->dbh->selectrow_array(
-            "SELECT s.eventid, e.owner_userid, e.subject, e.body, e.mailifnobugs" .
+            "SELECT e.id, e.owner_userid, e.subject, e.body, e.mailifnobugs" .
             " FROM whine_schedules s LEFT JOIN whine_events e ON e.id = s.eventid" .
             " WHERE run_next <= NOW() ORDER BY run_next " . $dbh->sql_limit(1)
         );
@@ -235,7 +233,7 @@ sub get_next_event
         # Get all schedules that match that event ID and are pending
         my $rows = Bugzilla->dbh->selectall_arrayref(
             "SELECT id, mailto_type, mailto FROM whine_schedules " .
-            "WHERE eventid=? AND run_next <= NOW()"
+            "WHERE eventid=? AND run_next <= NOW()", undef, $eventid
         ) || [];
 
         # Add the users from those schedules to the list
