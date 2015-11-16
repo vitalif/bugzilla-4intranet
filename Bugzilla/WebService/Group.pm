@@ -13,12 +13,16 @@ use warnings;
 use base qw(Bugzilla::WebService);
 use Bugzilla::Constants;
 use Bugzilla::Error;
-use Bugzilla::WebService::Util qw(validate translate params_to_objects);
+use Bugzilla::WebService::Util qw(validate translate params_to_objects user_to_hash);
 
 use constant PUBLIC_METHODS => qw(
     create
     get
     update
+    add_members
+    remove_members
+    add_managers
+    remove_managers
 );
 
 use constant MAPPED_RETURNS => {
@@ -144,6 +148,92 @@ sub get {
     # Now create a result entry for each.
     my @groups = map { $self->_group_to_hash($params, $_) } @$groups;
     return { groups => \@groups };
+}
+
+sub add_members
+{
+    my $self = shift;
+    $self->_update_users(0, 1, @_);
+}
+
+sub remove_members
+{
+    my $self = shift;
+    $self->_update_users(0, 0, @_);
+}
+
+sub add_managers
+{
+    my $self = shift;
+    $self->_update_users(1, 1, @_);
+}
+
+sub remove_managers
+{
+    my $self = shift;
+    $self->_update_users(1, 0, @_);
+}
+
+sub _update_users
+{
+    my ($self, $isbless, $add, $params) = @_;
+    my $dbh = Bugzilla->dbh;
+
+    defined($params->{names}) || defined($params->{ids})
+        || ThrowCodeError('params_required',
+               { function => 'Group.update', params => ['ids', 'names'] });
+    my @group_objects;
+    if ($params->{usernames})
+    {
+        push @group_objects, @{ Bugzilla::Group->match({ name => $params->{names} }) };
+    }
+    if ($params->{userids})
+    {
+        push @group_objects, @{ Bugzilla::Group->match({ id => $params->{ids} }) };
+    }
+
+    Bugzilla->login(LOGIN_REQUIRED);
+    if ($isbless)
+    {
+        Bugzilla->user->in_group('editusers')
+            || ThrowUserError("auth_failure", {
+                group  => "editusers",
+                action => "edit",
+                object => "group"
+            });
+    }
+    else
+    {
+        Bugzilla->user->in_group('creategroups')
+            || !grep { !Bugzilla->user->can_bless($_->id) } @group_objects
+            || ThrowUserError("auth_failure", {
+                group  => "creategroups",
+                action => "edit",
+                object => "group"
+            });
+    }
+
+    my @user_objects;
+    if ($params->{usernames})
+    {
+        push @user_objects, @{ Bugzilla::User->match({ login_name => $params->{usernames} }) };
+    }
+    if ($params->{userids})
+    {
+        push @user_objects, @{ Bugzilla::User->match({ id => $params->{userids} }) };
+    }
+    @user_objects = grep { Bugzilla->user->can_see_user($_) } @user_objects;
+    @user_objects || ThrowCodeError('params_required', { function => 'Group.update', params => ['userids', 'usernames'] });
+
+    $add = $add ? 'add_user_groups' : 'remove_user_groups';
+    Bugzilla::Group->$add(
+        [ map { my $grp = $_; map { { group => $grp, user => $_ } } @user_objects } @group_objects ], $isbless
+    );
+
+    return {
+        groups => [ map { $self->_group_to_hash({}, $_) } @group_objects ],
+        users => [ map { user_to_hash($self, $_, {}) } @user_objects ],
+    };
 }
 
 sub _group_to_hash {

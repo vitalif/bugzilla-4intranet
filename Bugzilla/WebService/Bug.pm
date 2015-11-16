@@ -17,7 +17,7 @@ use Bugzilla::Constants;
 use Bugzilla::Error;
 use Bugzilla::Field;
 use Bugzilla::WebService::Constants;
-use Bugzilla::WebService::Util qw(extract_flags filter filter_wants validate translate);
+use Bugzilla::WebService::Util qw(extract_flags filter filter_wants validate translate user_to_hash);
 use Bugzilla::Bug;
 use Bugzilla::BugMail;
 use Bugzilla::Util qw(trick_taint trim diff_arrays detaint_natural);
@@ -1137,7 +1137,7 @@ sub _bug_to_hash {
     }
     if (filter_wants $params, 'assigned_to') {
         $item{'assigned_to'} = $self->type('email', $bug->assigned_to->login);
-        $item{'assigned_to_detail'} = $self->_user_to_hash($bug->assigned_to, $params, undef, 'assigned_to');
+        $item{'assigned_to_detail'} = user_to_hash($self, $bug->assigned_to, $params);
     }
     if (filter_wants $params, 'blocks') {
         my @blocks = map { $self->type('int', $_) } @{ $bug->blocked };
@@ -1152,14 +1152,14 @@ sub _bug_to_hash {
     if (filter_wants $params, 'cc') {
         my @cc = map { $self->type('email', $_) } @{ $bug->cc };
         $item{'cc'} = \@cc;
-        $item{'cc_detail'} = [ map { $self->_user_to_hash($_, $params, undef, 'cc') } @{ $bug->cc_users } ];
+        $item{'cc_detail'} = [ map { user_to_hash($self, $_, $params) } @{ $bug->cc_users } ];
     }
     if (filter_wants $params, 'creation_time') {
         $item{'creation_time'} = $self->type('dateTime', $bug->creation_ts);
     }
     if (filter_wants $params, 'creator') {
         $item{'creator'} = $self->type('email', $bug->reporter->login);
-        $item{'creator_detail'} = $self->_user_to_hash($bug->reporter, $params, undef, 'creator');
+        $item{'creator_detail'} = user_to_hash($self, $bug->reporter, $params);
     }
     if (filter_wants $params, 'depends_on') {
         my @depends_on = map { $self->type('int', $_) } @{ $bug->dependson };
@@ -1192,7 +1192,7 @@ sub _bug_to_hash {
         my $qa_login = $bug->qa_contact ? $bug->qa_contact->login : '';
         $item{'qa_contact'} = $self->type('email', $qa_login);
         if ($bug->qa_contact) {
-            $item{'qa_contact_detail'} = $self->_user_to_hash($bug->qa_contact, $params, undef, 'qa_contact');
+            $item{'qa_contact_detail'} = user_to_hash($self, $bug->qa_contact, $params);
         }
     }
     if (filter_wants $params, 'see_also') {
@@ -1251,17 +1251,6 @@ sub _bug_to_hash {
     }
 
     return \%item;
-}
-
-sub _user_to_hash {
-    my ($self, $user, $filters, $types, $prefix) = @_;
-    my $item = filter $filters, {
-        id        => $self->type('int', $user->id),
-        real_name => $self->type('string', $user->realname),
-        name      => $self->type('email', $user->login),
-        email     => $self->type('email', $user->email),
-    }, $types, $prefix;
-    return $item;
 }
 
 sub _attachment_to_hash {

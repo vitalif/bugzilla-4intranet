@@ -54,30 +54,14 @@ if (@add_members || @add_bless || @rm_members || @rm_bless)
         } };
         for (\@add_members, \@add_bless)
         {
-            @$_ = map { $users->{lc $_} ? $users->{lc $_}->id : ThrowUserError('invalid_username', { name => $_ }) } @$_;
+            @$_ = map { $users->{lc $_} || ThrowUserError('invalid_username', { name => $_ }) } @$_;
         }
-        if (@add_members || @add_bless)
-        {
-            # FIXME Use object method instead of direct DB query
-            Bugzilla->dbh->do(
-                "INSERT IGNORE INTO user_group_map (user_id, group_id, grant_type, isbless) VALUES ".
-                join(', ', ("(?, ?, ?, ?)") x (@add_members + @add_bless)), undef,
-                (map { $_, $vars->{group}->id, GRANT_DIRECT, 0 } @add_members),
-                (map { $_, $vars->{group}->id, GRANT_DIRECT, 1 } @add_bless)
-            );
-        }
+        $vars->{group}->add_users(\@add_members, 0);
+        $vars->{group}->add_users(\@add_bless, 1);
     }
-    if (@rm_members || @rm_bless)
-    {
-        # FIXME Use object method instead of direct DB query
-        trick_taint($_) for @rm_members, @rm_bless;
-        Bugzilla->dbh->do(
-            "DELETE FROM user_group_map WHERE group_id=? AND grant_type=? AND (user_id, isbless) IN (".
-            join(', ', ("(?, ?)") x (@rm_members + @rm_bless)).")", undef,
-            $vars->{group}->id, GRANT_DIRECT,
-            (map { int($_), 0 } @rm_members), (map { int($_), 1 } @rm_bless)
-        );
-    }
+    trick_taint($_) for @rm_members, @rm_bless;
+    $vars->{group}->remove_users(\@rm_members, 0);
+    $vars->{group}->remove_users(\@rm_bless, 1);
     if (@add_members || @rm_members)
     {
         Bugzilla::Hook::process('editusersingroup-post_add', {

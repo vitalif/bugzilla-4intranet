@@ -373,6 +373,123 @@ sub remove_from_db
     $dbh->bz_commit_transaction();
 }
 
+sub add_users
+{
+    my $self = shift;
+    my ($users, $isbless) = @_;
+    return if !@$users;
+    add_user_groups([ map { { group => $self, user => $_ } } @$users ], $isbless);
+}
+
+sub remove_users
+{
+    my $self = shift;
+    my ($users, $isbless) = @_;
+    return if !@$users;
+    remove_user_groups([ map { { group => $self, user => $_ } } @$users ], $isbless);
+}
+
+# Add members or blessers to this group
+# Bugzilla::Group::add_user_groups([ { user => Bugzilla::User or int id, group => Bugzilla::Group }, ... ], $isbless = 0 or 1)
+sub add_user_groups
+{
+    shift if $_[0] eq __PACKAGE__;
+    my ($rows, $isbless) = @_;
+    return if !@$rows;
+    # Filter duplicates
+    my $g = {};
+    for my $row (@$rows)
+    {
+        $g->{int(ref $row->{user} ? $row->{user}->id : $row->{user})}->{int($row->{group}->id)} = $row;
+    }
+    $isbless = $isbless ? 1 : 0;
+    my $dbh = Bugzilla->dbh;
+    # Filter already existing members
+    for my $row (@{ $dbh->selectall_arrayref(
+        "SELECT user_id, group_id FROM user_group_map WHERE (user_id, group_id, grant_type, isbless) IN (".
+        join(', ', map {
+            my $uid = $_;
+            map { "($uid, $_, ".GRANT_DIRECT.", $isbless)" } keys %{$g->{$uid}};
+        } keys %$g).") FOR UPDATE", undef
+    ) || [] })
+    {
+        delete $g->{$row->[0]}->{$row->[1]};
+        delete $g->{$row->[0]} if !%{$g->{$row->[0]}};
+    }
+    return if !%$g;
+    # Apply update
+    $dbh->do(
+        "INSERT INTO user_group_map (user_id, group_id, grant_type, isbless) VALUES ".
+        join(', ', map {
+            my $uid = $_;
+            map { "($uid, $_, ".GRANT_DIRECT.", $isbless)" } keys %{$g->{$uid}};
+        } keys %$g)
+    );
+    # Record profiles_activity entries
+    my $cur_userid = Bugzilla->user->id;
+    my $group_fldid = Bugzilla->get_field('bug_group')->id;
+    if (!$isbless)
+    {
+        # FIXME: should create profiles_activity entries for blesser changes.
+        $dbh->do(
+            "INSERT INTO profiles_activity (userid, who, profiles_when, fieldid, oldvalue, newvalue) VALUES ".
+            join(', ', map {
+                my $uid = $_;
+                join(', ', map { "($uid, $cur_userid, NOW(), $group_fldid, '', ".$dbh->quote($_->{group}->name).")" } values %{$g->{$uid}})
+            } keys %$g)
+        );
+    }
+}
+
+# Remove members or blessers from this group - arguments same as in add_user_groups()
+sub remove_user_groups
+{
+    shift if $_[0] eq __PACKAGE__;
+    my ($rows, $isbless) = @_;
+    return if !@$rows;
+    # Filter duplicates
+    $isbless = $isbless ? 1 : 0;
+    my $dbh = Bugzilla->dbh;
+    # Remember group objects
+    my $g = { map { $_->{group}->id => $_->{group} } @$rows };
+    # Filter already deleted members
+    my $del = {};
+    for my $row (@{ $dbh->selectall_arrayref(
+        "SELECT user_id, group_id FROM user_group_map WHERE (user_id, group_id, grant_type, isbless) IN (".
+        join(', ', map {
+            my $uid = int(ref $_->{user} ? $_->{user}->id : $_->{user});
+            my $gid = int($_->{group}->id);
+            "($uid, $gid, ".GRANT_DIRECT.", $isbless)";
+        } @$rows).") FOR UPDATE", undef
+    ) || [] })
+    {
+        push @{$del->{$row->[0]}}, $row->[1];
+    }
+    return if !%$del;
+    # Apply update
+    $dbh->do(
+        "DELETE FROM user_group_map WHERE (user_id, group_id, grant_type, isbless) IN (".
+        join(', ', map {
+            my $uid = $_;
+            map { "($uid, $_, ".GRANT_DIRECT.", $isbless)" } @{$del->{$uid}};
+        } keys %$del).")"
+    );
+    # Record profiles_activity entries
+    my $cur_userid = Bugzilla->user->id;
+    my $group_fldid = Bugzilla->get_field('bug_group')->id;
+    if (!$isbless)
+    {
+        # FIXME: should create profiles_activity entries for blesser changes.
+        $dbh->do(
+            "INSERT INTO profiles_activity (userid, who, profiles_when, fieldid, oldvalue, newvalue) VALUES ".
+            join(', ', map {
+                my $uid = $_;
+                map { "($uid, $cur_userid, NOW(), $group_fldid, ".$dbh->quote($g->{$_}->name).", '')" } @{$del->{$uid}};
+            } keys %$del)
+        );
+    }
+}
+
 # Add missing entries in bug_group_map for bugs created while
 # a mandatory group was disabled and which is now enabled again.
 sub _enforce_mandatory

@@ -302,6 +302,7 @@ if ($action eq 'confirm_remove')
 if ($action eq 'remove_regexp')
 {
     check_token_data($token, 'remove_group_members');
+
     # remove all explicit users from the group with
     # gid = $ARGS->{group} that match the regular expression
     # stored in the DB for that group or all of them period
@@ -310,25 +311,14 @@ if ($action eq 'remove_regexp')
     my $regexp = CheckGroupRegexp($ARGS->{regexp});
 
     $dbh->bz_start_transaction();
-
-    my $users = $group->members_direct();
-    my $sth_delete = $dbh->prepare("DELETE FROM user_group_map WHERE user_id = ? AND isbless = 0 AND group_id = ?");
-
-    my @deleted;
-    foreach my $member (@$users)
-    {
-        if ($regexp eq '' || $member->login =~ m/$regexp/i)
-        {
-            $sth_delete->execute($member->id, $group->id);
-            push @deleted, $member;
-        }
-    }
+    my $del = [ grep { $_->login =~ m/$regexp/is } @{ $group->members_direct } ];
+    $group->remove_users($del, 0);
     $dbh->bz_commit_transaction();
 
-    $vars->{users}  = \@deleted;
+    $vars->{users} = $del;
     $vars->{regexp} = $regexp;
 
-    Bugzilla::Hook::process('editgroups-post_remove_regexp', { deleted => \@deleted });
+    Bugzilla::Hook::process('editgroups-post_remove_regexp', { deleted => $del });
     Bugzilla::Views::refresh_some_views();
 
     delete_token($token);

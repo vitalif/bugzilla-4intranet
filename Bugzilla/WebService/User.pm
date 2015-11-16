@@ -17,7 +17,7 @@ use Bugzilla::Error;
 use Bugzilla::Group;
 use Bugzilla::User;
 use Bugzilla::Util qw(trim detaint_natural);
-use Bugzilla::WebService::Util qw(filter filter_wants validate translate params_to_objects);
+use Bugzilla::WebService::Util qw(filter filter_wants validate translate params_to_objects user_to_hash);
 
 use List::Util qw(first min);
 
@@ -240,13 +240,7 @@ sub get {
 
     my $in_group = $self->_filter_users_by_group(\@user_objects, $params);
     foreach my $user (@$in_group) {
-        my $user_info = filter $params, {
-            id        => $self->type('int', $user->id),
-            real_name => $self->type('string', $user->realname),
-            name      => $self->type('email', $user->login),
-            email     => $self->type('email', $user->email),
-            can_login => $self->type('boolean', $user->is_enabled ? 1 : 0),
-        };
+        my $user_info = user_to_hash($self, $user);
 
         if (Bugzilla->user->in_group('editusers')) {
             $user_info->{email_enabled}     = $self->type('boolean', $user->email_enabled);

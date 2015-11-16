@@ -31,6 +31,7 @@ our @EXPORT_OK = qw(
     validate
     translate
     params_to_objects
+    user_to_hash
     fix_credentials
 );
 
@@ -258,6 +259,17 @@ sub params_to_objects {
     my %seen;
     @objects = grep { !$seen{$_->id}++ } @objects;
     return \@objects;
+}
+
+sub user_to_hash {
+    my ($ws, $user, $params) = @_;
+    return filter $params, {
+        id        => $ws->type('int', $user->id),
+        real_name => $ws->type('string', $user->realname),
+        name      => $ws->type('email', $user->login),
+        email     => $ws->type('email', $user->email),
+        can_login => $ws->type('boolean', $user->is_enabled ? 1 : 0),
+    };
 }
 
 sub fix_credentials {

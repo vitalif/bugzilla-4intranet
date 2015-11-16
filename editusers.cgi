@@ -279,22 +279,12 @@ elsif ($action eq 'update')
         $changes = $otherUser->update();
     }
 
-    # Update group settings.
-    my $sth_add_mapping = $dbh->prepare(
-        "INSERT INTO user_group_map (user_id, group_id, isbless, grant_type) VALUES (?, ?, ?, ?)"
-    );
-    my $sth_remove_mapping = $dbh->prepare(
-        "DELETE FROM user_group_map WHERE user_id=? AND group_id=? AND isbless=? AND grant_type=?"
-    );
-
     my @groupsAddedTo;
     my @groupsRemovedFrom;
     my @groupsGrantedRightsToBless;
     my @groupsDeniedRightsToBless;
 
     # Regard only groups the user is allowed to bless and skip all others silently.
-    # FIXME: checking for existence of each user_group_map entry would allow to
-    # display a friendlier error message on page reloads.
     userDataToVars($otherUserID);
     my $permissions = $vars->{permissions};
     foreach my $blessable (@{$user->bless_groups()})
@@ -308,13 +298,11 @@ elsif ($action eq 'update')
         {
             if (!$groupid)
             {
-                $sth_remove_mapping->execute($otherUserID, $id, 0, GRANT_DIRECT);
-                push @groupsRemovedFrom, $name;
+                push @groupsRemovedFrom, $blessable;
             }
             else
             {
-                $sth_add_mapping->execute($otherUserID, $id, 0, GRANT_DIRECT);
-                push @groupsAddedTo, $name;
+                push @groupsAddedTo, $blessable;
             }
         }
 
@@ -327,27 +315,20 @@ elsif ($action eq 'update')
             {
                 if (!$groupid)
                 {
-                    $sth_remove_mapping->execute($otherUserID, $id, 1, GRANT_DIRECT);
-                    push @groupsDeniedRightsToBless, $name;
+                    push @groupsDeniedRightsToBless, $blessable;
                 }
                 else
                 {
-                    $sth_add_mapping->execute($otherUserID, $id, 1, GRANT_DIRECT);
-                    push @groupsGrantedRightsToBless, $name;
+                    push @groupsGrantedRightsToBless, $blessable;
                 }
             }
         }
     }
-    if (@groupsAddedTo || @groupsRemovedFrom)
-    {
-        $dbh->do(
-            "INSERT INTO profiles_activity (userid, who, profiles_when, fieldid, oldvalue, newvalue)".
-            " VALUES (?, ?, NOW(), ?, ?, ?)", undef,
-            $otherUserID, $userid, Bugzilla->get_field('bug_group')->id,
-            join(', ', @groupsRemovedFrom), join(', ', @groupsAddedTo)
-        );
-    }
-    # FIXME: should create profiles_activity entries for blesser changes.
+
+    Bugzilla::Group::add_user_groups([ map { { group => $_, user => $otherUser } } @groupsAddedTo ]);
+    Bugzilla::Group::remove_user_groups([ map { { group => $_, user => $otherUser } } @groupsRemovedFrom ]);
+    Bugzilla::Group::add_user_groups([ map { { group => $_, user => $otherUser } } @groupsGrantedRightsToBless ], 1);
+    Bugzilla::Group::remove_user_groups([ map { { group => $_, user => $otherUser } } @groupsDeniedRightsToBless ], 1);
 
     $dbh->bz_commit_transaction();
 
