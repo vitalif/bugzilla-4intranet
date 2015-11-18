@@ -340,11 +340,11 @@ elsif ($action eq 'update')
     Bugzilla::Views::refresh_some_views([ $otherUser->login ]);
 
     $vars->{message} = 'account_updated';
-    $vars->{changed_fields} = [keys %$changes];
-    $vars->{groups_added_to} = \@groupsAddedTo;
-    $vars->{groups_removed_from} = \@groupsRemovedFrom;
-    $vars->{groups_granted_rights_to_bless} = \@groupsGrantedRightsToBless;
-    $vars->{groups_denied_rights_to_bless} = \@groupsDeniedRightsToBless;
+    $vars->{changed_fields} = [ keys %$changes ];
+    $vars->{groups_added_to} = [ map { $_->name } @groupsAddedTo ];
+    $vars->{groups_removed_from} = [ map { $_->name } @groupsRemovedFrom ];
+    $vars->{groups_granted_rights_to_bless} = [ map { $_->name } @groupsGrantedRightsToBless ];
+    $vars->{groups_denied_rights_to_bless} = [ map { $_->name } @groupsDeniedRightsToBless ];
     # We already display the updated page. We have to recreate a token now.
     $vars->{token} = issue_session_token('edit_user');
 
