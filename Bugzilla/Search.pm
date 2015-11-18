@@ -1993,8 +1993,11 @@ sub run_chart
     # already know about it), or it was in %chartfields, so it is
     # a valid field name, which means that it's ok.
     trick_taint($self->{field});
-    $self->{quoted} = Bugzilla->dbh->quote(ref $self->{value} ? $self->{value}->[0] : $self->{value});
-    trick_taint($self->{quoted});
+    if (!ref $self->{value} || ref $self->{value} eq 'ARRAY')
+    {
+        $self->{quoted} = Bugzilla->dbh->quote(ref $self->{value} ? $self->{value}->[0] : $self->{value});
+        trick_taint($self->{quoted});
+    }
     if (COLUMNS->{$self->{field}}->{name})
     {
         $self->{fieldsql} = COLUMNS->{$self->{field}}->{name};
