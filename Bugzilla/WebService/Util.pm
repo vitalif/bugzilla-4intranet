@@ -14,6 +14,7 @@ use warnings;
 use Bugzilla::Flag;
 use Bugzilla::FlagType;
 use Bugzilla::Error;
+use Bugzilla::Util qw(list);
 
 use Storable qw(dclone);
 
@@ -135,8 +136,8 @@ sub filter_wants($$;$$) {
     # Mimic old behavior if no types provided
     my %field_types = map { $_ => 1 } (ref $types ? @$types : ($types || 'default'));
 
-    my %include = map { $_ => 1 } @{ $params->{'include_fields'} || [] };
-    my %exclude = map { $_ => 1 } @{ $params->{'exclude_fields'} || [] };
+    my %include = map { $_ => 1 } list($params->{include_fields});
+    my %exclude = map { $_ => 1 } list($params->{exclude_fields});
 
     my %include_types;
     my %exclude_types;
