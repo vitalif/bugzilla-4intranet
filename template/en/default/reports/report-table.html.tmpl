@@ -90,6 +90,8 @@ END; %]
     </tr>
   [% END %]
 
+  [% col_totals = {} %]
+  [% grand_total = {} %]
   [% FOREACH row = row_names %]
     [% row_total = {} %]
     [% row_idx = 1 - row_idx %]
