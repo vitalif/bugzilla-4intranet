@@ -220,7 +220,7 @@ sub _update_users
     }
     if ($params->{userids})
     {
-        push @user_objects, @{ Bugzilla::User->match({ id => $params->{userids} }) };
+        push @user_objects, @{ Bugzilla::User->new_from_list($params->{userids}) };
     }
     @user_objects = grep { Bugzilla->user->can_see_user($_) } @user_objects;
     @user_objects || ThrowCodeError('params_required', { function => 'Group.update', params => ['userids', 'usernames'] });
