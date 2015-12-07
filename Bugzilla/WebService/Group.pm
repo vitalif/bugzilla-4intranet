@@ -183,11 +183,11 @@ sub _update_users
         || ThrowCodeError('params_required',
                { function => 'Group.update', params => ['ids', 'names'] });
     my @group_objects;
-    if ($params->{usernames})
+    if ($params->{names})
     {
         push @group_objects, @{ Bugzilla::Group->match({ name => $params->{names} }) };
     }
-    if ($params->{userids})
+    if ($params->{ids})
     {
         push @group_objects, @{ Bugzilla::Group->match({ id => $params->{ids} }) };
     }
