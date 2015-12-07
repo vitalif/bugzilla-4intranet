@@ -389,11 +389,16 @@ sub DoSavedSearches
     {
         trick_taint($name);
         trick_taint($url);
-        $dbh->do(
-            'INSERT INTO namedqueries (userid, name, query) VALUES (?, ?, ?)',
-            undef, $user->id, $name, $url
-        );
-        $dbh->commit;
+        $dbh->bz_start_transaction;
+        my $search = Bugzilla::Search::Saved->new({ name => $name });
+        if (!$search)
+        {
+            $dbh->do(
+                'INSERT INTO namedqueries (userid, name, query) VALUES (?, ?, ?)',
+                undef, $user->id, $name, $url
+            );
+        }
+        $dbh->bz_commit_transaction;
     }
     if ($user->queryshare_groups_as_string)
     {
