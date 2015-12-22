@@ -239,21 +239,21 @@
                abbrev.$column.ellipsis
              ) FILTER html %]
         [% ELSE %]
-          <a href="buglist.cgi?quicksearch=[% 'OPEN ' _ login_column _ ':' _ bug.$login_column | url_quote %]">
+          <a href="buglist.cgi?bug_status=__open__&[% login_column | url_quote %]=[% bug.$login_column | url_quote %]">
             [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
           </a>
         [% END %]
       [% ELSIF column == 'assigned_to_short' || column == 'qa_contact_short' || column == 'reporter_short' %]
         [% SET login_column = column.remove('_short$') %]
-        <a href="buglist.cgi?quicksearch=[% 'OPEN ' _ login_column _ ':' _ bug.$login_column | url_quote %]">
+        <a href="buglist.cgi?bug_status=__open__&[% login_column | url_quote %]=[% bug.$login_column | url_quote %]">
           [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSIF column == 'product' %]
-        <a href="buglist.cgi?quicksearch=[% "OPEN product:" _ bug.$column | url_quote %]">
+        <a href="buglist.cgi?bug_status=__open__&product=[% bug.$column | url_quote %]">
           [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSIF column == 'assigned_to' || column == 'qa_contact' || column == 'reporter' %]
-        <a href="buglist.cgi?quicksearch=[% 'OPEN ' _ column _ ':' _ bug.$column | url_quote %]">
+        <a href="buglist.cgi?bug_status=__open__&[% column | url_quote %]=[% bug.$column | url_quote %]">
           [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSIF column == 'blocked' OR column == 'dependson' %]
