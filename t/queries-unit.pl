@@ -107,7 +107,7 @@ my $i = 0;
 for my $q (@$queries)
 {
     my $key = $q->{userid}.':'.$q->{name};
-    my $user = Bugzilla->request_cache->{user} = Bugzilla::User->new({ id => $q->{userid} });
+    my $user = Bugzilla::User->new({ id => $q->{userid} });
     print("Invalid user $q->{userid}!\n"), next unless $user;
     next if $user->disabledtext;
     my $s = "Testing $q->{userid}'s $q->{name}... ";

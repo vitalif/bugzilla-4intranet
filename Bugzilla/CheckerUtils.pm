@@ -380,7 +380,6 @@ sub install_before_final_checks
 {
     my ($args) = @_;
     print "Refreshing Checkers SQL...\n" if !$args->{silent};
-    Bugzilla->request_cache->{user} = Bugzilla::User->super_user;
     for (Bugzilla::Checker->get_all)
     {
         eval { $_->update };

@@ -70,7 +70,7 @@
 
         [% FOREACH id = displaycolumns %]
           [% NEXT UNLESS loop.count() % 2 == 0 %]
-          [% column = columns.$id %]
+          [% column = COLUMNS.$id %]
           [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
@@ -85,7 +85,7 @@
 
         [% FOREACH id = displaycolumns %]
           [% NEXT IF loop.count() % 2 == 0 %]
-          [% column = columns.$id %]
+          [% column = COLUMNS.$id %]
           [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
@@ -95,7 +95,7 @@
       [% ELSE %]
 
         [% FOREACH id = displaycolumns %]
-          [% column = columns.$id %]
+          [% column = COLUMNS.$id %]
           [% PROCESS columnheader key=loop.count() %]
         [% END %]
 
@@ -110,7 +110,7 @@
       [% i = lsearch(order_columns, 'bug_id') %]
       <td><input type="button" value="Apply" id="usr_filter_submit" /></td>
       [% FOREACH id = displaycolumns %]
-        [% column = columns.$id %]
+        [% column = COLUMNS.$id %]
         [% PROCESS columnheaderfilter key=loop.count() %]
       [% END %]
     </tr>

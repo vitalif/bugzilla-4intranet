@@ -528,7 +528,7 @@ elsif (($cmdtype eq 'doit') && defined $ARGS->{remtype})
 # Column Definition
 ################################################################################
 
-my $columns = Bugzilla::Search::COLUMNS;
+my $columns = Bugzilla::Search->COLUMNS;
 
 ################################################################################
 # Display Column Determination
@@ -1023,7 +1023,6 @@ else
 $vars->{bugs} = \@bugs;
 $vars->{buglist} = \@bugidlist;
 $vars->{buglist_joined} = join(',', @bugidlist);
-$vars->{columns} = $columns;
 $vars->{displaycolumns} = \@displaycolumns;
 
 $vars->{openstates} = [ map { $_->name } grep { $_->is_open } Bugzilla::Status->get_all ];

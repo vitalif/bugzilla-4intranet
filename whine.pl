@@ -388,8 +388,6 @@ sub run_queries
             resolution
             short_desc
         );
-        # Modify current user (hack)
-        Bugzilla->request_cache->{user} = $args->{recipient};
         my $search = new Bugzilla::Search(
             fields => \@searchfields,
             params => http_decode_query($savedquery->query),

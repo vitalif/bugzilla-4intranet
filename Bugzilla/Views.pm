@@ -72,8 +72,6 @@ sub refresh_some_views
         my ($userid) = $dbh->selectrow_array('SELECT userid FROM profiles WHERE login_name LIKE ? ORDER BY userid LIMIT 1', undef, $q.'@%');
         $userid or next;
         my $userobj = Bugzilla::User->new($userid) or next;
-        # Modify current user (hack)
-        Bugzilla->request_cache->{user} = $userobj;
         # Determine saved search
         $q = $query;
         $q =~ tr/_/%/;
@@ -111,8 +109,6 @@ sub refresh_some_views
         $dbh->do($create.'longdescs AS SELECT l.bug_id, u.login_name, l.bug_when, l.thetext, l.work_time FROM longdescs l INNER JOIN '.$bugids.' b ON b.bug_id=l.bug_id INNER JOIN profiles u ON u.userid=l.who'.($userobj->is_insider?'':' WHERE l.isprivate=0'));
         $dbh->do($create.'bugs_activity AS SELECT a.bug_id, u.login_name, a.bug_when, f.name field_name, a.removed, a.added FROM bugs_activity a INNER JOIN '.$bugids.' b ON b.bug_id=a.bug_id INNER JOIN profiles u ON u.userid=a.who INNER JOIN fielddefs f ON f.id=a.fieldid');
     }
-    # Restore current user
-    Bugzilla->request_cache->{user} = $old_user;
 }
 
 1;

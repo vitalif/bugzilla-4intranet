@@ -56,39 +56,39 @@
       <tr>
         <th>Field</th><th>Value</th>
       </tr><tr class="bz_feed_product">
-        <td>[% columns.product.title FILTER html %]</td>
+        <td>[% COLUMNS.product.title FILTER html %]</td>
         <td>[% bug.product FILTER html %]</td>
       </tr><tr class="bz_feed_component">
-        <td>[% columns.component.title FILTER html %]</td>
+        <td>[% COLUMNS.component.title FILTER html %]</td>
         <td>[% bug.component FILTER html %]</td>
       </tr><tr class="bz_feed_assignee">
-        <td>[% columns.assigned_to_realname.title FILTER html %]</td>
+        <td>[% COLUMNS.assigned_to_realname.title FILTER html %]</td>
         <td>[% bug.assigned_to_realname ? bug.assigned_to_realname : bug.assigned_to FILTER html %]</td>
       </tr><tr class="bz_feed_reporter">
-        <td>[% columns.reporter_realname.title FILTER html %]</td>
+        <td>[% COLUMNS.reporter_realname.title FILTER html %]</td>
         <td>[% bug.reporter_realname ? bug.reporter_realname : bug.reporter FILTER html %]</td>
       </tr><tr class="bz_feed_bug_status">
-        <td>[% columns.bug_status.title FILTER html %]</td>
+        <td>[% COLUMNS.bug_status.title FILTER html %]</td>
         <td>[% bug.bug_status FILTER html %]</td>
       </tr><tr class="bz_feed_resolution">
-        <td>[% columns.resolution.title FILTER html %] </td>
+        <td>[% COLUMNS.resolution.title FILTER html %] </td>
         <td>[% bug.resolution FILTER html %]</td>
       </tr><tr class="bz_feed_priority">
-        <td>[% columns.priority.title FILTER html %]</td>
+        <td>[% COLUMNS.priority.title FILTER html %]</td>
         <td>[% bug.priority FILTER html %]</td>
       </tr><tr class="bz_feed_severity">
-        <td>[% columns.bug_severity.title FILTER html %] </td>
+        <td>[% COLUMNS.bug_severity.title FILTER html %] </td>
         <td>[% bug.bug_severity FILTER html %]</td>
       [% IF Bugzilla.get_field('target_milestone').enabled %]
       </tr><tr class="bz_feed_target_milestone">
-        <td>[% columns.target_milestone.title FILTER html %]</td>
+        <td>[% COLUMNS.target_milestone.title FILTER html %]</td>
         <td>[% bug.target_milestone FILTER html %]</td>
       [% END %]
       </tr><tr class="bz_feed_creation_date">
-        <td>[% columns.creation_ts.title FILTER html %]</td>
+        <td>[% COLUMNS.creation_ts.title FILTER html %]</td>
         <td>[% bug.creation_ts FILTER html %]</td>
       </tr><tr class="bz_feed_changed_date">
-        <td>[% columns.delta_ts.title FILTER html %]</td>
+        <td>[% COLUMNS.delta_ts.title FILTER html %]</td>
         <td>[% bug.delta_ts FILTER html -%]</td>
       </tr>
       </table>

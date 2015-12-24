@@ -707,12 +707,14 @@ sub STATIC_COLUMNS
 # Now only removes time-tracking fields
 sub COLUMNS
 {
+    my ($self, $user) = @_;
+    $user ||= Bugzilla->user;
     my $cache = Bugzilla->rc_cache_fields;
-    return $cache->{columns} if $cache->{columns};
+    return $cache->{columns}->{$user->id || ''} if $cache->{columns} && $cache->{columns}->{$user->id || ''};
     my $columns = { %{ STATIC_COLUMNS() } };
 
     # Non-timetrackers shouldn't see any time-tracking fields
-    if (!Bugzilla->user->is_timetracker)
+    if (!$user->is_timetracker)
     {
         delete $columns->{$_} for keys %{TIMETRACKING_FIELDS()};
     }
@@ -724,7 +726,7 @@ sub COLUMNS
     {
         $hint = ' FORCE INDEX (longdescs_bug_id_idx)';
     }
-    my $priv = (Bugzilla->user->is_insider ? "" : "AND ldc0.isprivate=0 ");
+    my $priv = ($user->is_insider ? "" : "AND ldc0.isprivate=0 ");
     # Not using JOIN (it could be joined on bug_when=creation_ts),
     # because it would require COALESCE to an 'isprivate' subquery
     # for private comments.
@@ -736,7 +738,7 @@ sub COLUMNS
         " ORDER BY ldc0.bug_when DESC LIMIT 1)";
     # Last commenter and last comment time
     my $login = 'ldp0.login_name';
-    if (!Bugzilla->user->id)
+    if (!$user->id)
     {
         $login = $dbh->sql_string_until($login, $dbh->quote('@'));
     }
@@ -744,31 +746,34 @@ sub COLUMNS
         "(SELECT $login FROM longdescs ldc0$hint".
         " INNER JOIN profiles ldp0 ON ldp0.userid=ldc0.who WHERE ldc0.bug_id = bugs.bug_id $priv".
         " ORDER BY ldc0.bug_when DESC LIMIT 1)";
-    $priv = (Bugzilla->user->is_insider ? "" : "AND lct.isprivate=0 ");
+    $priv = ($user->is_insider ? "" : "AND lct.isprivate=0 ");
     $columns->{last_comment_time}->{name} =
         "(SELECT MAX(lct.bug_when) FROM longdescs lct$hint WHERE lct.bug_id = bugs.bug_id $priv)";
 
     # Hide email domain for anonymous users
-    $columns->{cc}->{name} = "(SELECT ".$dbh->sql_group_concat((Bugzilla->user->id
+    $columns->{cc}->{name} = "(SELECT ".$dbh->sql_group_concat(($user->id
         ? 'profiles.login_name'
         : $dbh->sql_string_until('profiles.login_name', $dbh->quote('@'))), "','").
         " cc FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)";
     foreach my $col (qw(assigned_to reporter qa_contact))
     {
         my $sql = "map_${col}.login_name";
-        $columns->{$col}->{name} = Bugzilla->user->id ? $sql : $columns->{$col.'_short'}->{name};
+        $columns->{$col}->{name} = $user->id ? $sql : $columns->{$col.'_short'}->{name};
     }
 
     Bugzilla::Hook::process('buglist_columns', { columns => $columns });
-    return $cache->{columns} = $columns;
+    return $cache->{columns}->{$user->id || ''} = $columns;
 }
 
 sub REPORT_COLUMNS
 {
+    my ($self, $user) = @_;
+    my ($user) = @_;
+    $user ||= Bugzilla->user;
     my $cache = Bugzilla->request_cache;
-    return $cache->{report_columns} if defined $cache->{report_columns};
+    return $cache->{report_columns}->{$user->id || ''} if $cache->{report_columns} && $cache->{report_columns}->{$user->id || ''};
 
-    my $columns = { %{ COLUMNS() } };
+    my $columns = { %{ $self->COLUMNS($user) } };
 
     # There's no reason to support reporting on unique fields.
     my @no_report_columns = qw(
@@ -804,11 +809,12 @@ sub REPORT_COLUMNS
         }
     }
 
-    return $cache->{report_columns} = $columns;
+    return $cache->{report_columns}->{$user->id || ''} = $columns;
 }
 
 # Fields that can be searched on for changes
 # This is now used only by query.cgi
+# Depends on current user
 sub CHANGEDFROMTO_FIELDS
 {
     # creation_ts, longdesc, longdescs.isprivate, commenter are treated specially
@@ -1103,11 +1109,11 @@ sub init
 
     my $H = $self->{params};
 
-    # $self->{user} = User under which the search will be ran
-    # Bugzilla->user = Just current user
+    # $self->{user} = User under which the search will be ran (current user by default)
     $self->{user} ||= Bugzilla->user;
     my $user = $self->{user};
     my $dbh = Bugzilla->dbh;
+    my $columns = $self->{columns} = $self->COLUMNS($user);
 
     my @specialchart;
 
@@ -1316,7 +1322,7 @@ sub init
         {
             $_ = $_ ? ($_ eq '%user%' ? $self->{user} : Bugzilla::User::match_name($_, 1)->[0]) : undef;
         }
-        COLUMNS->{interval_time}->{name} =
+        $columns->{interval_time}->{name} =
             "(SELECT COALESCE(SUM(ldtime.work_time),0) FROM longdescs ldtime".
             " WHERE ldtime.bug_id=bugs.bug_id".
             ($self->{interval_from} ? " AND ldtime.bug_when >= ".$dbh->quote($self->{interval_from}) : '').
@@ -1355,9 +1361,9 @@ sub init
     }
 
     # Reset relevance column
-    COLUMNS->{relevance}->{bits} = [];
-    COLUMNS->{relevance}->{joins} = [];
-    COLUMNS->{relevance}->{name} = '(0)';
+    $columns->{relevance}->{bits} = [];
+    $columns->{relevance}->{joins} = [];
+    $columns->{relevance}->{name} = '(0)';
 
     # Read charts from form hash
     my @charts;
@@ -1458,7 +1464,7 @@ sub init
         }
     }
 
-    if (!$user->is_super_user)
+    if (!$self->{ignore_permissions})
     {
         # If there are some terms in the search, assume it's enough
         # to select bugs and attach security terms without UNION (OR_MANY).
@@ -1524,7 +1530,7 @@ sub init
     # write the FROM clause.
     foreach my $orderitem (@inputorder)
     {
-        BuildOrderBy($special_order, $orderitem, \@orderby);
+        $self->BuildOrderBy($special_order, $orderitem, \@orderby);
     }
 
     # Now JOIN the correct tables in the FROM clause.
@@ -1541,16 +1547,16 @@ sub init
     my @sql_fields;
     foreach my $field (@fields)
     {
-        for my $t (@{ COLUMNS->{$field}->{joins} || [] })
+        for my $t (@{ $columns->{$field}->{joins} || [] })
         {
             push @supptables, $t if !grep { $_ eq $t } @supptables;
         }
-        if (COLUMNS->{$field}->{name})
+        if ($columns->{$field}->{name})
         {
             my $alias = $field;
             # Aliases cannot contain dots in them. We convert them to underscores.
             $alias =~ s/\./_/g;
-            push @sql_fields, COLUMNS->{$field}->{name} . " AS $alias";
+            push @sql_fields, $columns->{$field}->{name} . " AS $alias";
         }
         else
         {
@@ -1580,10 +1586,11 @@ sub sv_quote
 # HTML search description, moved here from templates
 sub search_description_html
 {
+    my $self = shift;
     my ($exp, $debug, $inner) = @_;
     my $opdescs = Bugzilla->messages->{operator_descs};
     my $fdescs = Bugzilla->messages->{field_descs};
-    $exp = $exp->{terms_without_security} if ref $exp eq 'Bugzilla::Search';
+    $exp = $self->{terms_without_security} if !$exp;
     my $html = '';
     if (ref $exp eq 'ARRAY')
     {
@@ -1593,7 +1600,7 @@ sub search_description_html
         for my $i (1 .. $#$exp)
         {
             $html .= " <li class='_".lc($op)."'>$op</li>" if $i > 1;
-            $html .= ' <li>'.search_description_html($exp->[$i], $debug, 1).'</li>';
+            $html .= ' <li>'.$self->search_description_html($exp->[$i], $debug, 1).'</li>' if $exp->[$i];
         }
         $html .= '</ul>';
     }
@@ -1612,7 +1619,7 @@ sub search_description_html
         if ($d->[0])
         {
             my $a = COLUMN_ALIASES->{$d->[0]} || $d->[0];
-            $html .= '<span class="search_field">'.html_quote(COLUMNS->{$a}->{title} || $fdescs->{$a} || $a).':</span>';
+            $html .= '<span class="search_field">'.html_quote($self->{columns}->{$a}->{title} || $fdescs->{$a} || $a).':</span>';
         }
         $html .= ' '.$opdescs->{not} if $neg;
         $html .= ' '.$opdescs->{$d->[1]} if !SEARCH_HIDDEN_OPERATORS->{$d->[1]};
@@ -1642,7 +1649,7 @@ sub search_description_html
             if ($f && @$f)
             {
                 $s = $opdescs->{desc_fields};
-                $s =~ s/\$1/sv_quote(join(', ', map { COLUMNS->{$_}->{title} || $_ } @$f))/es;
+                $s =~ s/\$1/sv_quote(join(', ', map { $self->{columns}->{$_}->{title} || $_ } @$f))/es;
                 push @l, $s;
             }
             $html .= join(', ', @l);
@@ -1839,6 +1846,7 @@ sub pronoun
 # order. That is, that we wanted "A DESC", not "A".
 sub BuildOrderBy
 {
+    my $self = shift;
     my ($special_order, $orderitem, $stringlist, $reverseorder) = (@_);
 
     my ($orderfield, $orderdirection) = split_order_term($orderitem);
@@ -1865,15 +1873,15 @@ sub BuildOrderBy
         {
             # DESC on a field with non-standard sort order means
             # "reverse the normal order for each field that we map to."
-            BuildOrderBy($special_order, $subitem, $stringlist,
-                         $orderdirection =~ m/desc/i);
+            $self->BuildOrderBy($special_order, $subitem, $stringlist, $orderdirection =~ m/desc/i);
         }
-        return;
     }
-    # Aliases cannot contain dots in them. We convert them to underscores.
-    $orderfield =~ s/\./_/g if exists COLUMNS->{$orderfield};
-
-    push @$stringlist, trim($orderfield . ' ' . $orderdirection);
+    else
+    {
+        # Aliases cannot contain dots in them. We convert them to underscores.
+        $orderfield =~ s/\./_/g if exists $self->{columns}->{$orderfield};
+        push @$stringlist, trim($orderfield . ' ' . $orderdirection);
+    }
 }
 
 # Splits out "asc|desc" from a sort order item.
@@ -1912,7 +1920,7 @@ sub translate_old_column
     my $rc = Bugzilla->request_cache;
     if (!$rc->{columns_by_sql_code})
     {
-        my $col = COLUMNS();
+        my $col = Bugzilla::Search->COLUMNS;
         $rc->{columns_by_sql_code} = {
             map { $col->{$_}->{name} => $_ } grep { $col->{$_}->{name} } keys %$col
         };
@@ -1979,7 +1987,7 @@ sub run_chart
     $self->{field} = COLUMN_ALIASES->{$self->{field}} if COLUMN_ALIASES->{$self->{field}};
     # chart -1 is generated by other code above, not from the user-
     # submitted form, so we'll blindly accept any values in chart -1
-    if (!COLUMNS->{$self->{field}} && $check_field_name)
+    if (!$self->{columns}->{$self->{field}} && $check_field_name)
     {
         ThrowUserError('invalid_field_name', { field => $self->{field} });
     }
@@ -1998,10 +2006,10 @@ sub run_chart
         $self->{quoted} = Bugzilla->dbh->quote(ref $self->{value} ? $self->{value}->[0] : $self->{value});
         trick_taint($self->{quoted});
     }
-    if (COLUMNS->{$self->{field}}->{name})
+    if ($self->{columns}->{$self->{field}}->{name})
     {
-        $self->{fieldsql} = COLUMNS->{$self->{field}}->{name};
-        if (my $j = COLUMNS->{$self->{field}}->{joins})
+        $self->{fieldsql} = $self->{columns}->{$self->{field}}->{name};
+        if (my $j = $self->{columns}->{$self->{field}}->{joins})
         {
             # Automatically adds table joins when converted to string
             $self->{fieldsql} = bless [ $self->{fieldsql}, $j, $self->{supptables}, $self->{suppseen} ], 'Bugzilla::Search::Code';
@@ -2389,9 +2397,9 @@ sub _content_matches
             };
             if (!$self->{negated})
             {
-                push @{COLUMNS->{relevance}->{joins}}, "LEFT JOIN bugs_fulltext_sphinx $table ON $table.id=bugs.bug_id AND $table.query=".$dbh->quote($text);
-                push @{COLUMNS->{relevance}->{bits}}, "$table.weight";
-                COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
+                push @{$self->{columns}->{relevance}->{joins}}, "LEFT JOIN bugs_fulltext_sphinx $table ON $table.id=bugs.bug_id AND $table.query=".$dbh->quote($text);
+                push @{$self->{columns}->{relevance}->{bits}}, "$table.weight";
+                $self->{columns}->{relevance}->{name} = '('.join("+", @{$self->{columns}->{relevance}->{bits}}).')';
             }
         }
         else
@@ -2407,8 +2415,8 @@ sub _content_matches
             if (@$ids && !$self->{negated})
             {
                 # Pass relevance (weight) values via an overlong (CASE ... END)
-                push @{COLUMNS->{relevance}->{bits}}, '(case'.join('', map { ' when bugs.bug_id='.$_->[0].' then '.$_->[1] } @$ids).' end)';
-                COLUMNS->{relevance}->{name} = '('.join("+", @{COLUMNS->{relevance}->{bits}}).')';
+                push @{$self->{columns}->{relevance}->{bits}}, '(case'.join('', map { ' when bugs.bug_id='.$_->[0].' then '.$_->[1] } @$ids).' end)';
+                $self->{columns}->{relevance}->{name} = '('.join("+", @{$self->{columns}->{relevance}->{bits}}).')';
             }
         }
         return;
@@ -2440,8 +2448,8 @@ sub _content_matches
     # this adds more terms to the relevance sql.
     if (!$self->{negated})
     {
-        push @{COLUMNS->{relevance}->{bits}}, @terms[grep { $_&1 } 0..$#terms];
-        COLUMNS->{relevance}->{name} = $dbh->sql_fulltext_relevance_sum(COLUMNS->{relevance}->{bits});
+        push @{$self->{columns}->{relevance}->{bits}}, @terms[grep { $_&1 } 0..$#terms];
+        $self->{columns}->{relevance}->{name} = $dbh->sql_fulltext_relevance_sum($self->{columns}->{relevance}->{bits});
     }
 }
 
@@ -3131,7 +3139,7 @@ sub _in_search_results
     my $search = new Bugzilla::Search(
         params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
-        user   => Bugzilla->user,
+        user   => $self->user,
     );
     my $sqlquery = $search->bugid_query;
     my $t = "ins_".$self->{sequence};

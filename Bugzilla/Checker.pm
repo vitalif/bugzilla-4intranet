@@ -80,6 +80,7 @@ sub refresh_sql
         params => http_decode_query($query->query),
         fields => [ 'bug_id' ],
         user   => $query->user,
+        ignore_permissions => 1,
     );
     my $terms = Bugzilla::Search::simplify_expression([
         'AND_MANY', { term => 'bugs.bug_id=?' },
