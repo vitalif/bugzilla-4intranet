@@ -768,7 +768,6 @@ sub COLUMNS
 sub REPORT_COLUMNS
 {
     my ($self, $user) = @_;
-    my ($user) = @_;
     $user ||= Bugzilla->user;
     my $cache = Bugzilla->request_cache;
     return $cache->{report_columns}->{$user->id || ''} if $cache->{report_columns} && $cache->{report_columns}->{$user->id || ''};
@@ -1568,6 +1567,146 @@ sub init
     $query .= " ORDER BY " . join(', ', @orderby) if @orderby;
 
     $self->{sql} = $query;
+}
+
+sub get_columns
+{
+    my $class = shift;
+    my ($params, $user) = @_;
+    my $displaycolumns;
+
+    if (defined $params->{columnlist} && $params->{columnlist} ne 'all')
+    {
+        $displaycolumns = [ split(/[ ,]+/, $params->{columnlist}) ];
+    }
+    elsif (defined Bugzilla->cookies->{COLUMNLIST})
+    {
+        $displaycolumns = [ split(/ /, Bugzilla->cookies->{COLUMNLIST}) ];
+    }
+    else
+    {
+        # Use the default list of columns.
+        $displaycolumns = [ DEFAULT_COLUMN_LIST ];
+    }
+
+    # Figure out whether or not the user is doing a fulltext search.  If not,
+    # we'll remove the relevance column from the lists of columns to display
+    # and order by, since relevance only exists when doing a fulltext search.
+    my $fulltext = $params->{content} ||
+        grep { $params->{$_} eq 'content' && /^field(\d+-\d+-\d+)/ && $params->{"value$1"} } keys %$params;
+
+    my $columns = $class->COLUMNS($user);
+    $_ = $class->COLUMN_ALIASES->{$_} || $_ for @$displaycolumns;
+    @$displaycolumns = grep($columns->{$_} && trick_taint($_), @$displaycolumns);
+    if (!$user->is_timetracker)
+    {
+        @$displaycolumns = grep { !TIMETRACKING_FIELDS->{$_} } @$displaycolumns;
+    }
+    # Remove the relevance column if the user is not doing a fulltext search.
+    if (grep('relevance', @$displaycolumns) && !$fulltext)
+    {
+        @$displaycolumns = grep($_ ne 'relevance', @$displaycolumns);
+    }
+    @$displaycolumns = grep($_ ne 'bug_id', @$displaycolumns);
+
+    # The bug ID is always selected because bug IDs are always displayed.
+    # Severity, priority, resolution and status are required for buglist
+    # CSS classes.
+    # Display columns are selected because otherwise we could not display them.
+    my $selectcolumns = { map { $_ => 1 } (qw(bug_id bug_severity priority bug_status resolution product), @$displaycolumns) };
+
+    # Make sure that the login_name version of a field is always also
+    # requested if the realname version is requested, so that we can
+    # display the login name when the realname is empty.
+    my @realname_fields = grep(/_realname$|_short$/, @$displaycolumns);
+    foreach my $item (@realname_fields)
+    {
+        my $login_field = $item;
+        $login_field =~ s/_realname$|_short$//;
+        $selectcolumns->{$login_field} = 1;
+    }
+
+    return ($displaycolumns, [ keys %$selectcolumns ]);
+}
+
+sub get_order
+{
+    my $class = shift;
+    my ($params, $user) = @_;
+    my $order = $params->{order} || "";
+
+    # First check if we'll want to reuse the last sorting order; that happens if
+    # the order is not defined or its value is "reuse last sort"
+    if (!$order || $order =~ /^reuse/i)
+    {
+        if ($order = Bugzilla->cookies->{LASTORDER})
+        {
+            # Cookies from early versions of Specific Search included this text,
+            # which is now invalid.
+            $order =~ s/ LIMIT 200//;
+        }
+        else
+        {
+            $order = '';  # Remove possible "reuse" identifier as unnecessary
+        }
+    }
+
+    my $columns = $class->COLUMNS($user);
+    my $fulltext = $params->{content} ||
+        grep { $params->{$_} eq 'content' && /^field(\d+-\d+-\d+)/ && $params->{"value$1"} } keys %$params;
+
+    my $old_orders = {
+        '' => 'bug_status,priority,assigned_to,bug_id', # Default
+        'bug number' => 'bug_id',
+        'importance' => 'priority,bug_severity,bug_id',
+        'assignee' => 'assigned_to,bug_status,priority,bug_id',
+        'last changed' => 'delta_ts,bug_status,priority,assigned_to,bug_id',
+    };
+    my @invalid_fragments;
+    my @orderstrings;
+    if ($order)
+    {
+        # Convert the value of the "order" form field into a list of columns
+        # by which to sort the results.
+        if ($old_orders->{lc $order})
+        {
+            @orderstrings = split /,/, $old_orders->{lc $order};
+        }
+        else
+        {
+            trick_taint($order);
+            # A custom list of columns.  Make sure each column is valid.
+            foreach my $fragment (split(/,/, $order))
+            {
+                $fragment = trim($fragment);
+                next unless $fragment;
+                my ($column_name, $direction) = Bugzilla::Search::split_order_term($fragment);
+                $column_name = Bugzilla::Search::translate_old_column($column_name);
+
+                # Special handlings for certain columns
+                next if $column_name eq 'relevance' && !$fulltext;
+
+                # If we are sorting by votes, sort in descending order if
+                # no explicit sort order was given.
+                if ($column_name eq 'votes' && !$direction)
+                {
+                    $direction = "DESC";
+                }
+
+                if (exists $columns->{$column_name})
+                {
+                    $direction = " $direction" if $direction;
+                    push @orderstrings, "$column_name$direction";
+                }
+                else
+                {
+                    push @invalid_fragments, $fragment;
+                }
+            }
+        }
+    }
+    $order = $old_orders->{''} if !$order;
+    return (\@orderstrings, \@invalid_fragments);
 }
 
 # Return query-wide equality operators

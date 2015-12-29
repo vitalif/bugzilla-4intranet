@@ -263,7 +263,7 @@
           [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSIF column == 'bug_file_loc' && bug.$column.search('http:') %]
-        <a href="[%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]" target="_blank">
+        <a href="[%- bug.$column FILTER html -%]" target="_blank">
         [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSE %]

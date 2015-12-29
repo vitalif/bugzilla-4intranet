@@ -323,6 +323,13 @@ sub mail
     my $template = Bugzilla->template_inner($addressee->settings->{lang}->{value});
     my $msg = ''; # it's a temporary variable to hold the template output
     $args->{alternatives} ||= [];
+    $args->{style} = '';
+    if (open my $fd, bz_locations()->{skinsdir}.'/standard/buglist.css')
+    {
+        local $/ = undef;
+        $args->{style} = <$fd>;
+        close $fd;
+    }
 
     # put together the different multipart mime segments
 
@@ -367,51 +374,50 @@ sub run_queries
 
     my $queries = $dbh->selectall_arrayref(
         "SELECT query_name, title, onemailperbug FROM whine_queries".
-        " WHERE eventid=? ORDER BY sortkey", {Slice=>{}}
+        " WHERE eventid=? ORDER BY sortkey", {Slice=>{}}, $args->{eventid}
     );
     foreach my $thisquery (@$queries)
     {
-        $thisquery->{bugs} = [];
-        next unless $thisquery->{name}; # named query is blank
+        next unless $thisquery->{query_name}; # named query is blank
 
-        my $savedquery = Bugzilla::Search::Saved->new({ name => $thisquery->{name}, user => $args->{author} });
+        my $savedquery = Bugzilla::Search::Saved->new({ name => $thisquery->{query_name}, user => $args->{author} });
         next unless $savedquery; # silently ignore missing queries
 
         # Execute the saved query
-        my @searchfields = qw(
-            bug_id
-            bug_severity
-            priority
-            rep_platform
-            assigned_to
-            bug_status
-            resolution
-            short_desc
-        );
+        my $params = http_decode_query($savedquery->query);
+        my ($displaycolumns, $selectcolumns) = Bugzilla::Search->get_columns($params, $args->{recipient});
+        my ($orderstrings) = Bugzilla::Search->get_order($params, $args->{recipient});
+
         my $search = new Bugzilla::Search(
-            fields => \@searchfields,
-            params => http_decode_query($savedquery->query),
+            fields => $selectcolumns,
+            params => $params,
             user   => $args->{recipient}, # the search runs as the recipient
+            order  => $orderstrings,
         );
         my $sqlquery = $search->getSQL();
         my $sth = $dbh->prepare($sqlquery);
         $sth->execute;
 
+        $thisquery->{order_columns} = $orderstrings;
+        $thisquery->{displaycolumns} = $displaycolumns;
+        $thisquery->{bugs} = [];
         while (my @row = $sth->fetchrow_array)
         {
             my $bug = {};
-            for my $field (@searchfields)
+            for my $column (@$selectcolumns)
             {
-                my $fieldname = $field;
-                $fieldname =~ s/^bugs\.//; # No need for bugs.whatever
-                $bug->{$fieldname} = shift @row;
+                $bug->{$column} = shift @row;
+            }
+            # Process certain values further (i.e. date format conversion).
+            if ($bug->{delta_ts})
+            {
+                $bug->{delta_ts} =~ s/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/$1-$2-$3 $4:$5:$6/;
             }
             if ($thisquery->{onemailperbug})
             {
                 $args->{queries} = [ {
-                    name  => $thisquery->{name},
-                    title => $thisquery->{title},
-                    bugs  => [ $bug ],
+                    %$thisquery,
+                    bugs => [ $bug ],
                 } ];
                 mail($args);
                 delete $args->{queries};
@@ -424,7 +430,7 @@ sub run_queries
         }
         if (!$thisquery->{onemailperbug} && @{$thisquery->{bugs}})
         {
-            push @{$return_queries}, $thisquery;
+            push @$return_queries, $thisquery;
         }
     }
 

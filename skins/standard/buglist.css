@@ -24,10 +24,10 @@
   text-decoration: none;
 }
 
-th.sorttable_sorted a:after { content: "▲"; color: gray; }
-th.sorttable_sorted_reverse a:after { content: "▼"; color: gray; }
-th.sorted_0.sorttable_sorted a:after { content: "▲"; color: black; }
-th.sorted_0.sorttable_sorted_reverse a:after { content: "▼"; color: black; }
+th.sorttable_sorted a:after { content: "\25B2";/*▲*/ color: gray; }
+th.sorttable_sorted_reverse a:after { content: "\25BC";/*▼*/ color: gray; }
+th.sorted_0.sorttable_sorted a:after { content: "\25B2";/*▲*/ color: black; }
+th.sorted_0.sorttable_sorted_reverse a:after { content: "\25BC";/*▼*/ color: black; }
 th.sorted_0 { background-color: #a0a0a0; }
 th.sorted_1 { background-color: #acacac; }
 th.sorted_2 { background-color: #b8b8b8; }

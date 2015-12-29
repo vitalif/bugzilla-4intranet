@@ -34,56 +34,41 @@
     <title>
       [[% terms.Bugzilla %]] [% subject FILTER html %]
     </title>
+    <style>
+      [% style | none %]
+    </style>
   </head>
   <body bgcolor="#FFFFFF">
 
-    <p align="left">
-      [% body FILTER html %]
-    </p>
+  <p align="left">
+    [% body FILTER html %]
+  </p>
 
-    <p align="left">
-      [% IF author.login == recipient.login %]
-        <a href="[%+ urlbase FILTER html %]editwhines.cgi">Click
-            here to edit your whine schedule</a>
-      [% ELSE %]
-        This search was scheduled by [% author.login FILTER html %].
-      [% END %]
-    </p>
+  <p align="left">
+    [% IF author.login == recipient.login %]
+      <a href="[%+ urlbase FILTER html %]editwhines.cgi">Click
+          here to edit your whine schedule</a>
+    [% ELSE %]
+      This search was scheduled by [% author.login FILTER html %].
+    [% END %]
+  </p>
 
-
-[% FOREACH query=queries %]
+  [% FOREACH query=queries %]
 
   <h2>[%+ query.title FILTER html %]</h2>
 
-  <table width="100%">
-    <tr>
-      <th align="left">ID</th>
-      <th align="left">Sev</th>
-      <th align="left">Pri</th>
-      <th align="left">Plt</th>
-      <th align="left">Assignee</th>
-      <th align="left">Status</th>
-      <th align="left">Resolution</th>
-      <th align="left">Summary</th>
-    </tr>
+  [% code = BLOCK %]
+  [% PROCESS "list/table.html.tmpl"
+    bugs = query.bugs
+    order_columns = query.order_columns
+    order = query.order_columns.join(',')
+    displaycolumns = query.displaycolumns
+    template_format = 'simple'
+  %]
+  [% END %]
+  [% code.replace('<a href="([a-z_]+)\.cgi', '<a href="' _ urlbase _ '$1.cgi') | none %]
 
-    [% FOREACH bug=query.bugs %]
-      <tr>
-        <td align="left"><a href="[%+ urlbase FILTER html %]show_bug.cgi?id=
-            [%- bug.bug_id %]">[% bug.bug_id %]</a></td>
-        <td align="left">[% bug.bug_severity_obj.name FILTER html %]</td>
-        <td align="left">[% bug.priority_obj.name FILTER html %]</td>
-        <td align="left">[% bug.rep_platform_obj.name FILTER html %]</td>
-        <td align="left">[% bug.assigned_to FILTER html %]</td>
-        <td align="left">[% bug.bug_status_obj.name FILTER html %]</td>
-        <td align="left">[% bug.resolution_obj.name FILTER html %]</td>
-        <td align="left">[% bug.short_desc FILTER html %]</td>
-      </tr>
-    [% END %]
-  </table>
-[% END %]
+  [% END %]
 
   </body>
 </html>
-
-

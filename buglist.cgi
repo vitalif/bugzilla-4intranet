@@ -203,8 +203,6 @@ my $serverpush =
               && !defined($ARGS->{serverpush})
                 || $ARGS->{serverpush};
 
-my $order = $ARGS->{order} || "";
-
 # The params object to use for the actual query itself
 my $params;
 
@@ -213,34 +211,15 @@ my $params;
 if (defined $ARGS->{regetlastlist})
 {
     my $bug_id = Bugzilla->cookies->{BUGLIST} || ThrowUserError('missing_cookie');
-    $order = 'reuse last sort' unless $order;
+    $ARGS->{order} ||= 'reuse last sort';
     $bug_id =~ s/:/,/g;
     # set up the params for this new query
     $params = {
         bug_id => $bug_id,
         bug_id_type => 'anyexact',
-        order => $order,
+        order => $ARGS->{order},
         columnlist => $ARGS->{columnlist},
     };
-}
-
-# Figure out whether or not the user is doing a fulltext search.  If not,
-# we'll remove the relevance column from the lists of columns to display
-# and order by, since relevance only exists when doing a fulltext search.
-my $fulltext = 0;
-if ($ARGS->{content})
-{
-    $fulltext = 1;
-}
-
-my @charts = map(/^field(\d-\d-\d)$/ ? $1 : (), keys %$ARGS);
-foreach my $chart (@charts)
-{
-    if ($ARGS->{"field$chart"} eq 'content' && $ARGS->{"value$chart"})
-    {
-        $fulltext = 1;
-        last;
-    }
 }
 
 ################################################################################
@@ -458,14 +437,12 @@ if ($cmdtype eq "dorem")
             $vars->{search_id} = $query->id;
         }
         $params = http_decode_query($query->query.'&sharer_id='.$query->userid);
-        $order = $params->{order} || $order;
     }
     elsif ($remaction eq "runseries")
     {
         $vars->{searchname} = $ARGS->{namedcmd};
         $vars->{searchtype} = "series";
         $params = http_decode_query(LookupSeries($ARGS->{"series_id"}));
-        $order = $params->{order} || $order;
     }
     elsif ($remaction eq 'forget')
     {
@@ -525,116 +502,37 @@ elsif (($cmdtype eq 'doit') && defined $ARGS->{remtype})
 }
 
 ################################################################################
-# Column Definition
-################################################################################
-
-my $columns = Bugzilla::Search->COLUMNS;
-
-################################################################################
 # Display Column Determination
 ################################################################################
 
-# Determine the columns that will be displayed in the bug list via the
-# columnlist CGI parameter, the user's preferences, or the default.
-my @displaycolumns = ();
-if (defined $params->{columnlist} && $params->{columnlist} ne 'all')
-{
-    @displaycolumns = split(/[ ,]+/, $params->{columnlist});
-}
-elsif (defined Bugzilla->cookies->{COLUMNLIST})
-{
-    @displaycolumns = split(/ /, Bugzilla->cookies->{COLUMNLIST});
-}
-else
-{
-    # Use the default list of columns.
-    @displaycolumns = DEFAULT_COLUMN_LIST;
-}
-
-$_ = Bugzilla::Search->COLUMN_ALIASES->{$_} || $_ for @displaycolumns;
-
-# Weed out columns that don't actually exist to prevent the user
-# from hacking their column list cookie to grab data to which they
-# should not have access.  Detaint the data along the way.
-@displaycolumns = grep($columns->{$_} && trick_taint($_), @displaycolumns);
+my ($displaycolumns, $selectcolumns) = Bugzilla::Search->get_columns($params, Bugzilla->user);
 
 # Add the votes column to the list of columns to be displayed
 # in the bug list if the user is searching for bugs with a certain
 # number of votes and the votes column is not already on the list.
-
-# Some versions of perl will taint 'votes' if this is done as a single
-# statement, because the votes param is tainted at this point
-my $votes = $params->{votes};
-$votes ||= "";
-if (trim($votes) && !grep($_ eq 'votes', @displaycolumns))
+if (trim($params->{votes} || '') && !grep($_ eq 'votes', @$selectcolumns))
 {
-    push(@displaycolumns, 'votes');
+    push @$displaycolumns, 'votes';
+    push @$selectcolumns, 'votes';
 }
 
-# Remove the timetracking columns if they are not a part of the group
-# (happens if a user had access to time tracking and it was revoked/disabled)
-if (!Bugzilla->user->is_timetracker)
+if ($superworktime && !grep($_ eq 'interval_time', @$selectcolumns))
 {
-    @displaycolumns = grep { !TIMETRACKING_FIELDS->{$_} } @displaycolumns;
-}
-
-# Remove the relevance column if the user is not doing a fulltext search.
-if (grep('relevance', @displaycolumns) && !$fulltext)
-{
-    @displaycolumns = grep($_ ne 'relevance', @displaycolumns);
-}
-
-# Remove the "ID" column from the list because bug IDs are always displayed
-# and are hard-coded into the display templates.
-@displaycolumns = grep($_ ne 'bug_id', @displaycolumns);
-
-if ($superworktime && !grep($_ eq 'interval_time', @displaycolumns))
-{
-    push @displaycolumns, 'interval_time';
-}
-
-################################################################################
-# Select Column Determination
-################################################################################
-
-# Generate the list of columns that will be selected in the SQL query.
-
-# The bug ID is always selected because bug IDs are always displayed.
-# Severity, priority, resolution and status are required for buglist
-# CSS classes.
-my @selectcolumns = ("bug_id", "bug_severity", "priority", "bug_status", "resolution", "product");
-
-# Make sure that the login_name version of a field is always also
-# requested if the realname version is requested, so that we can
-# display the login name when the realname is empty.
-my @realname_fields = grep(/_realname$|_short$/, @displaycolumns);
-foreach my $item (@realname_fields)
-{
-    my $login_field = $item;
-    $login_field =~ s/_realname$|_short$//;
-    if (!grep($_ eq $login_field, @selectcolumns))
-    {
-        push(@selectcolumns, $login_field);
-    }
-}
-
-# Display columns are selected because otherwise we could not display them.
-foreach my $col (@displaycolumns)
-{
-    push (@selectcolumns, $col) if !grep($_ eq $col, @selectcolumns);
+    push @$displaycolumns, 'interval_time';
+    push @$selectcolumns, 'interval_time';
 }
 
 # If the user is editing multiple bugs, we also make sure to select the
 # status, because the values of that field determines what options the user
 # has for modifying the bugs.
-if ($dotweak)
+if ($dotweak && !grep($_ eq 'bug_status', @$selectcolumns))
 {
-    push(@selectcolumns, "bug_status") if !grep($_ eq 'bug_status', @selectcolumns);
+    push @$selectcolumns, "bug_status";
 }
 
-if ($format->{extension} eq 'ics')
+if ($format->{extension} eq 'ics' && !grep($_ eq 'creation_ts', @$selectcolumns))
 {
-    push(@selectcolumns, "creation_ts") if !grep($_ eq 'creation_ts', @selectcolumns);
+    push @$selectcolumns, "creation_ts";
 }
 
 if ($format->{extension} eq 'atom')
@@ -662,101 +560,25 @@ if ($format->{extension} eq 'atom')
 
     foreach my $required (@required_atom_columns)
     {
-        push(@selectcolumns, $required) if !grep($_ eq $required,@selectcolumns);
+        push(@$selectcolumns, $required) if !grep($_ eq $required, @$selectcolumns);
     }
 }
 
-if ($superworktime && !grep($_ eq 'product_notimetracking', @displaycolumns))
+if ($superworktime && !grep($_ eq 'product_notimetracking', @$displaycolumns))
 {
-    push @selectcolumns, 'product_notimetracking';
+    push @$selectcolumns, 'product_notimetracking';
 }
 
 ################################################################################
 # Sort Order Determination
 ################################################################################
 
-# Add to the query some instructions for sorting the bug list.
-
-# First check if we'll want to reuse the last sorting order; that happens if
-# the order is not defined or its value is "reuse last sort"
-if (!$order || $order =~ /^reuse/i)
+my ($orderstrings, $invalid_fragments) = Bugzilla::Search->get_order($params, Bugzilla->user);
+if (scalar @$invalid_fragments)
 {
-    if ($order = Bugzilla->cookies->{LASTORDER})
-    {
-        # Cookies from early versions of Specific Search included this text,
-        # which is now invalid.
-        $order =~ s/ LIMIT 200//;
-    }
-    else
-    {
-        $order = '';  # Remove possible "reuse" identifier as unnecessary
-    }
+    $vars->{message} = 'invalid_column_name';
+    $vars->{invalid_fragments} = $invalid_fragments;
 }
-
-# FIXME Move sort orders to Bugzilla::Search
-my $old_orders = {
-    '' => 'bug_status,priority,assigned_to,bug_id', # Default
-    'bug number' => 'bug_id',
-    'importance' => 'priority,bug_severity,bug_id',
-    'assignee' => 'assigned_to,bug_status,priority,bug_id',
-    'last changed' => 'delta_ts,bug_status,priority,assigned_to,bug_id',
-};
-if ($order)
-{
-    # Convert the value of the "order" form field into a list of columns
-    # by which to sort the results.
-    if ($old_orders->{lc $order})
-    {
-        $order = $old_orders->{lc $order};
-    }
-    else
-    {
-        my (@order, @invalid_fragments);
-
-        # A custom list of columns.  Make sure each column is valid.
-        foreach my $fragment (split(/,/, $order))
-        {
-            $fragment = trim($fragment);
-            next unless $fragment;
-            my ($column_name, $direction) = Bugzilla::Search::split_order_term($fragment);
-            $column_name = Bugzilla::Search::translate_old_column($column_name);
-
-            # Special handlings for certain columns
-            next if $column_name eq 'relevance' && !$fulltext;
-
-            # If we are sorting by votes, sort in descending order if
-            # no explicit sort order was given.
-            if ($column_name eq 'votes' && !$direction)
-            {
-                $direction = "DESC";
-            }
-
-            if (exists $columns->{$column_name})
-            {
-                $direction = " $direction" if $direction;
-                push @order, "$column_name$direction";
-            }
-            else
-            {
-                push @invalid_fragments, $fragment;
-            }
-        }
-        if (scalar @invalid_fragments)
-        {
-            $vars->{message} = 'invalid_column_name';
-            $vars->{invalid_fragments} = \@invalid_fragments;
-        }
-
-        $order = join(",", @order);
-        # Now that we have checked that all columns in the order are valid,
-        # detaint the order string.
-        trick_taint($order) if $order;
-    }
-}
-
-$order = $old_orders->{''} if !$order;
-
-my @orderstrings = split(/,\s*/, $order);
 
 # The bug status defined by a specific search is of type __foo__, but
 # Search.pm converts it into a list of real bug statuses, which cannot
@@ -770,9 +592,9 @@ if ($query_format eq 'specific')
 
 # Generate the basic SQL query that will be used to generate the bug list.
 my $search = new Bugzilla::Search(
-    'fields' => \@selectcolumns,
+    'fields' => $selectcolumns,
     'params' => $params,
-    'order' => \@orderstrings
+    'order' => $orderstrings,
 );
 my $query = $search->getSQL();
 $vars->{search_description} = $search->search_description_html;
@@ -798,12 +620,9 @@ if (defined $ARGS->{limit})
         $query .= " " . $dbh->sql_limit($limit);
     }
 }
-elsif ($fulltext)
+elsif ($ARGS->{order} && $ARGS->{order} =~ /^relevance/)
 {
-    if ($ARGS->{order} && $ARGS->{order} =~ /^relevance/)
-    {
-        $vars->{message} = 'buglist_sorted_by_relevance';
-    }
+    $vars->{message} = 'buglist_sorted_by_relevance';
 }
 
 if ($superworktime)
@@ -899,11 +718,11 @@ $buglist_sth->execute();
 # Retrieve the query results one row at a time and write the data into a list of Perl records.
 
 # If we're doing time tracking, then keep totals for all bugs.
-my $percentage_complete = 1 && grep { $_ eq 'percentage_complete' } @displaycolumns;
-my $estimated_time      = 1 && grep { $_ eq 'estimated_time' } @displaycolumns;
-my $remaining_time      = $percentage_complete || grep { $_ eq 'remaining_time' } @displaycolumns;
-my $work_time           = $percentage_complete || grep { $_ eq 'work_time' } @displaycolumns;
-my $interval_time       = $percentage_complete || grep { $_ eq 'interval_time' } @displaycolumns;
+my $percentage_complete = 1 && grep { $_ eq 'percentage_complete' } @$displaycolumns;
+my $estimated_time      = 1 && grep { $_ eq 'estimated_time' } @$displaycolumns;
+my $remaining_time      = $percentage_complete || grep { $_ eq 'remaining_time' } @$displaycolumns;
+my $work_time           = $percentage_complete || grep { $_ eq 'work_time' } @$displaycolumns;
+my $interval_time       = $percentage_complete || grep { $_ eq 'interval_time' } @$displaycolumns;
 
 my $time_info = {
     estimated_time => 0,
@@ -929,7 +748,7 @@ while (my @row = $buglist_sth->fetchrow_array())
     # Slurp the row of data into the record.
     # The second from last column in the record is the number of groups
     # to which the bug is restricted.
-    foreach my $column (@selectcolumns)
+    foreach my $column (@$selectcolumns)
     {
         $bug->{$column} = shift @row;
     }
@@ -938,12 +757,6 @@ while (my @row = $buglist_sth->fetchrow_array())
     if ($bug->{delta_ts})
     {
         $bug->{delta_ts} =~ s/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/$1-$2-$3 $4:$5:$6/;
-        $bug->{delta_ts_diff} = DiffDate($bug->{delta_ts});
-    }
-
-    if ($bug->{creation_ts})
-    {
-        $bug->{creation_ts_diff} = DiffDate($bug->{creation_ts});
     }
 
     # Record the assignee, product, and status in the big hashes of those things.
@@ -1023,7 +836,7 @@ else
 $vars->{bugs} = \@bugs;
 $vars->{buglist} = \@bugidlist;
 $vars->{buglist_joined} = join(',', @bugidlist);
-$vars->{displaycolumns} = \@displaycolumns;
+$vars->{displaycolumns} = $displaycolumns;
 
 $vars->{openstates} = [ map { $_->name } grep { $_->is_open } Bugzilla::Status->get_all ];
 # used by list.ics.tmpl
@@ -1069,8 +882,8 @@ if ($vars->{urlquerypart}->{sharer_id})
 }
 $vars->{urlquerypart} = http_build_query($vars->{urlquerypart});
 $vars->{rssquerypart} = $vars->{urlquerypart};
-$vars->{order} = $order;
-$vars->{order_columns} = [ @orderstrings ];
+$vars->{order} = $params->{order};
+$vars->{order_columns} = $orderstrings;
 $vars->{order_dir} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{order_columns}} ];
 
 $vars->{caneditbugs} = 1;
@@ -1290,11 +1103,11 @@ my $disposition = "inline";
 
 if ($format->{extension} eq "html" && !$agent)
 {
-    if ($order && !$ARGS->{sharer_id} && $query_format ne 'specific')
+    if ($ARGS->{order} && !$ARGS->{sharer_id} && $query_format ne 'specific')
     {
         $cgi->send_cookie(
             -name => 'LASTORDER',
-            -value => $order,
+            -value => $ARGS->{order},
             -expires => 'Fri, 01-Jan-2038 00:00:00 GMT'
         );
     }
