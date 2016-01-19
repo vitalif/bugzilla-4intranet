@@ -2304,7 +2304,7 @@ sub changed
                 # User is searching for a comment with specific text
                 $ld_term->{where} .= ' AND '.$dbh->sql_iposition("$ld.thetext", $added);
             }
-            elsif ($f{'longdescs.isprivate'} && $self->user->is_insider)
+            elsif ($f{'longdescs.isprivate'} && $self->{user}->is_insider)
             {
                 # Insider is searching for a comment with specific privacy
                 $ld_term->{where} .= " AND $ld.isprivate = ".($v->{value} ? 1 : 0);
@@ -3278,7 +3278,7 @@ sub _in_search_results
     my $search = new Bugzilla::Search(
         params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
-        user   => $self->user,
+        user   => $self->{user},
     );
     my $sqlquery = $search->bugid_query;
     my $t = "ins_".$self->{sequence};

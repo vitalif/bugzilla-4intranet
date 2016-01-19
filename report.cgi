@@ -104,7 +104,7 @@ elsif ($action eq 'del')
     exit;
 }
 
-my $valid_columns = Bugzilla::Search::REPORT_COLUMNS();
+my $valid_columns = Bugzilla::Search->REPORT_COLUMNS();
 $vars->{report_columns} = $valid_columns;
 
 my $field = {};

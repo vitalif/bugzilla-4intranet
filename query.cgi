@@ -179,7 +179,7 @@ $vars->{chfield} = [
 # Fields for reports
 $vars->{report_columns} = [
     sort { $a->{sortkey} <=> $b->{sortkey} || $a->{title} cmp $b->{title} }
-    values %{Bugzilla::Search::REPORT_COLUMNS()}
+    values %{Bugzilla::Search->REPORT_COLUMNS()}
 ];
 
 # Boolean charts
