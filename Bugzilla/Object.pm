@@ -334,6 +334,7 @@ sub set_all
 sub update
 {
     my $self = shift;
+    my (undef, $old_self) = @_;
 
     my $dbh      = Bugzilla->dbh;
     my $table    = $self->DB_TABLE;
@@ -342,7 +343,7 @@ sub update
     $dbh->bz_start_transaction();
 
     # Use a copy of old object
-    my $old_self = $self->new($self->id);
+    $old_self ||= $self->new($self->id);
 
     my $numeric = $self->NUMERIC_COLUMNS;
     my $date    = $self->DATE_COLUMNS;

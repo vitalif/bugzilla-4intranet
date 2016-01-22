@@ -480,6 +480,7 @@ sub update
     my $delta_ts = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 
     # You can't set these fields by hand
+    $self->{deadline} =~ s/\s+.*$//so;
     $self->{delta_ts} = $delta_ts;
     delete $self->{votes};
     delete $self->{lastdiffed};
@@ -498,7 +499,8 @@ sub update
 
     if ($self->id)
     {
-        ($changes, $old_bug) = $self->SUPER::update(@_);
+        $old_bug->{deadline} =~ s/\s+.*$//so;
+        ($changes, $old_bug) = $self->SUPER::update(undef, $old_bug);
     }
     else
     {
