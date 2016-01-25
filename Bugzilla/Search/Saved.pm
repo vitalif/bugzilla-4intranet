@@ -105,7 +105,8 @@ sub check
     my $search = $class->SUPER::check(@_);
     my $user = Bugzilla->user;
     return $search if $search->user->id == $user->id;
-    if (!$search->shared_with_group || !$user->in_group($search->shared_with_group))
+    if (!Bugzilla->user->in_group('admin') &&
+        (!$search->shared_with_group || !$user->in_group($search->shared_with_group)))
     {
         ThrowUserError('missing_query', {
             queryname => $search->name,

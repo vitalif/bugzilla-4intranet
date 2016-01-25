@@ -122,14 +122,9 @@ sub update
 sub _check_query_id
 {
     my ($invocant, $value, $field) = @_;
-    my $q = Bugzilla::Search::Saved->check({ id => $value });
     # This code allows to create predicates using searches shared by other users,
     # but the UI doesn't allow it (yet?).
-    if ($q->user->id != Bugzilla->user->id &&
-        (!$q->shared_with_group || !Bugzilla->user->in_group($q->shared_with_group)))
-    {
-        ThrowUserError('query_access_denied', { query => $q });
-    }
+    my $q = Bugzilla::Search::Saved->check({ id => $value });
     # Check if a named query is not a search query, but just an HTTP url
     if ($q->query =~ /^[a-z][a-z0-9]*:/iso)
     {
