@@ -53,11 +53,13 @@ sub check
     my $sql = [];
     my @bind;
     my ($s, $i);
-    for (values %$all)
+    for my $checker (values %$all)
     {
-        if (($_->flags & $mask) == $flags)
+        if (($checker->flags & $mask) == $flags &&
+            # Do not run checkers which may be bypassed by user based on his permissions
+            (!$checker->bypass_group_id || !Bugzilla->user->in_group_id($checker->bypass_group_id)))
         {
-            $s = $_->sql_code;
+            $s = $checker->sql_code;
             push @$sql, $s;
             push @bind, $bug_id;
         }

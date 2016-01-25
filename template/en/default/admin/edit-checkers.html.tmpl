@@ -92,7 +92,7 @@
      <option value="[% q.id %]" [% " selected='selected'" IF checker.query_id == q.id %] >[% q.name | html %]</option>
     [% END %]
     [% IF checker.query_id AND !found %]
-     <option value="[% checker.query_id %]" selected='selected'>(Чужой) [% checker.query.name | html %]</option>
+     <option value="[% checker.query_id %]" selected='selected'>([% checker.query.user.login | html %]) [% checker.query.name | html %]</option>
     [% END %]
    </select></td>
   </tr>
@@ -126,6 +126,18 @@
     <label for="is_freeze" id="label_for_is_freeze">Заморозка багов (защита от изменений, только для режима обновления)</label><br />
     <input type="checkbox" name="is_fatal" id="is_fatal" [% " checked='checked'" IF checker.is_fatal %] />
     <label for="is_fatal">Жёсткий запрет (если нет, то изменения не блокируются, а только даётся предупреждение)</label><br />
+   </td>
+  </tr>
+  <tr><th style="text-align: left" colspan="2">Разрешить следующим пользователям обходить эту проверку:</th></tr>
+  <tr>
+   <th>Группа:</th>
+   <td>
+     <select name="bypass_group_id" id="bypass_group_id">
+      <option value="">&mdash; (не разрешать)</option>
+      [% FOR g = all_groups %]
+      <option value="[% g.id %]" [% " selected=\"selected\"" IF checker.bypass_group_id == g.id %]>[% g.name | html %]</option>
+      [% END %]
+     </select>
    </td>
   </tr>
   <tr><th style="text-align: left" colspan="2">Запреты изменений отдельных полей, действуют только при обновлении багов:</th></tr>

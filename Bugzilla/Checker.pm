@@ -43,6 +43,7 @@ use constant DB_COLUMNS => (
     'sql_code', # SQL code for query is cached here
     'except_fields', # "Exception" fields - see CF_DENY above.
     'triggers', # Triggers (bug changes) (requires CF_FREEZE & !CF_FATAL)
+    'bypass_group_id', # Group members of which may bypass this check
 );
 use constant NAME_FIELD => 'message';
 use constant ID_FIELD   => 'id';
@@ -53,16 +54,11 @@ use constant REQUIRED_CREATE_FIELDS => qw(query_id message);
 use constant VALIDATORS => {
     query_id => \&_check_query_id,
     flags    => \&_check_flags,
+    bypass_group_id => \&_check_bypass_group_id,
+    user_id  => \&_check_user_id,
 };
 
-use constant UPDATE_COLUMNS => (
-    'query_id',
-    'flags',
-    'message',
-    'sql_code',
-    'except_fields',
-    'triggers',
-);
+use constant UPDATE_COLUMNS => (grep { $_ ne 'id' && $_ ne 'user_id' } DB_COLUMNS);
 
 # The check works by executing this SQL query with added bugs.bug_id=? condition.
 # Rebuild and save SQL code in the DB, from under the superuser
@@ -142,6 +138,18 @@ sub _check_query_id
     return $q->id;
 }
 
+sub _check_user_id
+{
+    my ($invocant, $value, $field) = @_;
+    return $value ? Bugzilla::User->check({ userid => $_[1] })->id : undef;
+}
+
+sub _check_bypass_group_id
+{
+    my ($invocant, $value, $field) = @_;
+    return $value ? Bugzilla::Group->check({ id => $value })->id : undef;
+}
+
 sub _check_flags
 {
     my ($invocant, $value, $field) = @_;
@@ -154,6 +162,7 @@ sub query_id        { $_[0]->{query_id} }
 sub user_id         { $_[0]->{user_id} }
 sub message         { $_[0]->{message} }
 sub sql_code        { $_[0]->{sql_code} }
+sub bypass_group_id { $_[0]->{bypass_group_id} }
 sub flags           { $_[0]->{flags} }
 
 # Specific flags from the bitfield
@@ -215,8 +224,8 @@ sub user
     return $self->{user};
 }
 
-sub set_query_id { $_[0]->set('query_id', Bugzilla::Search::Saved->check({ id => $_[1] })->id) }
-sub set_user_id  { $_[0]->set('user_id', Bugzilla::User->check({ userid => $_[1] })->id) }
+sub set_query_id { $_[0]->set('query_id', $_[1]) }
+sub set_user_id  { $_[0]->set('user_id', $_[1]) }
 sub set_flags    { $_[0]->set('flags', $_[1]) }
 sub set_message  { $_[0]->set('message', $_[1]) }
 sub set_sql_code { $_[0]->set('sql_code', $_[1]) }

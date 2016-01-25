@@ -825,6 +825,7 @@ use constant ABSTRACT_SCHEMA => {
             sql_code       => {TYPE => 'LONGTEXT'},
             except_fields  => {TYPE => 'LONGBLOB'},
             triggers       => {TYPE => 'LONGBLOB'},
+            bypass_group_id=> {TYPE => 'INT4', REFERENCES => {TABLE => 'groups', COLUMN => 'id', DELETE => 'SET NULL'}},
         ],
         INDEXES => [
             checkers_query_id_idx => { FIELDS => ['query_id'] },

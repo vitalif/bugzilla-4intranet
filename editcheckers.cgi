@@ -72,12 +72,14 @@ if ($params->{save})
                 flags    => $flags,
                 except_fields => $except,
                 triggers => $triggers,
+                bypass_group_id => $params->{bypass_group_id},
             });
         }
         else
         {
             $ch = Bugzilla::Checker->check({ id => $id });
-            $ch->set_query_id($params->{query_id});
+            $ch->set('query_id', $params->{query_id});
+            $ch->set('bypass_group_id', $params->{bypass_group_id});
             $ch->set_message($params->{message});
             $ch->set_flags($flags);
             $ch->set_except_fields($except);
@@ -106,6 +108,7 @@ else
 {
     $vars->{token} = issue_session_token('editcheckers');
     $vars->{create} = $params->{create} ? 1 : 0;
+    $vars->{all_groups} = [ Bugzilla::Group->get_all ];
     # Есть специальное поле "longdesc", означающее добавление комментариев
     my $f = [ Bugzilla->get_fields ];
     @$f = sort { lc $a->description cmp lc $b->description } grep { $_->name !~ /
