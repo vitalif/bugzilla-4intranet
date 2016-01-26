@@ -31,6 +31,7 @@ use Bugzilla::Keyword;
 use Bugzilla::Product;
 use Bugzilla::Status;
 use Bugzilla::Field;
+use Bugzilla::Util qw(list);
 
 use Digest::MD5 qw(md5_base64);
 
