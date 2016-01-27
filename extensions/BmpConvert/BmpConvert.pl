@@ -25,13 +25,10 @@ use strict;
 use Bugzilla::Extension;
 
 my $VERSION = '1.0';
-my $REQUIRED_MODULES = [
-  {
-      package => 'PerlMagick',
-      module  => 'Image::Magick',
-      version => 0,
-  },
-];
+my $REQUIRED_MODULES = [ {
+    package => 'PerlMagick',
+    module  => 'Image::Magick',
+} ];
 
 extension_version('BmpConvert', $VERSION);
 required_modules('BmpConvert', $REQUIRED_MODULES);
