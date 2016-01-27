@@ -3289,8 +3289,18 @@ sub _in_search_results
     }
     else
     {
-        $self->{term}->{where} = "$self->{fieldsql} = $t.bug_id";
-        $self->{term}->{notnull_field} = "$t.bug_id";
+        my $f = Bugzilla->get_field($self->{field});
+        if ($f && ($f->type == FIELD_TYPE_BUG_ID || $f->type == FIELD_TYPE_BUG_ID_REV) ||
+            $self->{field} eq 'blocked' || $self->{field} eq 'dependson' || $self->{field} eq 'dup_id')
+        {
+            $self->{term}->{where} = "$self->{fieldsql} = $t.bug_id";
+            $self->{term}->{notnull_field} = "$t.bug_id";
+            $self->{term}->{supp} = [ @{$self->{supptables}} ];
+        }
+        else
+        {
+            ThrowUserError('in_search_needs_bugid_field', { field => $self->{field} });
+        }
     }
 }
 

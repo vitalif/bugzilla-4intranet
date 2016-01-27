@@ -532,6 +532,11 @@
   Can't use [% field FILTER html %] as a field name.
 [% END %]
 
+[% BLOCK error_in_search_needs_bugid_field %]
+  Subquery search operator ("In Search Results") can only be applied to fields of type "Bug ID".
+  "[% field | html %]" is not a Bug ID field.
+[% END %]
+
 [% BLOCK error_useless_customfield_type %]
   [% title = "Can't create field of a useless type" %]
   It is impossible to create "[% lc_messages.field_types.$type %]" fields,
