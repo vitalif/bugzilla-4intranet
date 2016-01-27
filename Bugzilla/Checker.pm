@@ -136,7 +136,7 @@ sub _check_query_id
 sub _check_user_id
 {
     my ($invocant, $value, $field) = @_;
-    return $value ? Bugzilla::User->check({ userid => $_[1] })->id : undef;
+    return Bugzilla->user->id;
 }
 
 sub _check_bypass_group_id
