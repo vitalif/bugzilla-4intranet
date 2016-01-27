@@ -737,11 +737,6 @@ sub validate_obsolete
             ThrowCodeError('mismatched_bug_ids_on_obsolete', $vars);
         }
 
-        if ($attachment->isobsolete)
-        {
-            ThrowCodeError('attachment_already_obsolete', $vars);
-        }
-
         push(@obsolete_attachments, $attachment);
     }
     return @obsolete_attachments;

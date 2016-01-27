@@ -221,7 +221,7 @@ if ($ARGS->{delta_ts})
 
         $vars->{title_tag} = "mid_air";
 
-        ThrowCodeError('undefined_field', { field => 'longdesclength' }) if !$ARGS->{longdesclength};
+        ThrowCodeError('undefined_field', { field => 'longdesclength' }) if !defined $ARGS->{longdesclength};
 
         $vars->{start_at} = $ARGS->{longdesclength};
         # Always sort midair collision comments oldest to newest,
