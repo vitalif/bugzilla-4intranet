@@ -182,24 +182,24 @@ sub filter_failed_checkers
     my ($checkers, $changes, $bug) = @_;
     # Filter failed checkers by changes
     my @rc;
-    for (@$checkers)
+    for my $checker (@$checkers)
     {
-        if ($_->triggers)
+        if ($checker->triggers)
         {
             # Skip triggers
-            push @rc, $_;
+            push @rc, $checker;
             next;
         }
-        my $e = $_->except_fields;
+        my $e = $checker->except_fields;
         my $ok = 1;
-        if ($_->deny_all)
+        if ($checker->deny_all)
         {
             # Allow only changes of except_fields to except values
-            for (keys %$changes)
+            for my $field (keys %$changes)
             {
                 # If the field is not listed in except_fields, OR
                 # if there is a specific value in except_fields and our one is not equal
-                if (!exists $e->{$_} || (defined $e->{$_} && $changes->{$_}->[1] ne $e->{$_}))
+                if (!exists $e->{$field} || (defined $e->{$field} && !grep { $_ eq $changes->{$field}->[1] } list($e->{$field})))
                 {
                     $ok = 0;
                     last;
@@ -209,20 +209,20 @@ sub filter_failed_checkers
         else
         {
             # Forbid changes of except_fields to except values
-            for (keys %$e)
+            for my $field (keys %$e)
             {
                 # work_time_date is a special pseudo-field meaning addition of backdated worktime
                 # the value of this pseudo-field is the date before which it is forbidden to fix worktime
                 # for example except_fields={work_time_date=2010-09-01} means forbid fixing worktime
                 # for dates before 2010-09-01
-                if ($_ eq 'work_time_date')
+                if ($field eq 'work_time_date')
                 {
                     my $today_date = strftime('%Y-%m-%d', localtime);
-                    my $min_backdate = $e->{$_} || $today_date;
+                    my $min_backdate = $e->{$field} || $today_date;
                     my $min_comment_date;
-                    foreach (@{$bug->{added_comments} || []})
+                    foreach my $comment (@{$bug->{added_comments} || []})
                     {
-                        my $cd = $_->{bug_when} || $today_date;
+                        my $cd = $comment->{bug_when} || $today_date;
                         if (!$min_comment_date || $cd lt $min_comment_date)
                         {
                             $min_comment_date = $cd;
@@ -234,14 +234,14 @@ sub filter_failed_checkers
                         last;
                     }
                 }
-                elsif ($changes->{$_} && (!defined $e->{$_} || $changes->{$_}->[1] eq $e->{$_}))
+                elsif ($changes->{$field} && (!defined $e->{$field} || grep { $_ eq $changes->{$field}->[1] } list($e->{$field})))
                 {
                     $ok = 0;
                     last;
                 }
             }
         }
-        push @rc, $_ unless $ok;
+        push @rc, $checker unless $ok;
     }
     @$checkers = @rc;
 }

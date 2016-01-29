@@ -37,8 +37,20 @@ if ($params->{save})
         {
             if (/^except_field_(\d+)$/so && $params->{$_})
             {
-                $except->{$params->{$_}} =
-                    $params->{"except_field_$1_value"} || undef;
+                my ($f, $v) = ($params->{$_}, $params->{"except_field_$1_value"});
+                if (!$v)
+                {
+                    $except->{$f} = undef;
+                }
+                elsif (!exists $except->{$f})
+                {
+                    $except->{$f} = $v;
+                }
+                elsif (defined $except->{$f})
+                {
+                    $except->{$f} = [ $except->{$f} ] if !ref $except->{$f};
+                    push @{$except->{$f}}, $v;
+                }
             }
         }
         $except = undef if !%$except;

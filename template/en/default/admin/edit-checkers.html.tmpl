@@ -234,7 +234,9 @@ function check_trigger()
 showhide_allowdeny();
 [% IF checker.except_fields %]
  [% FOR f = checker.except_fields.keys %]
-add_field("[% f | js %]", "[% checker.except_fields.$f | js %]");
+  [% FOR v = checker.except_fields.$f %]
+add_field("[% f | js %]", "[% v | js %]");
+  [% END %]
  [% END %]
 [% ELSE %]
 add_field();
