@@ -298,11 +298,11 @@ for my $event_id (keys %{$events})
         my $mailto = '';
         if ($mailto_type == MAILTO_USER)
         {
-            $mailto = $schedule->mailto->login;
+            $mailto = $schedule->mailto && $schedule->mailto->login;
         }
         elsif ($mailto_type == MAILTO_GROUP)
         {
-            $mailto = $schedule->mailto->name;
+            $mailto = $schedule->mailto && $schedule->mailto->name;
         }
         push @{$events->{$event_id}->{schedule}}, {
             day         => $schedule->run_day,
