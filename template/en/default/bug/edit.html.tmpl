@@ -1008,22 +1008,17 @@ document.changeform = document.[% cfname %];
 [% BLOCK commit_button %]
   [% IF user.id %]
     [% w = BLOCK %]
-      [% look_in_viewvc = Param('viewvc_url') %]
-      [% look_in_git = Param('git_url') %]
       [% look_in_wiki = bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url')  %]
-      [% IF look_in_viewvc || look_in_git || look_in_wiki %]
+      [% IF look_in_wiki %]
+        [% look_in_wiki = look_in_wiki _ 'Bug_$BUG' %]
+        [% look_in_urls.push([ 'Wiki', look_in_wiki ]) %]
+      [% END %]
+      [% IF look_in_urls %]
         Look for [% terms.Bug %] in:
-        [% IF look_in_viewvc %]
-        <a href="[% look_in_viewvc | html %]?view=query&amp;comment=bug[% bug.bug_id %]+[% bug.bug_id %]&amp;comment_match=fulltext&amp;querysort=date&amp;date=all">CVS&amp;SVN</a>
-          [% IF look_in_git || look_in_wiki %] / [% END -%]
+        [% FOREACH link = look_in_urls %]
+          [% IF !loop.first %], [% END %]
+          <a href="[% link.1.replace('\\$BUG', bug.bug_id) | html %]">[% link.0 | html %]</a>
         [% END %]
-        [% IF look_in_git %]
-          <a href="[% look_in_git.replace('\\$q', 'bug' _ bug.bug_id _ '+' _ bug.bug_id) | html %]">Git</a>
-          [% IF look_in_wiki %] / [% END %]
-        [% END %]
-        [% IF look_in_wiki %]
-          <a href="[% look_in_wiki | html %][% terms.Bug %]_[% bug.bug_id %]">Wiki</a>
-        [%- END -%]
       [% END %]
     [% END %]
     <div class="knob-buttons">

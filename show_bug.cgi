@@ -156,6 +156,8 @@ $vars->{comment_indexes} = sub
     return [ map { [ $_->{count}, $_->{comment_id}, $_->{type} != CMT_WORKTIME && $_->{type} != CMT_BACKDATED_WORKTIME ? 1 : 0 ] } @$comments ];
 };
 
+$vars->{look_in_urls} = [ map { [ split /:/, $_, 2 ] } grep { /^(?!\s*(#|$))/so } split /\n/, Bugzilla->params->{look_in_urls} ];
+
 Bugzilla->cgi->send_header($format->{ctype});
 $template->process($format->{template}, $vars)
     || ThrowTemplateError($template->error());

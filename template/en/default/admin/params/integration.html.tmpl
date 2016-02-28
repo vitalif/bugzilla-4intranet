@@ -18,18 +18,15 @@
       _ " \$EMAIL will be replaced by cleartext user email, so you should only never use it in public networks;"
       _ " \$MD5 will be replaced by MD5 hash of user email, just like it is required by real Gravatar service."
       _ " You can also disable avatar display by clearing this parameter.",
-    viewvc_url =>
-      "ViewVC query URL for browsing bug-related commits. Bugzilla4Intranet links to ViewVC search page with full-text query 'bugXXX XXX'"
-      _ " which allows to show commits with the bug number in the commit message (like 'Bug XXX' or 'BugXXX').",
-    git_url =>
-      "Git (GitBlit or other web UI) full-text query URL for browsing bug-related commits. '$q' in URL will be replaced by 'bugXXX XXX'"
-      _ " which allows to show commits with the bug number in the commit message (like 'Bug XXX' or 'BugXXX').",
+    look_in_urls =>
+      "<p style='margin: 0'>VCS/Wiki/whatever query URLs for 'Look for bug in ...' links, one per line, separated by ':'.</p>" _
+      "<pre class='cfg_example'>CVS/SVN: http://viewvc.local/?view=query&comment=bug\$BUG+\$BUG&comment_match=fulltext&querysort=date&date=all</pre>" _
+      "<p style='margin: 0; clear: both'>$BUG will be replaced with bug ID in these URLs.</p>",
     wiki_url =>
       "Default MediaWiki URL for bug links. Bugzilla4Intranet links to <tt>&lt;wiki_url&gt;/Bug_XXX</tt> pages when this is non-empty.",
     mediawiki_urls =>
       "<p style='margin: 0'>Known MediaWiki URLs to be quoted in bug comments, one per line. Example:</p>"
-      _ "<pre style='margin: 8px 0; padding: 4px; background: white; float: left;"
-      _ " border: 1px solid gray;'>wikipedia http://en.wikipedia.org/wiki/</pre>"
+      _ "<pre class='cfg_example'>wikipedia http://en.wikipedia.org/wiki/</pre>"
       _ "<p style='margin: 0; clear: both'>Links like <b><tt>wikipedia:Article_name#Section</tt></b>"
       _ " and <b><tt>wikipedia:[[Article name#Section]]</tt></b><br /> will be quoted"
       _ " and lead to <b>Section</b> (optional) of <b>Article name</b> page in the Wikipedia.</p>",

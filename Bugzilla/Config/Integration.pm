@@ -26,14 +26,8 @@ sub get_param_list
     },
 
     {
-        name => 'viewvc_url',
-        type => 't',
-        default => '',
-    },
-
-    {
-        name => 'git_url',
-        type => 't',
+        name => 'look_in_urls',
+        type => 'l',
         default => '',
     },
 
