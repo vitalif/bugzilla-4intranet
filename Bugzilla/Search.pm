@@ -672,6 +672,21 @@ sub STATIC_COLUMNS
                     sortkey => 1,
                 };
             }
+            elsif ($subfield->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                my $type = $subfield->value_type;
+                my $t = $type->DB_TABLE;
+                $columns->{$id.'_'.$subid} = {
+                    name  => "(SELECT ".
+                        $dbh->sql_group_concat("$t.".$type->NAME_FIELD, "', '").
+                        " FROM ".$type->REL_TABLE.", $t WHERE $t.".$type->ID_FIELD."=".$type->REL_TABLE.".value_id".
+                        " AND ".$type->REL_TABLE.".bug_id=bugs_$id".".bug_id)",
+                    title => $field->description . ' ' . $subfield->description,
+                    joins => [ @$join ],
+                    subid => $subid,
+                    sortkey => 1,
+                };
+            }
         }
     }
 
