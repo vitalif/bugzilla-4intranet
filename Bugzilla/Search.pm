@@ -594,6 +594,7 @@ sub STATIC_COLUMNS
         }
         elsif ($field->type == FIELD_TYPE_BUG_ID_REV)
         {
+            # FIXME: Если "обратных" (например, внутренних) багов несколько - join'енные поля по internal bugs работать не будут
             push @bugid_fields, $field;
             $columns->{$id}->{name} = "(SELECT ".
                 $dbh->sql_group_concat("rev_$id.bug_id", "', '").
