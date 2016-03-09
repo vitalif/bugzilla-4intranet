@@ -33,6 +33,12 @@
   [% select_fields.${field.name} = field %]
 [% END %]
 
+[% look_in_wiki = bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url')  %]
+[% IF look_in_wiki %]
+  [% look_in_wiki = look_in_wiki _ 'Bug_$BUG' %]
+  [% look_in_urls.push([ 'Wiki', look_in_wiki ]) %]
+[% END %]
+
 <script type="text/javascript">
 <!--
 var user_settings = {
@@ -1008,11 +1014,6 @@ document.changeform = document.[% cfname %];
 [% BLOCK commit_button %]
   [% IF user.id %]
     [% w = BLOCK %]
-      [% look_in_wiki = bug.component_obj.wiki_url || bug.product_obj.wiki_url || Param('wiki_url')  %]
-      [% IF look_in_wiki %]
-        [% look_in_wiki = look_in_wiki _ 'Bug_$BUG' %]
-        [% look_in_urls.push([ 'Wiki', look_in_wiki ]) %]
-      [% END %]
       [% IF look_in_urls %]
         Look for [% terms.Bug %] in:
         [% FOREACH link = look_in_urls %]
