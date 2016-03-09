@@ -551,7 +551,8 @@ sub can_tweak
     return 1;
 }
 
-# Return valid values for this field, arrayref of Bugzilla::Field::Choice objects.
+# Return valid values for this field, arrayref of Bugzilla::Field::Choice objects,
+# filtered by the current user's permissions.
 # Includes disabled values is $include_disabled == true
 sub legal_values
 {
@@ -943,24 +944,24 @@ sub touch
 sub set_visibility_values
 {
     my $self = shift;
-    my ($value_ids) = @_;
-    $self->update_visibility_values(FLAG_VISIBLE, $value_ids);
+    my ($value_ids, $skip_invisible) = @_;
+    $self->update_visibility_values(FLAG_VISIBLE, $value_ids, $skip_invisible);
     return $value_ids && @$value_ids;
 }
 
 sub set_null_visibility_values
 {
     my $self = shift;
-    my ($value_ids) = @_;
-    $self->update_visibility_values(FLAG_NULLABLE, $value_ids);
+    my ($value_ids, $skip_invisible) = @_;
+    $self->update_visibility_values(FLAG_NULLABLE, $value_ids, $skip_invisible);
     return $value_ids && @$value_ids;
 }
 
 sub set_clone_visibility_values
 {
     my $self = shift;
-    my ($value_ids) = @_;
-    $self->update_visibility_values(FLAG_CLONED, $value_ids);
+    my ($value_ids, $skip_invisible) = @_;
+    $self->update_visibility_values(FLAG_CLONED, $value_ids, $skip_invisible);
     return $value_ids && @$value_ids;
 }
 
@@ -992,7 +993,7 @@ sub clear_default_values
 sub update_visibility_values
 {
     my $self = shift;
-    my ($controlled_value_id, $visibility_value_ids) = @_;
+    my ($controlled_value_id, $visibility_value_ids, $skip_invisible) = @_;
     $visibility_value_ids ||= [];
     my $vis_field = $self->flag_field($controlled_value_id);
     if (!$vis_field)
@@ -1014,6 +1015,16 @@ sub update_visibility_values
     $h = $h->{null}->{$self->id} if $controlled_value_id == FLAG_NULLABLE;
     $h = $h->{clone}->{$self->id} if $controlled_value_id == FLAG_CLONED;
     $h = $h ? { %$h } : {};
+    if ($skip_invisible)
+    {
+        # Do not affect visibility values the user can't see
+        # so he can't damage other user's visibility values for the same field value
+        my $allowed = { map { $_->id => 1 } @{$vis_field->legal_values} };
+        for (keys %$h)
+        {
+            delete $h->{$_} if !$allowed->{$_};
+        }
+    }
     my $add = [];
     for (@$visibility_value_ids)
     {

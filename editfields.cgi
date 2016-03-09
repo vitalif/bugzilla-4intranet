@@ -148,7 +148,7 @@ elsif ($action eq 'update')
             }
             else
             {
-                $field->${\$_->[2]}([ list $ARGS->{$_->[3]} ]);
+                $field->${\$_->[2]}([ list $ARGS->{$_->[3]} ], 'SKIP_INVISIBLE');
             }
         }
     }

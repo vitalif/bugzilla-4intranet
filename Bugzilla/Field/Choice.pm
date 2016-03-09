@@ -413,8 +413,8 @@ sub set_sortkey   { $_[0]->set('sortkey', $_[1]);  }
 sub set_visibility_values
 {
     my $self = shift;
-    my ($value_ids) = @_;
-    $self->field->update_visibility_values($self->id, $value_ids);
+    my ($value_ids, $skip_invisible) = @_;
+    $self->field->update_visibility_values($self->id, $value_ids, $skip_invisible);
     delete $self->{visibility_values};
     return $value_ids;
 }

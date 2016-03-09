@@ -165,7 +165,7 @@ if ($action eq 'update')
     }
     if ($value->field->value_field)
     {
-        $vars->{changes}->{visibility_values} = $value->set_visibility_values([ list $ARGS->{visibility_value_id} ]);
+        $vars->{changes}->{visibility_values} = $value->set_visibility_values([ list $ARGS->{visibility_value_id} ], 'SKIP_INVISIBLE');
     }
     $vars->{changes}->{control_lists} = 1 if $field->update_control_lists($value->id, $ARGS);
     delete_token($token);
