@@ -1331,7 +1331,7 @@ sub init
         $self->{interval_who} = $override ? $H->{period_who} : $H->{chfieldwho};
         for ($self->{interval_from}, $self->{interval_to})
         {
-            $_ = $_ && $_ ne 'now' ? SqlifyDate($_) : undef;
+            $_ = $_ && lc $_ ne 'now' ? SqlifyDate($_) : undef;
         }
         for ($self->{interval_who})
         {
