@@ -371,6 +371,9 @@ sub _translate_comment {
         attachment_id => $self->type('int', $attach_id),
         count      => $self->type('int', $comment->{count}),
     };
+    if (Bugzilla->user->is_timetracker) {
+        $comment_hash->{work_time} = $self->type('double', $comment->{work_time});
+    }
 
     return filter($filters, $comment_hash, $types, $prefix);
 }

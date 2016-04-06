@@ -932,7 +932,7 @@ sub xml_dump_simple
         }
         elsif ($data =~ 'HASH')
         {
-            $r = join '', map { xml_element($_, '', xml_dump_simple($data->{$_})) } keys %$data;
+            $r = join '', map { xml_element((/^[a-z:_][a-z:_\.0-9]*$/is ? ($_, '') : ('i', { key => $_ })), xml_dump_simple($data->{$_})) } keys %$data;
         }
         elsif ($data =~ 'SCALAR')
         {
