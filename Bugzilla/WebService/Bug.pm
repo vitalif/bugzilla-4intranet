@@ -564,7 +564,7 @@ sub search {
     $options{params} = $match_params;
 
     my $search = new Bugzilla::Search(%options);
-    my ($data) = $search->data;
+    my $data = Bugzilla->dbh->selectall_arrayref($search->getSQL);
 
     if (!scalar @$data) {
         return { bugs => [] };
