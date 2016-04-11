@@ -3280,17 +3280,27 @@ sub _in_search_results
 {
     my $self = shift;
     my $v = $self->{value};
-    my $sharer = $self->{params}->{sharer_id};
+    my $sharer = $self->{params}->{sharer_id} || $self->{user}->id;
+    # Do not check permissions for sharer's queries
+    my $m = 'new';
     if ($v =~ /^(.*)<([^>]*)>/so)
     {
         # Allow to match on shared searches via 'SearchName <user@domain.com>' syntax
         $v = $1;
-        $sharer = Bugzilla::User::login_to_id(trim($2), THROW_ERROR);
+        my $new_sharer = Bugzilla::User::login_to_id(trim($2), THROW_ERROR);
+        # Check permissions if the specified user is not the query's sharer
+        $m = 'check' if $new_sharer != $sharer;
+        $sharer = $new_sharer;
     }
-    my $query = Bugzilla::Search::Saved->check({
+    my $query = Bugzilla::Search::Saved->$m({
         name => trim($v),
         user => $sharer,
-    })->query;
+    });
+    if (!$query)
+    {
+        ThrowUserError('object_does_not_exist', { name => trim($v), user => $sharer, class => 'Bugzilla::Search::Saved' });
+    }
+    $query = $query->query;
     my $search = new Bugzilla::Search(
         params => http_decode_query($query),
         fields => [ "bugs.bug_id" ],
