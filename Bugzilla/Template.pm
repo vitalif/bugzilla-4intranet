@@ -340,7 +340,7 @@ sub quoteUrls
     my $q = { '<' => '&lt;', '>' => '&gt;', '&' => '&amp;', '"' => '&quot;' };
     my $safe_tags = '(?:b|i|u|hr|marquee|s|strike|strong|small|big|sub|sup|tt|em|cite|font(?:\s+color=["\']?(?:#[0-9a-f]{3,6}|[a-z]+)["\']?)?)';
     my $block_tags = '(?:h[1-6]|center|ol|ul|li)';
-    $text =~ s/<pre>((?:.*?(?:<pre>(?1)<\/pre>)?)*)<\/pre>|\s*(<\/?$block_tags>)\s*|(<\/?$safe_tags>)|([<>&\"])/$4 ? $q->{$4} : lc($1 eq '' ? ($2 eq '' ? $3 : $2) : html_quote($1))/geiso;
+    $text =~ s/<pre>((?:.*?(?:<pre>(?1)<\/pre>)?)*)<\/pre>|\s*(<\/?$block_tags>)\s*|(<\/?$safe_tags>)|([<>&\"])/$4 ? $q->{$4} : ($1 eq '' ? lc($2 eq '' ? $3 : $2) : html_quote($1))/geiso;
 
     # Replace nowrap markers (\1\0\1)
     $text =~ s/\x01\x00\x01(.*?)\x01\x00\x01/<div style="white-space: nowrap">$1<\/div>/gso;
