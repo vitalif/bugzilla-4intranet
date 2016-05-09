@@ -367,8 +367,8 @@ sub handle_request
     {
         reload();
     }
-    # Bugzilla-specific tweaks
-    binmode STDOUT, ':utf8' if Bugzilla->can('params') && Bugzilla->params->{utf8};
+#    # Bugzilla-specific tweaks
+#    binmode STDOUT, ':utf8' if Bugzilla->can('params') && Bugzilla->params->{utf8};
     # Clear request cache for new versions
     $Bugzilla::_request_cache = {};
     eval

@@ -679,8 +679,8 @@ sub STATIC_COLUMNS
                 $columns->{$id.'_'.$subid} = {
                     name  => "(SELECT ".
                         $dbh->sql_group_concat("$t.".$type->NAME_FIELD, "', '").
-                        " FROM ".$type->REL_TABLE.", $t WHERE $t.".$type->ID_FIELD."=".$type->REL_TABLE.".value_id".
-                        " AND ".$type->REL_TABLE.".bug_id=bugs_$id".".bug_id)",
+                        " FROM ".$subfield->rel_table.", $t WHERE $t.".$type->ID_FIELD."=".$subfield->rel_table.".value_id".
+                        " AND ".$subfield->rel_table.".bug_id=bugs_$id".".bug_id)",
                     title => $field->description . ' ' . $subfield->description,
                     joins => [ @$join ],
                     subid => $subid,
