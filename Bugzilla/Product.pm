@@ -99,6 +99,8 @@ sub update
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
+    $self->{wiki_url} ||= '';
+
     # Don't update the DB if something goes wrong below -> transaction.
     $dbh->bz_start_transaction();
     my $old_self = $self->{_old_self};
@@ -420,7 +422,8 @@ sub _set_classification
         $classification_id = $classification->id;
     }
     delete $self->{classification_obj};
-    return $classification_id;
+    $self->{classification_id} = $classification_id;
+    return undef;
 }
 
 sub _set_name
@@ -494,6 +497,7 @@ sub _set_votes_to_confirm
 sub _check_votes
 {
     my ($self, $votes, $field, $default) = @_;
+    $votes ||= '0';
     detaint_natural($votes);
     # On product creation, if the number of votes is not a valid integer,
     # we silently fall back to the given default value.

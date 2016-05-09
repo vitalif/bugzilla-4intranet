@@ -54,7 +54,7 @@ sub update
         my $row = {};
         for my $f ($self->DB_COLUMNS)
         {
-            next if $f eq $self->ID_FIELD;
+            next if $f eq $self->ID_FIELD || !defined $self->{$f};
             $row->{$f} = $self->{$f};
             trick_taint($row->{$f});
         }

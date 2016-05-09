@@ -868,6 +868,18 @@ WHERE description LIKE \'%[CC:%]%\'');
 
     $dbh->bz_add_column('checkers', 'bypass_group_id');
 
+    # Migrate longdescs_history to objects_activity
+    if ($dbh->bz_table_info('longdescs_history'))
+    {
+        $dbh->do(
+            'INSERT INTO objects_activity (class_id, object_id, field_id, who, change_ts, removed, added)'.
+            ' SELECT '.Bugzilla->get_class('comment')->id.', comment_id, '.
+            Bugzilla->get_class_field('comment', 'thetext')->id.', who, bug_when, oldthetext, thetext'.
+            ' FROM longdescs_history'
+        );
+        $dbh->bz_drop_table('longdescs_history');
+    }
+
     _move_old_defaults($old_params);
 
     ################################################################
@@ -4193,14 +4205,15 @@ sub _move_old_defaults
 sub _add_class_schema
 {
     my $dbh = Bugzilla->dbh;
-    if (!$dbh->bz_column_info('fielddefs', 'class_id'))
+    if (!$dbh->bz_column_info('fielddefs', 'class_id') ||
+        !@{Bugzilla->get_classes()})
     {
         print "-- Adding explicit object classes for all fields --\n";
         $dbh->bz_add_column('fielddefs', 'class_id', undef, 0);
         $dbh->bz_add_column('fielddefs', 'value_class_id');
         $dbh->bz_drop_index('fielddefs', 'fielddefs_name_idx');
-        $dbh->do('INSERT INTO classdefs (name, description, db_table) VALUES (?, ?, ?)', undef, 'bug', 'Bug', 'bugs');
-        my $cl = $dbh->bz_last_key('classdefs', 'id');
+        $dbh->do('INSERT INTO classdefs (id, name, description, db_table) VALUES (1, ?, ?, ?)', undef, 'bug', 'Bug', 'bugs');
+        my $cl = 1;
         $dbh->do('UPDATE fielddefs SET class_id=?', undef, $cl);
         $dbh->bz_add_index('fielddefs', 'fielddefs_name_idx', {FIELDS => ['class_id', 'name'], TYPE => 'UNIQUE'});
         # Object classes are now explicit - add them for all custom select fields
@@ -4346,7 +4359,7 @@ sub _add_class_schema
                 [ 'requestee_id', 'Requestee', FIELD_TYPE_SINGLE, 'user' ],
             ],
         };
-        for my $f (Bugzilla->get_fields({ is_select => 1 }))
+        for my $f (Bugzilla->get_fields({ is_select => 1, class_id => $cl }))
         {
             $class_fields->{$f->name} = $std_select if $f->custom;
             $class_description->{$field_class->{$f->name} || $f->name} ||= $f->description;

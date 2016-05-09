@@ -378,25 +378,6 @@ use constant ABSTRACT_SCHEMA => {
         ],
     },
 
-    # Editable comments (CustIS Bug 134368)
-    longdescs_history => {
-        FIELDS => [
-            bug_id     => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE' } },
-            who        => { TYPE => 'INT4', NOTNULL => 1, REFERENCES => { TABLE => 'profiles', COLUMN => 'userid', DELETE => 'CASCADE' } },
-            bug_when   => { TYPE => 'DATETIME', NOTNULL => 1 },
-            oldthetext => { TYPE => 'LONGTEXT', NOTNULL => 1 },
-            thetext    => { TYPE => 'LONGTEXT', NOTNULL => 1 },
-            comment_id => { TYPE => 'INT4', NOTNULL => 1 },
-            comment_count => { TYPE => 'INT4', NOTNULL => 1 },
-        ],
-        INDEXES => [
-            longdescs_history_bug_when_idx      => { FIELDS => [ 'bug_when' ] },
-            longdescs_history_who_idx           => { FIELDS => [ 'who', 'bug_id' ] },
-            longdescs_history_who_bug_when_idx  => { FIELDS => [ 'who', 'bug_when' ] },
-            longdescs_history_bug_id_idx        => { FIELDS => [ 'bug_id', 'bug_when' ] },
-        ],
-    },
-
     dependencies => {
         FIELDS => [
             blocked   => {TYPE => 'INT4', NOTNULL => 1, REFERENCES => {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'}},

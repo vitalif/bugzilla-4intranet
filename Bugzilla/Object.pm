@@ -334,7 +334,6 @@ sub set_all
 sub update
 {
     my $self = shift;
-    my (undef, $old_self) = @_;
 
     Bugzilla->dbh->bz_start_transaction();
     # Get a copy of old object from the DB

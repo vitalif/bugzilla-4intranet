@@ -1541,23 +1541,8 @@ sub save_changed_comments
         my $c_comment = Bugzilla::Comment->new($edited_comment->{comment_id});
         if (!$c_comment->is_private || Bugzilla->user->is_insider)
         {
-            Bugzilla->dbh->do(
-                "UPDATE longdescs SET thetext = ? WHERE comment_id = ?",
-                undef, $edited_comment->{thetext}, $edited_comment->{comment_id}
-            );
-            $edited_comment->{bug_id} = $self->id;
-            $edited_comment->{who} = Bugzilla->user->id;
-            $edited_comment->{bug_when} = $self->{delta_ts};
-            # number count of the comment
-            my ($comment_count) = Bugzilla->dbh->selectrow_array(
-                'SELECT count(*) FROM longdescs WHERE bug_id = ? AND comment_id <= ? ORDER BY bug_when ASC',
-                undef, $self->id, $edited_comment->{comment_id}
-            );
-            $edited_comment->{comment_count} = ($comment_count-1);
-            my $columns = join(',', keys %$edited_comment);
-            my @values  = values %$edited_comment;
-            my $qmarks  = join(',', ('?') x @values);
-            Bugzilla->dbh->do("INSERT INTO longdescs_history ($columns) VALUES ($qmarks)", undef, @values);
+            $c_comment->set('thetext', $edited_comment->{thetext});
+            $c_comment->save();
         }
     }
 }
@@ -3490,14 +3475,8 @@ sub GetBugActivity
     my $attachpart = "";
     if ($attach_id)
     {
-        push @args, $attach_id;
         $attachpart = "AND a.attach_id = ?";
-    }
-    else
-    {
-        # For UNION longdescs_history
-        push @args, $bug_id;
-        push @args, $starttime if defined $starttime;
+        push @args, $attach_id;
     }
 
     # Only includes attachments the user is allowed to see.
@@ -3518,11 +3497,18 @@ sub GetBugActivity
         " WHERE a.bug_id = ? $datepart $attachpart $suppwhere";
     if (!$attach_id)
     {
-        $query = "$query UNION ALL SELECT 'longdesc' field_name, 0 field_desc, null, " . $dbh->sql_date_format('a.bug_when') .
-            " bug_when, a.oldthetext removed, a.thetext added, profile1.login_name, a.comment_id, a.comment_count".
-            " FROM longdescs_history a".
+        $query = "($query) UNION ALL ".
+            "(SELECT 'longdesc' field_name, 0 field_desc, null, " . $dbh->sql_date_format('a.change_ts') .
+            " bug_when, a.removed, a.added, profile1.login_name, a.object_id, COUNT(*)+1 comment_count".
+            " FROM objects_activity a".
+            " INNER JOIN longdescs ld ON ld.bug_id=? AND a.object_id=ld.comment_id".
+            " INNER JOIN longdescs ld2 ON ld2.bug_id=? AND a.object_id=ld2.comment_id AND ld2.bug_when < ld.bug_when".
             " INNER JOIN profiles profile1 ON profile1.userid = a.who".
-            " WHERE a.bug_id = ? $datepart";
+            " WHERE a.class_id=? AND a.field_id=? $datepart".
+            " GROUP BY a.id)";
+        push @args, $bug_id, $bug_id, Bugzilla->get_class('comment')->id,
+            Bugzilla->get_class_field('comment', 'thetext')->id;
+        push @args, $starttime if $datepart;
     }
     $query .= " ORDER BY bug_when, field_desc";
 

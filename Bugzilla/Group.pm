@@ -42,6 +42,12 @@ sub is_bug_group { return $_[0]->{isbuggroup};   }
 sub user_regexp  { return $_[0]->{userregexp};   }
 sub is_active    { return $_[0]->{isactive};     }
 
+sub get_all
+{
+    my $self = shift;
+    $self->SUPER::get_all(1);
+}
+
 sub _bugs
 {
     my $self = shift;
@@ -248,6 +254,7 @@ sub update
 
     $dbh->bz_start_transaction();
 
+    $self->{userregexp} ||= '';
     my $changes = $self->SUPER::update(@_);
 
     if (exists $changes->{name})

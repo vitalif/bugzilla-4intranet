@@ -366,7 +366,7 @@ sub remote_ip
 sub use_attachbase
 {
     my $attachbase = Bugzilla->params->{attachment_base};
-    return ($attachbase ne '' &&
+    return (defined $attachbase && $attachbase ne '' &&
         $attachbase ne Bugzilla->params->{urlbase} &&
         $attachbase ne Bugzilla->params->{sslbase}) ? 1 : 0;
 }

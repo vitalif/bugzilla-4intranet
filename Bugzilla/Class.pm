@@ -247,17 +247,17 @@ sub _set_list_order
     my ($self, $list_order) = @_;
     return '' if !$self->id;
     my $arr = [ split /[\s,]*,[\s,]*/, lc(trim($list_order)) ];
-    my %columns = map { $_ => 1 } $self->type->DB_COLUMNS;
-    foreach (@$arr)
+    my %columns = (map { $_ => 1 } $self->type->DB_COLUMNS);
+    foreach my $col (@$arr)
     {
-        $_ = [ split /\s+/, $_, 2 ];
-        $_->[1] ||= 'asc';
-        if ($_->[1] ne 'desc' && $_->[1] ne 'asc' ||
-            !$columns{$_->[0]})
+        $col = [ split /\s+/, $col, 2 ];
+        $col->[1] ||= 'asc';
+        if ($col->[1] ne 'desc' && $col->[1] ne 'asc' ||
+            !$columns{$col->[0]})
         {
-            ThrowUserError('class_invalid_list_order', { class => ref $self, list_order => $list_order });
+            ThrowUserError('class_invalid_list_order', { class => $self, list_order => $list_order });
         }
-        $_ = join ' ', @$_;
+        $col = join ' ', @$col;
     }
     return join ', ', @$arr;
 }

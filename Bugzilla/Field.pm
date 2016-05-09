@@ -71,7 +71,7 @@ use POSIX;
 ###############################
 
 use constant DB_TABLE   => 'fielddefs';
-use constant LIST_ORDER => 'sortkey, name';
+use constant LIST_ORDER => 'class_id, sortkey, name';
 
 use constant DB_COLUMNS => qw(
     id
@@ -367,13 +367,13 @@ sub _check_visibility_field_id
     {
         ThrowUserError('field_cant_control_self', { field => $field });
     }
+    if (blessed($invocant) && $invocant->{class_id} != $field->class_id)
+    {
+        ThrowUserError('field_control_other_class', { field => $field });
+    }
     if (!$field->is_select)
     {
         ThrowUserError('field_control_must_be_select', { field => $field });
-    }
-    if ($invocant->{class_id} != $field->class_id)
-    {
-        ThrowUserError('field_control_other_class', { field => $field });
     }
     return $field->id;
 }

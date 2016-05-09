@@ -233,7 +233,7 @@ sub create_default_product
 
         Bugzilla::Component->create({
             %{ DEFAULT_COMPONENT() },
-            product => $product,
+            product_id => $product,
             initialowner => $admin->login,
         });
     }

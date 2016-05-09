@@ -268,8 +268,9 @@ sub Send
     my @args = ($id, $start || $creation_ts, $end);
     my @dep_args = ($id, $start || $creation_ts, $end);
     my $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
+    # FIXME Use Bug::get_history
     my $diffs = $dbh->selectall_arrayref(
-           "SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
+          "(SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
                    fielddefs.sortkey fieldsortkey,
                    bugs_activity.bug_when, bugs_activity.removed,
                    bugs_activity.added, bugs_activity.attach_id, fielddefs.name fieldname, null as comment_id, null as comment_count
@@ -279,17 +280,17 @@ sub Send
         INNER JOIN profiles
                 ON profiles.userid = bugs_activity.who
              WHERE bugs_activity.bug_id = ?
-                   $when_restriction
-  UNION ALL SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
+                   $when_restriction)
+ UNION ALL (SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
                    fielddefs1.sortkey fieldsortkey,
-                   lh.bug_when, lh.oldthetext removed, lh.thetext added, null, fielddefs1.name fieldname, lh.comment_id, lh.comment_count
-              FROM longdescs_history lh
-        INNER JOIN profiles profile1
-                ON profile1.userid = lh.who
-        INNER JOIN fielddefs fielddefs1
-                ON fielddefs1.name = 'longdesc'
-             WHERE lh.bug_id = ?
-                   $when_restriction
+                   a.change_ts, a.removed, a.added, null, fielddefs1.name fieldname, a.object_id, COUNT(*)+1 comment_count
+              FROM objects_activity a
+        INNER JOIN longdescs ld ON ld.bug_id=? AND a.object_id=ld.comment_id
+        INNER JOIN longdescs ld2 ON ld2.bug_id=? AND a.object_id=ld2.comment_id AND ld2.bug_when < ld.bug_when
+        INNER JOIN profiles profile1 ON profile1.userid = a.who
+        INNER JOIN fielddefs fielddefs1 ON fielddefs1.name = 'longdesc'
+             WHERE $when_restriction
+          GROUP BY a.id)
           ORDER BY bug_when, fieldsortkey", {Slice=>{}}, @args, @args);
 
     my @new_depbugs;

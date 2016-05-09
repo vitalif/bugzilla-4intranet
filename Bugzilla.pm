@@ -1013,7 +1013,7 @@ sub get_fields
     for my $k (keys %$criteria)
     {
         my %v = map { $_ => 1 } (ref $criteria->{$k} ? @{$criteria->{$k}} : $criteria->{$k});
-        @fields = grep { $v{$_->$k} } @fields;
+        @fields = grep { $v{defined $_->$k ? $_->$k : ''} } @fields;
     }
     if ($sort)
     {

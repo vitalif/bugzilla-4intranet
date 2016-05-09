@@ -56,6 +56,7 @@ sub preload
 ####      Accessors      ######
 ###############################
 
+sub count       { $_[0]->{count} }
 sub creation_ts { $_[0]->{bug_when} }
 sub is_private  { $_[0]->{isprivate} }
 sub bug         { $_[0]->get_object('bug_id') }

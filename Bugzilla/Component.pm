@@ -77,6 +77,18 @@ sub new
 sub update
 {
     my $self = shift;
+    if (!$self->product)
+    {
+        ThrowUserError('component_unknown_product', {});
+    }
+    my $component = new Bugzilla::Component({ product => $self->product, name => $self->name });
+    if ($component && $component->id != $self->id)
+    {
+        ThrowUserError('component_already_exists', {
+            name    => $component->name,
+            product => $self->product,
+        });
+    }
     my $changes = $self->SUPER::update(@_);
     # Duplicate visibility values into fieldvaluecontrol
     Bugzilla->get_field('component')->update_visibility_values($self->id, [ $self->product_id ]);
@@ -125,14 +137,6 @@ sub _set_name
     if (length($name) > MAX_FIELD_VALUE_SIZE)
     {
         ThrowUserError('component_name_too_long', { name => $name });
-    }
-    my $component = new Bugzilla::Component({ product => $self->product, name => $name });
-    if ($component && $component->id != $self->id)
-    {
-        ThrowUserError('component_already_exists', {
-            name    => $component->name,
-            product => $self->product,
-        });
     }
     return $name;
 }
