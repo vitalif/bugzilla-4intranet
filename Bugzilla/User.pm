@@ -47,6 +47,7 @@ use constant LIST_ORDER => 'login_name';
 use constant ID_FIELD => 'userid';
 use constant NAME_FIELD => 'login_name';
 use constant CLASS_NAME => 'user';
+use constant NO_HISTORY => { cryptpassword => 1 };
 
 use constant OVERRIDE_SETTERS => {
     cryptpassword => \&_check_password,
@@ -67,6 +68,18 @@ use constant DEFAULT_USER => {
     disable_mail => 0,
     is_enabled   => 1,
 };
+
+sub DB_COLUMNS
+{
+    my $self = shift;
+    return ($self->SUPER::DB_COLUMNS(), 'cryptpassword');
+}
+
+sub UPDATE_COLUMNS
+{
+    my $self = shift;
+    return ($self->SUPER::UPDATE_COLUMNS(), 'cryptpassword');
+}
 
 my $SUPERUSER;
 

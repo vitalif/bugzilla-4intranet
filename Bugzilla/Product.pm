@@ -45,9 +45,9 @@ use constant OVERRIDE_SETTERS => {
     classification   => \&_set_classification,
     name             => \&_set_name,
     description      => \&_set_description,
-    votesperuser     => \&_set_votes_per_user,
-    maxvotesperbug   => \&_set_votes_per_bug,
-    votestoconfirm   => \&_set_votes_to_confirm,
+    votesperuser     => \&_set_votesperuser,
+    maxvotesperbug   => \&_set_maxvotesperbug,
+    votestoconfirm   => \&_set_votestoconfirm,
     extproduct       => \&_set_extproduct,
 };
 
@@ -117,13 +117,13 @@ sub update
 
         # 1. too many votes for a single user on a single bug.
         my @toomanyvotes_list = ();
-        if ($self->max_votes_per_bug < $self->votes_per_user)
+        if ($self->maxvotesperbug < $self->votesperuser)
         {
             my $votes = $dbh->selectall_arrayref(
                 'SELECT votes.who, votes.bug_id, profiles.login_name FROM votes, bugs, profiles'.
                 ' WHERE bugs.product_id = ? AND votes.vote_count > ?'.
                 ' AND bugs.bug_id=votes.bug_id AND profiles.id=votes.who',
-                undef, $self->id, $self->max_votes_per_bug
+                undef, $self->id, $self->maxvotesperbug
             );
             foreach my $vote (@$votes)
             {
@@ -160,7 +160,7 @@ sub update
         my @toomanytotalvotes_list = ();
         foreach my $who (keys(%counts))
         {
-            if ($counts{$who}[0] > $self->votes_per_user)
+            if ($counts{$who}[0] > $self->votesperuser)
             {
                 my $name = $counts{$who}[1];
                 my $bug_ids = $dbh->selectcol_arrayref(
@@ -181,7 +181,7 @@ sub update
         my $bug_list = $dbh->selectcol_arrayref(
             'SELECT bug_id FROM bugs, bug_status WHERE product_id = ?'.
             ' AND bugs.bug_status = bug_status.id AND NOT bug_status.is_confirmed AND votes >= ?',
-            undef, ($self->id, $self->votes_to_confirm)
+            undef, ($self->id, $self->votestoconfirm)
         );
 
         my @updated_bugs = ();
@@ -478,17 +478,17 @@ sub _set_extproduct
     $self->{extproduct} = $product ? $product->id : undef;
 }
 
-sub _set_votes_per_user
+sub _set_votesperuser
 {
     return _check_votes(@_, 0);
 }
 
-sub _set_votes_per_bug
+sub _set_maxvotesperbug
 {
     return _check_votes(@_, 10000);
 }
 
-sub _set_votes_to_confirm
+sub _set_votestoconfirm
 {
     return _check_votes(@_, 0);
 }
@@ -1013,9 +1013,9 @@ Bugzilla::Product - Bugzilla product class.
     my $name             = $product->name;
     my $description      = $product->description;
     my $isactive         = $product->is_active;
-    my $votesperuser     = $product->votes_per_user;
-    my $maxvotesperbug   = $product->max_votes_per_bug;
-    my $votestoconfirm   = $product->votes_to_confirm;
+    my $votesperuser     = $product->votesperuser;
+    my $maxvotesperbug   = $product->maxvotesperbug;
+    my $votestoconfirm   = $product->votestoconfirm;
     my $wiki_url         = $product->wiki_url;
     my $notimetracking   = $product->notimetracking;
     my $classificationid = $product->classification_id;

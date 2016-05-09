@@ -159,7 +159,7 @@ sub show_user
     # Read the votes data for this user for each product.
     foreach my $product (@$products)
     {
-        next unless $product->votes_per_user > 0;
+        next unless $product->votesperuser > 0;
 
         my @bugs;
         my @bug_ids;
@@ -188,7 +188,7 @@ sub show_user
             push @all_bug_ids, $id;
         }
 
-        $onevoteonly = 1 if (min($product->votes_per_user, $product->max_votes_per_bug) == 1);
+        $onevoteonly = 1 if (min($product->votesperuser, $product->maxvotesperbug) == 1);
 
         # Only add the product for display if there are any bugs in it.
         if ($#bugs > -1)
@@ -199,8 +199,8 @@ sub show_user
                 bug_ids => \@bug_ids,
                 onevoteonly => $onevoteonly,
                 total => $total,
-                maxvotes => $product->votes_per_user,
-                maxperbug => $product->max_votes_per_bug,
+                maxvotes => $product->votesperuser,
+                maxperbug => $product->maxvotesperbug,
             };
         }
     }
@@ -286,9 +286,9 @@ sub record_votes
             $prodcount{$prod} += $votes{$bug_id};
 
             # Make sure we haven't broken the votes-per-bug limit
-            ($votes{$bug_id} <= $products{$prod}->max_votes_per_bug)
+            ($votes{$bug_id} <= $products{$prod}->maxvotesperbug)
                 || ThrowUserError("too_many_votes_for_bug", {
-                    max => $products{$prod}->max_votes_per_bug,
+                    max => $products{$prod}->maxvotesperbug,
                     product => $prod,
                     votes => $votes{$bug_id},
                 });
@@ -297,9 +297,9 @@ sub record_votes
         # Make sure we haven't broken the votes-per-product limit
         foreach my $prod (keys(%prodcount))
         {
-            ($prodcount{$prod} <= $products{$prod}->votes_per_user)
+            ($prodcount{$prod} <= $products{$prod}->votesperuser)
                 || ThrowUserError("too_many_votes_for_product", {
-                    max => $products{$prod}->votes_per_user,
+                    max => $products{$prod}->votesperuser,
                     product => $prod,
                     votes => $prodcount{$prod}
                 });

@@ -151,7 +151,7 @@ $sel->wait_for_page_to_load_ok(WAIT_TIME);
 $sel->title_like(qr/^Bug \d+ Submitted/);
 my $bug1_id = $sel->get_value("//input[\@name='id' and \@type='hidden']");
 
-# Edit product properties and set votes_to_confirm to 0, which has
+# Edit product properties and set votestoconfirm to 0, which has
 # the side-effect to disable auto-confirmation (new behavior compared
 # to Bugzilla 3.4 and older).
 

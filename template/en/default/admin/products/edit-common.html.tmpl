@@ -58,14 +58,14 @@
     <input type="checkbox" id="allows_unconfirmed" name="allows_unconfirmed"
       [% ' checked="checked"' IF product.allows_unconfirmed %]
       [% IF Bugzilla.get_field('votes').enabled %]
-        onchange="toggleClass('votes_to_confirm_container', 'bz_default_hidden')"
+        onchange="toggleClass('votestoconfirm_container', 'bz_default_hidden')"
       [% END %] />
     [% IF Bugzilla.get_field('votes').enabled %]
-    <span id="votes_to_confirm_container" [% ' class="bz_default_hidden"' IF !product.allows_unconfirmed %]>
+    <span id="votestoconfirm_container" [% ' class="bz_default_hidden"' IF !product.allows_unconfirmed %]>
       ...and automatically confirm [% terms.bugs %] if they get
       <input size="3" maxlength="5" name="votestoconfirm"
         id="votestoconfirm"
-        value="[% product.votes_to_confirm | html %]" />
+        value="[% product.votestoconfirm | html %]" />
       votes. (Setting this to 0 disables auto-confirming [% terms.bugs %] by vote.)
     </span>
     [% END %]

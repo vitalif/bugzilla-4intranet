@@ -134,13 +134,15 @@ use constant DEFAULT_PRODUCT => {
         . ' This ought to be blown away and replaced with real stuff in a'
         . ' finished installation of bugzilla.',
     classification => 'Unclassified',
+    isactive => 1,
 };
 
 use constant DEFAULT_COMPONENT => {
     name => 'TestComponent',
     description => 'This is a test component in the test product database.'
         . ' This ought to be blown away and replaced with real stuff in'
-        . ' a finished installation of Bugzilla.'
+        . ' a finished installation of Bugzilla.',
+    isactive => 1,
 };
 
 sub update_settings
@@ -236,6 +238,11 @@ sub create_default_product
             product_id => $product,
             initialowner => $admin->login,
         });
+
+        for my $f (Bugzilla->get_fields({ null_field_id => Bugzilla->get_field('product')->id }))
+        {
+            $f->set_null_visibility_values([ $product->id ]);
+        }
     }
 }
 

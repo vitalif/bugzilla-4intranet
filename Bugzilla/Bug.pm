@@ -3204,7 +3204,7 @@ sub show_attachment_flags
 sub use_votes
 {
     my ($self) = @_;
-    return Bugzilla->get_field('votes')->enabled && $self->product_obj->votes_per_user > 0;
+    return Bugzilla->get_field('votes')->enabled && $self->product_obj->votesperuser > 0;
 }
 
 sub groups
@@ -3507,7 +3507,7 @@ sub GetBugActivity
             " WHERE a.class_id=? AND a.field_id=? $datepart".
             " GROUP BY a.id)";
         push @args, $bug_id, $bug_id, Bugzilla->get_class('comment')->id,
-            Bugzilla->get_class_field('comment', 'thetext')->id;
+            Bugzilla->get_class_field('thetext', 'comment')->id;
         push @args, $starttime if $datepart;
     }
     $query .= " ORDER BY bug_when, field_desc";
@@ -3756,8 +3756,8 @@ sub check_if_voted_confirmed
 {
     my $bug = shift;
     my $ret = 0;
-    if (!$bug->everconfirmed && $bug->product_obj->votes_to_confirm &&
-        $bug->votes >= $bug->product_obj->votes_to_confirm)
+    if (!$bug->everconfirmed && $bug->product_obj->votestoconfirm &&
+        $bug->votes >= $bug->product_obj->votestoconfirm)
     {
         $bug->add_comment('', { type => CMT_POPULAR_VOTES });
 

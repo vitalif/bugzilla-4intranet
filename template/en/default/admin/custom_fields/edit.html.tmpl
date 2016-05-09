@@ -132,7 +132,7 @@ var constants = {
           [% IF field.id %]
             [% field_types.${field.type} | html %]
             [% IF field.is_select %]
-            of <a href="editclasses.cgi?id=[% field.value_class.id %]">[% field.value_class.description | html %]</a>
+            of <a href="editclasses.cgi?action=edit&id=[% field.value_class.id %]">[% field.value_class.description | html %]</a>
             [% END %]
           [% ELSE %]
             <select id="type" name="type" onchange="onChangeType()">

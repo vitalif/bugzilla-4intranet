@@ -267,7 +267,6 @@ sub Send
 
     my @args = ($id, $start || $creation_ts, $end);
     my @dep_args = ($id, $start || $creation_ts, $end);
-    my $when_restriction = ' AND bug_when > ? AND bug_when <= ?';
     # FIXME Use Bug::get_history
     my $diffs = $dbh->selectall_arrayref(
           "(SELECT profiles.login_name, profiles.realname, fielddefs.description fielddesc,
@@ -279,8 +278,7 @@ sub Send
                 ON fielddefs.id = bugs_activity.fieldid
         INNER JOIN profiles
                 ON profiles.userid = bugs_activity.who
-             WHERE bugs_activity.bug_id = ?
-                   $when_restriction)
+             WHERE bugs_activity.bug_id = ? AND bug_when > ? AND bug_when <= ?)
  UNION ALL (SELECT profile1.login_name, profile1.realname, fielddefs1.description fielddesc,
                    fielddefs1.sortkey fieldsortkey,
                    a.change_ts, a.removed, a.added, null, fielddefs1.name fieldname, a.object_id, COUNT(*)+1 comment_count
@@ -289,9 +287,9 @@ sub Send
         INNER JOIN longdescs ld2 ON ld2.bug_id=? AND a.object_id=ld2.comment_id AND ld2.bug_when < ld.bug_when
         INNER JOIN profiles profile1 ON profile1.userid = a.who
         INNER JOIN fielddefs fielddefs1 ON fielddefs1.name = 'longdesc'
-             WHERE $when_restriction
+             WHERE a.change_ts > ? AND a.change_ts <= ?
           GROUP BY a.id)
-          ORDER BY bug_when, fieldsortkey", {Slice=>{}}, @args, @args);
+          ORDER BY bug_when, fieldsortkey", {Slice=>{}}, @args, $id, @args);
 
     my @new_depbugs;
     foreach my $diff (@$diffs)
@@ -342,9 +340,8 @@ sub Send
         INNER JOIN profiles
                 ON profiles.userid = bugs_activity.who
              WHERE dependencies.blocked = ?
-               AND (fielddefs.name = 'bug_status'
-                    OR fielddefs.name = 'resolution')
-                   $when_restriction
+               AND (fielddefs.name = 'bug_status' OR fielddefs.name = 'resolution')
+               AND bug_when > ? AND bug_when <= ?
                    $dep_restriction
           ORDER BY bugs_activity.bug_when, bugs.bug_id, fielddefs.sortkey", {Slice=>{}}, @dep_args);
 
