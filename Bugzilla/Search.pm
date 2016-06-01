@@ -3295,6 +3295,7 @@ sub _in_search_results
     my $query = Bugzilla::Search::Saved->$m({
         name => trim($v),
         user => $sharer,
+        runner => $self->{user},
     });
     if (!$query)
     {

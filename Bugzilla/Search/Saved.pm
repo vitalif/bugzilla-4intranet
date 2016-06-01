@@ -102,10 +102,11 @@ sub new
 sub check
 {
     my $class = shift;
-    my $search = $class->SUPER::check(@_);
-    my $user = Bugzilla->user;
+    my ($param) = @_;
+    my $search = $class->SUPER::check($param);
+    my $user = $param->{runner} || Bugzilla->user;
     return $search if $search->user->id == $user->id;
-    if (!Bugzilla->user->in_group('admin') &&
+    if (!$user->in_group('admin') &&
         (!$search->shared_with_group || !$user->in_group($search->shared_with_group)))
     {
         ThrowUserError('missing_query', {
