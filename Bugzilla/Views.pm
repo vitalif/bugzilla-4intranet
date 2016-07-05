@@ -106,8 +106,8 @@ sub refresh_some_views
         $dbh->do($drop.'longdescs');
         $dbh->do($drop.'bugs_activity');
         $dbh->do($create.'bugs AS '.$sql);
-        $dbh->do($create.'longdescs AS SELECT l.bug_id, u.login_name, l.bug_when, l.thetext, l.work_time FROM longdescs l INNER JOIN '.$bugids.' b ON b.bug_id=l.bug_id INNER JOIN profiles u ON u.userid=l.who'.($userobj->is_insider?'':' WHERE l.isprivate=0'));
-        $dbh->do($create.'bugs_activity AS SELECT a.bug_id, u.login_name, a.bug_when, f.name field_name, a.removed, a.added FROM bugs_activity a INNER JOIN '.$bugids.' b ON b.bug_id=a.bug_id INNER JOIN profiles u ON u.userid=a.who INNER JOIN fielddefs f ON f.id=a.fieldid');
+        $dbh->do($create.'longdescs AS SELECT l.comment_id, l.bug_id, u.login_name, l.bug_when, l.thetext, l.work_time FROM longdescs l INNER JOIN '.$bugids.' b ON b.bug_id=l.bug_id INNER JOIN profiles u ON u.userid=l.who'.($userobj->is_insider?'':' WHERE l.isprivate=0'));
+        $dbh->do($create.'bugs_activity AS SELECT a.id, a.bug_id, u.login_name, a.bug_when, f.name field_name, a.removed, a.added FROM bugs_activity a INNER JOIN '.$bugids.' b ON b.bug_id=a.bug_id INNER JOIN profiles u ON u.userid=a.who INNER JOIN fielddefs f ON f.id=a.fieldid');
     }
 }
 
