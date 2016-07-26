@@ -99,10 +99,12 @@ END; %]
       <td class="[% classes.$row_idx.$col_idx %]">
         [% PROCESS value_display value = row field = row_field %]
       </td>
+      [% col_n = 0 %]
       [% FOREACH col = col_names %]
         [% col_idx = 1 - col_idx %]
         [% FOR m = mlist %]
-          [% col_totals.$col.$m = col_totals.$col.$m + data.$tbl.$col.$row.$m %]
+          [%# Use numeric keys because fu*king Template::Stash produces double UTF-8 %]
+          [% col_totals.$col_n.$m = col_totals.$col_n.$m + data.$tbl.$col.$row.$m %]
           [% row_total.$m = row_total.$m + data.$tbl.$col.$row.$m %]
           <td class="[% classes.$row_idx.$col_idx %]" align="center">
             [% IF data.$tbl.$col.$row.$m AND data.$tbl.$col.$row.$m > 0 %]
@@ -113,6 +115,7 @@ END; %]
             [% END %]
           </td>
         [% END %]
+        [% col_n = col_n + 1 %]
       [% END %]
       [% IF col_names.size > 1 %]
         [% FOR m = mlist %]
@@ -131,15 +134,17 @@ END; %]
   <tr>
     [% row_idx = 1 - row_idx %]
     <td class="ttotal">Total</td>
+    [% col_n = 0 %]
     [% FOREACH col = col_names %]
       [% FOR m = mlist %]
         <td class="ttotal" align="center">
           <a href="[% urlbase %]&amp;
             [% PROCESS value_url value=col field=col_field %]
             [% "&amp;$row_vals" IF row_vals %]">
-          [% col_totals.$col.$m %]</a>
+          [% col_totals.$col_n.$m %]</a>
         </td>
       [% END %]
+      [% col_n = col_n + 1 %]
     [% END %]
     [% IF col_names.size > 1 %]
       [% FOR m = mlist %]

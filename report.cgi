@@ -262,7 +262,7 @@ foreach my $tbl (@tbl_names)
         my @col_data;
         foreach my $col (@col_names)
         {
-            $data{$tbl}{$col}{$row} = $data{$tbl}{$col}{$row} || 0;
+            $data{$tbl}{$col}{$row} ||= {};
             push @col_data, $data{$tbl}{$col}{$row};
             if ($tbl ne "-total-")
             {
@@ -270,7 +270,10 @@ foreach my $tbl (@tbl_names)
                 # building up the -total- data, and then last time round,
                 # we process it as another tbl, and push() the total values
                 # into the image_data array.
-                $data{"-total-"}{$col}{$row} += $data{$tbl}{$col}{$row};
+                for my $m (keys %{$data{$tbl}{$col}{$row}})
+                {
+                    $data{"-total-"}{$col}{$row}{$m} += $data{$tbl}{$col}{$row}{$m};
+                }
             }
         }
         push @tbl_data, \@col_data;
