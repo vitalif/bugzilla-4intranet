@@ -493,10 +493,20 @@ function to_attachment_page(link)
     var form = document.createElement('form');
     form.action = link.href;
     form.method = 'post';
-    var textarea = document.createElement('textarea');
-    textarea.name = "comment";
-    textarea.value = document.getElementById('comment_textarea').value;
-    form.appendChild(textarea);
+    var e = document.createElement('input');
+    e.type = 'hidden';
+    e.name = 'comment';
+    e.value = document.getElementById('comment_textarea').value;
+    form.appendChild(e);
+    var w = document.getElementById('work_time');
+    if (w)
+    {
+        e = document.createElement('input');
+        e.type = 'hidden';
+        e.name = 'work_time';
+        e.value = w.value;
+        form.appendChild(e);
+    }
     document.body.appendChild(form);
     form.submit();
     return false;

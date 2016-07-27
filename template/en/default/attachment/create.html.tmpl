@@ -145,7 +145,7 @@
 
     <tr>
       <th><label for="work_time">Hours Worked:</label></th>
-      <td><input type="text" size="10" value="0.0" name="work_time" id="work_time" /></td>
+      <td><input type="text" size="10" value="[% work_time || '0.0' %]" name="work_time" id="work_time" /></td>
     </tr>
     <tr>
       <th><label for="comment">Comment:</label></th>

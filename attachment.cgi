@@ -515,6 +515,7 @@ sub enter
     my $comment = $ARGS->{comment};
     $comment = '' unless defined $comment;
     $vars->{commenttext} = $comment;
+    $vars->{work_time} = $ARGS->{work_time};
 
     # Generate and return the UI (HTML page) from the appropriate template.
     Bugzilla->template->process("attachment/create.html.tmpl", $vars)
