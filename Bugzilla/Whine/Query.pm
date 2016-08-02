@@ -40,6 +40,7 @@ use constant DB_COLUMNS => qw(
     sortkey
     onemailperbug
     title
+    isreport
 );
 
 use constant NAME_FIELD => 'id';
@@ -53,7 +54,7 @@ sub sortkey           { return $_[0]->{'sortkey'};       }
 sub one_email_per_bug { return $_[0]->{'onemailperbug'}; }
 sub title             { return $_[0]->{'title'};         }
 sub name              { return $_[0]->{'query_name'};    }
-
+sub isreport          { return $_[0]->{'isreport'};      }
 
 1;
 

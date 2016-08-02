@@ -33,14 +33,6 @@
   # cumulate: boolean. For bar/line charts, whether to cumulate data sets.
   #%]
 
-[% DEFAULT width = 600
-           height = 350 
-%]
-
-[% IF min_width AND width < min_width %]
-  [% width = min_width %]
-[% END %]
-
 [%# We ignore row_field for pie charts %]
 [% IF format == "pie" %]
   [% row_field = "" %]

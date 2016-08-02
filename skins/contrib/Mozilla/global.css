@@ -946,11 +946,14 @@ table.tabs {
 }
 
 table.eventbox {
-    border-color: gray;
-    padding: 5px;
+    border-color: white;
     background: white;
     border-radius: 5px;
     box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+table.eventbox td.set {
+    background: #e0e0e0;
 }
 
 /* search */

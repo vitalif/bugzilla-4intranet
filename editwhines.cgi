@@ -247,6 +247,7 @@ if ($ARGS->{update})
                     my $title       = $ARGS->{"query_title_$qid"} || '';
                     my $o_onemailperbug = $ARGS->{"orig_query_onemailperbug_$qid"} || 0;
                     my $onemailperbug   = $ARGS->{"query_onemailperbug_$qid"} ? 1 : 0;
+                    my $isreport    = 0;
 
                     if ($o_sort != $sort || $o_queryname ne $queryname ||
                         $o_onemailperbug != $onemailperbug || $o_title ne $title)
@@ -254,9 +255,13 @@ if ($ARGS->{update})
                         detaint_natural($sort);
                         trick_taint($queryname);
                         trick_taint($title);
+                        if ($queryname =~ /^([01])-(.*)$/s)
+                        {
+                            ($isreport, $queryname) = ($1, $2);
+                        }
                         $dbh->do(
-                            "UPDATE whine_queries SET sortkey=?, query_name=?, title=?, onemailperbug=? WHERE id=?",
-                            undef, $sort, $queryname, $title, $onemailperbug, $qid
+                            "UPDATE whine_queries SET sortkey=?, query_name=?, title=?, onemailperbug=?, isreport=? WHERE id=?",
+                            undef, $sort, $queryname, $title, $onemailperbug, $isreport, $qid
                         );
                     }
                 }
@@ -323,6 +328,7 @@ for my $event_id (keys %{$events})
             sort          => $query->sortkey,
             id            => $query->id,
             onemailperbug => $query->one_email_per_bug,
+            isreport      => $query->isreport,
         };
     }
 }
@@ -330,7 +336,8 @@ for my $event_id (keys %{$events})
 $vars->{events} = $events;
 
 # get the available queries
-$vars->{available_queries} = $dbh->selectcol_arrayref("SELECT name FROM namedqueries WHERE userid=?", undef, $userid) || [];
+$vars->{available_queries} = $dbh->selectcol_arrayref("SELECT name FROM namedqueries WHERE userid=? ORDER BY name", undef, $userid) || [];
+$vars->{available_reports} = $dbh->selectcol_arrayref("SELECT name FROM reports WHERE user_id=? ORDER BY name", undef, $userid) || [];
 $vars->{token} = issue_session_token('edit_whine');
 $vars->{local_timezone} = Bugzilla->local_timezone->short_name_for_datetime(DateTime->now());
 

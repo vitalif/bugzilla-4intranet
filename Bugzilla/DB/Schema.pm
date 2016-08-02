@@ -1132,6 +1132,7 @@ use constant ABSTRACT_SCHEMA => {
             sortkey       => {TYPE => 'INT4', NOTNULL => 1, DEFAULT => '0'},
             onemailperbug => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
             title         => {TYPE => 'varchar(255)', NOTNULL => 1, DEFAULT => "''"},
+            isreport      => {TYPE => 'BOOLEAN', NOTNULL => 1, DEFAULT => 'FALSE'},
         ],
         INDEXES => [
             whine_queries_eventid_idx => ['eventid'],

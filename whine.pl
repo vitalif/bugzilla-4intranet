@@ -29,6 +29,9 @@ use Bugzilla::User;
 use Bugzilla::Mailer;
 use Bugzilla::Util;
 use Bugzilla::Group;
+use Bugzilla::Report;
+
+Bugzilla->set_user(Bugzilla::User->super_user);
 
 # %seen_schedules is a list of all of the schedules that have already been
 # touched by reset_timer. If reset_timer sees a schedule more than once, it
@@ -176,7 +179,7 @@ while (my $event = get_next_event())
             my $there_are_bugs = 0;
             for my $query (@{$queries})
             {
-                $there_are_bugs = 1 if scalar @{$query->{bugs}};
+                $there_are_bugs = 1 if $query->{isreport} || scalar @{$query->{bugs}};
             }
             next unless $there_are_bugs;
         }
@@ -320,6 +323,8 @@ sub mail
     # Don't send mail to someone whose bugmail notification is disabled.
     return if $addressee->email_disabled;
 
+    $args->{report_columns} = Bugzilla::Search->REPORT_COLUMNS();
+
     my $template = Bugzilla->template_inner($addressee->settings->{lang}->{value});
     my $msg = ''; # it's a temporary variable to hold the template output
     $args->{alternatives} ||= [];
@@ -373,12 +378,25 @@ sub run_queries
     my $dbh = Bugzilla->dbh;
 
     my $queries = $dbh->selectall_arrayref(
-        "SELECT query_name, title, onemailperbug FROM whine_queries".
+        "SELECT query_name, title, onemailperbug, isreport FROM whine_queries".
         " WHERE eventid=? ORDER BY sortkey", {Slice=>{}}, $args->{eventid}
     );
     foreach my $thisquery (@$queries)
     {
         next unless $thisquery->{query_name}; # named query is blank
+
+        if ($thisquery->{isreport})
+        {
+            my ($savedreport) = @{ Bugzilla::Report->match({ name => $thisquery->{query_name}, user_id => $args->{author}->id }) };
+            next unless $savedreport; # silently ignore missing reports
+            my $params = http_decode_query($savedreport->query);
+            $thisquery->{data} = Bugzilla::Report->execute($params, $args->{author});
+            if (@{$thisquery->{data}->{image_data}})
+            {
+                push @$return_queries, $thisquery;
+            }
+            next;
+        }
 
         my $savedquery = Bugzilla::Search::Saved->new({ name => $thisquery->{query_name}, user => $args->{author} });
         next unless $savedquery; # silently ignore missing queries

@@ -866,6 +866,8 @@ WHERE description LIKE \'%[CC:%]%\'');
 
     $dbh->bz_add_column('checkers', 'bypass_group_id');
 
+    $dbh->bz_add_column('whine_queries', 'isreport');
+
     _move_old_defaults($old_params);
 
     ################################################################

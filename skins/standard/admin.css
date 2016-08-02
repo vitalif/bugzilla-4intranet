@@ -95,16 +95,16 @@ td.forbidden {
 }
 
 table.eventbox {
-    border: 1px solid black;
+    border: 10px solid white;
     margin: 8px 0;
 }
 
-td.set {
+table.eventbox td.set {
     background: #ddd;
     padding: 5px;
 }
 
-td.unset {
+table.eventbox td.unset {
     color: red;
 }
 

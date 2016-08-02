@@ -244,7 +244,7 @@
         <table>
           <tr>
             <th>Sort</th>
-            <th>Search</th>
+            <th>Search/Report</th>
             <th>Title</th>
             <th></th>
             <th></th>
@@ -260,9 +260,9 @@
                        name="orig_query_sort_[% query.id %]" />
               </td>
               <td align="left">
-                <input type="hidden" value="[% query.name FILTER html %]"
+                <input type="hidden" value="[% query.isreport %]-[% query.name FILTER html %]"
                        name="orig_query_name_[% query.id %]" />
-                [% PROCESS query_field thisquery=query.name %]
+                [% PROCESS query_field thisquery=query.name isreport=query.isreport %]
               </td>
               <td align="left">
                 <input type="hidden" value="[% query.title FILTER html %]"
@@ -321,12 +321,17 @@
 
 [% BLOCK query_field +%]
 
-  [% IF available_queries.size > 0 %]
+  [% IF available_queries.size > 0 || available_reports.size > 0 %]
 
     <select name="query_name_[% query.id %]">
       [% FOREACH q = available_queries %]
-        <option [% "selected" IF q == thisquery %] value="[% q FILTER html %]">
-            [% q FILTER html %]
+        <option [% "selected" IF q == thisquery && !isreport %] value="0-[% q FILTER html %]">
+          [% q FILTER html %]
+        </option>
+      [% END %]
+      [% FOREACH q = available_reports %]
+        <option [% "selected" IF q == thisquery && isreport %] value="1-[% q FILTER html %]">
+          Report: [% q FILTER html %]
         </option>
       [% END %]
     </select>

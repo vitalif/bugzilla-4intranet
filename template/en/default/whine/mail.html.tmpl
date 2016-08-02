@@ -58,13 +58,17 @@
   <h2>[%+ query.title FILTER html %]</h2>
 
   [% code = BLOCK %]
-  [% PROCESS "list/table.html.tmpl"
-    bugs = query.bugs
-    order_columns = query.order_columns
-    order = query.order_columns.join(',')
-    displaycolumns = query.displaycolumns
-    template_format = 'simple'
-  %]
+    [% IF query.isreport %]
+      [% "whinereport" | process(query.data) %]
+    [% ELSE %]
+      [% PROCESS "list/table.html.tmpl"
+        bugs = query.bugs
+        order_columns = query.order_columns
+        order = query.order_columns.join(',')
+        displaycolumns = query.displaycolumns
+        template_format = 'simple'
+      %]
+    [% END %]
   [% END %]
   [% code.replace('<a([^>]*)href="([a-z_]+)\.cgi', '<a$1href="' _ urlbase _ '$2.cgi') | none %]
 
@@ -72,3 +76,16 @@
 
   </body>
 </html>
+
+[% BLOCK whinereport %]
+  <div align="center">
+  [% FOREACH tbl = tbl_names %]
+    [% IF tbl == "-total-" %]
+      [% tbl_disp = "Total" %]
+    [% ELSE %]
+      [% tbl_disp = tbl %]
+    [% END %]
+    [% PROCESS "reports/report-table.html.tmpl" %]
+  [% END %]
+  </div>
+[% END %]
