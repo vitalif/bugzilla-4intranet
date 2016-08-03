@@ -302,10 +302,17 @@ sub execute
                     # building up the -total- data, and then last time round,
                     # we process it as another tbl, and push() the total values
                     # into the image_data array.
-                    for my $m (keys %{$data{$tbl}{$col}{$row}})
+                    if ($is_table)
                     {
-                        next if $m eq 'x' || $m eq 'y' || $m eq 'z';
-                        $data{"-total-"}{$col}{$row}{$m} += $data{$tbl}{$col}{$row}{$m};
+                        for my $m (keys %{$data{$tbl}{$col}{$row}})
+                        {
+                            next if $m eq 'x' || $m eq 'y' || $m eq 'z';
+                            $data{"-total-"}{$col}{$row}{$m} += $data{$tbl}{$col}{$row}{$m};
+                        }
+                    }
+                    else
+                    {
+                        $data{"-total-"}{$col}{$row} += $data{$tbl}{$col}{$row};
                     }
                 }
             }
