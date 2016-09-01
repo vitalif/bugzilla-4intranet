@@ -15,10 +15,24 @@ Other new features:
 
 * Separate "createproducts" role (group) that only allows to create new products,
   but not to edit the existing ones.
+* Support custom saved search columns in whining
+* Support saved reports in whining
+* Support multi-select columns of bugs referenced by bug type custom fields in search
+* Check saved search runner permissions correctly in "matched by saved search" operator when query is shared
+* Report all XML-RPC exceptions
+* Add Group.{add,remove}_{members,managers} web services
+* Add "bypass group" parameters to Checkers
+* Support multiple "look for bug in..." URLs
 
 Bugfixes:
 
 * Whining now works again.
+* Fix&rework whining
+* Silence CGI.pm warnings
+* Fix `deadline` field history logging
+* Fix "totals" in table reports
+* Do not crash in Search when multiple values are passed to a single-value operator
+* Several other fixes
 
 == 2015.09: 2015-09-18, commit dc07c69094f616d1eb3e523181283dcdbca0499e ==
 

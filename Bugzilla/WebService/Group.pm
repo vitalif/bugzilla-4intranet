@@ -205,7 +205,7 @@ sub _update_users
     else
     {
         Bugzilla->user->in_group('creategroups')
-            || !grep { !Bugzilla->user->can_bless($_->id) } @group_objects
+            || (!grep { !Bugzilla->user->can_bless($_->id) } @group_objects)
             || ThrowUserError("auth_failure", {
                 group  => "creategroups",
                 action => "edit",
