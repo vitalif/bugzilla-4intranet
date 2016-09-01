@@ -7,6 +7,8 @@ UI improvements:
 
 == UNRELEASED: beta ==
 
+== 2016.09: 2016-09-01, commit 55bee6cdccae3a83200c799a23a4fda4d135717f ==
+
 Backports from original Bugzilla:
 
 * WebServices from Bugzilla 5.0.1 (everything except tags).
