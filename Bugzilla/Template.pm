@@ -422,9 +422,15 @@ sub unquote_wiki_url
         my $anchor = '';
         if ($article =~ s/#(.*)$//so)
         {
+            my $a;
             $anchor = $1;
-            # decode MediaWiki page section name
-            $anchor =~ tr/./%/;
+            # decode MediaWiki page section name (only correct UTF8 sequences)
+            $anchor =~ s/(
+                \.[0-7][A-F0-9]|
+                \.[CD][A-F0-9]\.[89AB][A-F0-9]|
+                \.E[A-F0-9](?:\.[89AB][A-F0-9]){2}|
+                \.F[0-7](?:\.[89AB][A-F0-9]){3}
+            )/($a = $1), ($a =~ tr!.!\%!), ($a)/gesx;
             $anchor = url_decode($anchor);
             $anchor =~ tr/_/ /;
         }
