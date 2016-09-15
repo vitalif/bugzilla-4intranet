@@ -114,7 +114,7 @@
             [% FOREACH field_value = field.value_field.legal_values %]
               [% IF field.visibility_field_id != field.value_field_id || field.has_visibility_value(field_value.id) %]
               <option value="[% field_value.id | none %]" [% ' selected="selected"' IF field.is_value_enabled(value.id, field_value.id) %]>
-                [%- field_value.name | html -%]
+                [%- field_value.full_name | html -%]
               </option>
               [% END %]
             [% END %]

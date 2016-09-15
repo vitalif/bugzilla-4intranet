@@ -91,26 +91,32 @@ sub new
     my $product;
     if (ref $param)
     {
-        $product = $param->{product};
-        my $name = $param->{name};
-        if (!defined $product)
+        if ($param->{id})
         {
-            ThrowCodeError('bad_arg', {
-                argument => 'product',
-                function => "${class}::new",
-            });
+            $param = { condition => 'id = ?', values => [ $param->{id} ] };
         }
-        if (!defined $name)
+        else
         {
-            ThrowCodeError('bad_arg', {
-                argument => 'name',
-                function => "${class}::new",
-            });
+            $product = $param->{product};
+            my $name = $param->{name};
+            if (!defined $product)
+            {
+                ThrowCodeError('bad_arg', {
+                    argument => 'product',
+                    function => "${class}::new",
+                });
+            }
+            if (!defined $name)
+            {
+                ThrowCodeError('bad_arg', {
+                    argument => 'name',
+                    function => "${class}::new",
+                });
+            }
+            my $condition = 'product_id = ? AND name = ?';
+            my @values = ($product->id, $name);
+            $param = { condition => $condition, values => \@values };
         }
-
-        my $condition = 'product_id = ? AND name = ?';
-        my @values = ($product->id, $name);
-        $param = { condition => $condition, values => \@values };
     }
 
     unshift @_, $param;
@@ -507,6 +513,7 @@ sub description { return $_[0]->{description}; }
 sub wiki_url    { return $_[0]->{wiki_url};    }
 sub product_id  { return $_[0]->{product_id};  }
 sub is_active   { return $_[0]->{isactive};    }
+sub full_name   { return $_[0]->product->name.'/'.$_[0]->name; }
 
 ###############################
 ####      Subroutines      ####

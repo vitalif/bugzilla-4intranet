@@ -3,7 +3,7 @@
   # Authors: Vitaliy Filippov <vitalif@mail.ru>, Vladimir Koptev <vladimir.koptev@gmail.com>
   #%]
 
-[% SET title = "Select Active " _ field.description _ " Objects For " _ field.value_field.description _ ' ' _ visibility_value.name | html %]
+[% SET title = "Select Active " _ field.description _ " Objects For " _ field.value_field.description _ ' ' _ visibility_value.full_name | html %]
 
 [% PROCESS global/header.html.tmpl %]
 

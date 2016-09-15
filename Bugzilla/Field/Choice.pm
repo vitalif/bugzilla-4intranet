@@ -314,6 +314,7 @@ sub get_all_names
 
 sub is_active { return $_[0]->{isactive}; }
 sub sortkey   { return $_[0]->{sortkey};  }
+sub full_name { return $_[0]->name; }
 
 # FIXME Never use bug_count() on a copy from legal_values, as the result will be cached...
 sub bug_count
