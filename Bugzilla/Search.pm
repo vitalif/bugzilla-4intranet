@@ -548,6 +548,8 @@ sub STATIC_COLUMNS
     foreach my $col (qw(assigned_to reporter qa_contact))
     {
         my $sql = "map_${col}.login_name";
+        $columns->{$col}->{name} = $sql;
+        $columns->{$col}->{trim_email} = 1;
         $columns->{$col.'_realname'}->{name} = "map_${col}.realname";
         $columns->{$col.'_short'}->{name} = $dbh->sql_string_until($sql, $dbh->quote('@'));
         # Only the qa_contact field can be NULL
@@ -644,6 +646,17 @@ sub STATIC_COLUMNS
                     joins => $join,
                     subid => $subid,
                     sortkey => 1,
+                };
+            }
+            elsif ($subid eq 'assigned_to' || $subid eq 'reporter' || $subid eq 'qa_contact')
+            {
+                $columns->{$id.'_'.$subid} = {
+                    name => "map_${id}_${subid}.login_name",
+                    title => $field->description . ' ' . $subfield->description,
+                    subid => $subid,
+                    sortkey => 1,
+                    trim_email => 1,
+                    joins => [ @$join, "LEFT JOIN profiles AS map_${id}_${subid} ON bugs_${id}.${subid}=map_${id}_${subid}.userid" ],
                 };
             }
             elsif ($subid eq 'product' || $subid eq 'component' || $subid eq 'classification')
@@ -746,35 +759,51 @@ sub COLUMNS
     # Not using JOIN (it could be joined on bug_when=creation_ts),
     # because it would require COALESCE to an 'isprivate' subquery
     # for private comments.
-    $columns->{comment0}->{name} =
-        "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
-        " ORDER BY ldc0.bug_when LIMIT 1)";
-    $columns->{lastcomment}->{name} =
-        "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
-        " ORDER BY ldc0.bug_when DESC LIMIT 1)";
+    $columns->{comment0} = {
+        %{$columns->{comment0}},
+        name => "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
+            " ORDER BY ldc0.bug_when LIMIT 1)",
+    };
+    $columns->{lastcomment} = {
+        %{$columns->{lastcomment}},
+        name => "(SELECT thetext FROM longdescs ldc0$hint WHERE ldc0.bug_id = bugs.bug_id $priv".
+            " ORDER BY ldc0.bug_when DESC LIMIT 1)",
+    };
     # Last commenter and last comment time
     my $login = 'ldp0.login_name';
     if (!$user->id)
     {
         $login = $dbh->sql_string_until($login, $dbh->quote('@'));
     }
-    $columns->{lastcommenter}->{name} =
-        "(SELECT $login FROM longdescs ldc0$hint".
-        " INNER JOIN profiles ldp0 ON ldp0.userid=ldc0.who WHERE ldc0.bug_id = bugs.bug_id $priv".
-        " ORDER BY ldc0.bug_when DESC LIMIT 1)";
+    $columns->{lastcommenter} = {
+        %{$columns->{lastcommenter}},
+        name => "(SELECT $login FROM longdescs ldc0$hint".
+            " INNER JOIN profiles ldp0 ON ldp0.userid=ldc0.who WHERE ldc0.bug_id = bugs.bug_id $priv".
+            " ORDER BY ldc0.bug_when DESC LIMIT 1)",
+    };
     $priv = ($user->is_insider ? "" : "AND lct.isprivate=0 ");
-    $columns->{last_comment_time}->{name} =
-        "(SELECT MAX(lct.bug_when) FROM longdescs lct$hint WHERE lct.bug_id = bugs.bug_id $priv)";
+    $columns->{last_comment_time} = {
+        %{$columns->{last_comment_time}},
+        name => "(SELECT MAX(lct.bug_when) FROM longdescs lct$hint WHERE lct.bug_id = bugs.bug_id $priv)",
+    };
 
     # Hide email domain for anonymous users
     $columns->{cc}->{name} = "(SELECT ".$dbh->sql_group_concat(($user->id
         ? 'profiles.login_name'
         : $dbh->sql_string_until('profiles.login_name', $dbh->quote('@'))), "','").
         " cc FROM cc, profiles WHERE cc.bug_id=bugs.bug_id AND cc.who=profiles.userid)";
-    foreach my $col (qw(assigned_to reporter qa_contact))
+    if (!$user->id)
     {
-        my $sql = "map_${col}.login_name";
-        $columns->{$col}->{name} = $user->id ? $sql : $columns->{$col.'_short'}->{name};
+        foreach my $col (keys %$columns)
+        {
+            if ($columns->{$col}->{trim_email})
+            {
+                $columns->{$col} = {
+                    %{$columns->{$col}},
+                    name => $dbh->sql_string_until($columns->{$col}->{name}, $dbh->quote('@')),
+                };
+            }
+        }
     }
 
     Bugzilla::Hook::process('buglist_columns', { columns => $columns });
