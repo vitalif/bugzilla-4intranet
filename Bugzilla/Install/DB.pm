@@ -3523,7 +3523,7 @@ sub _populate_bugs_fulltext
                     $datasize += length $_;
                 }
                 my $s = "($_, ".join(', ', map { $sph->$quote($_) } @{$rows->{$_}})."), ";
-                if ($len + length $s >= $max_packet)
+                if ($len > 0 && $len + length $s >= $max_packet)
                 {
                     last;
                 }
