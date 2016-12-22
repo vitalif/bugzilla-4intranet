@@ -94,11 +94,11 @@
             ispatch="[% a.ispatch | xml %]"
             isprivate="[% a.isprivate | xml %]">
           <attachid>[% a.id %]</attachid>
-          <date>[% a.attached | time("%Y-%m-%d %T %z") | xml %]</date>
+          <date>[% a.creation_ts | time("%Y-%m-%d %T %z") | xml %]</date>
           <delta_ts>[% a.modification_time | time("%Y-%m-%d %T %z") | xml %]</delta_ts>
           <desc>[% a.description | xml %]</desc>
           <filename>[% a.filename | xml %]</filename>
-          <type>[% a.contenttype | xml %]</type>
+          <type>[% a.mimetype | xml %]</type>
           <size>[% a.datasize | xml %]</size>
           <attacher>[% a.attacher.email | email | xml %]</attacher>
           [%# This is here so automated clients can still use attachment.cgi %]

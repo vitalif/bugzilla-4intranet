@@ -582,14 +582,16 @@ sub insert
     my $attachment = Bugzilla::Attachment->create({
         bug           => $bug,
         creation_ts   => $timestamp,
-        data          => $data,
         description   => $ARGS->{description},
         filename      => $filename,
         ispatch       => $ispatch,
         isprivate     => $ARGS->{isprivate},
         mimetype      => $content_type,
-        store_in_file => $ARGS->{bigfile},
-        base64_content => $ARGS->{base64_content},
+        data          => {
+            data => $data,
+            store_in_file => $ARGS->{bigfile},
+            base64_content => $ARGS->{base64_content},
+        },
     });
 
     foreach my $obsolete_attachment (@obsolete_attachments)
@@ -726,12 +728,14 @@ sub update
 
     if ($can_edit)
     {
-        $attachment->set_description($ARGS->{description});
-        $attachment->set_is_patch($ARGS->{ispatch});
-        $attachment->set_content_type($ARGS->{contenttypeentry});
-        $attachment->set_is_obsolete($ARGS->{isobsolete});
-        $attachment->set_is_private($ARGS->{isprivate});
-        $attachment->set_filename($ARGS->{filename});
+        $attachment->set_all({
+            description => $ARGS->{description},
+            ispatch => $ARGS->{ispatch},
+            mimetype => $ARGS->{contenttypeentry},
+            isobsolete => $ARGS->{isobsolete},
+            isprivate => $ARGS->{isprivate},
+            filename => $ARGS->{filename},
+        });
 
         # Now make sure the attachment has not been edited since we loaded the page.
         if (defined $ARGS->{delta_ts} && $ARGS->{delta_ts} ne $attachment->modification_time)

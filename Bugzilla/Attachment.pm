@@ -1,24 +1,10 @@
-# The contents of this file are subject to the Mozilla Public
-# License Version 1.1 (the "License"); you may not use this file
-# except in compliance with the License. You may obtain a copy of
-# the License at http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS
-# IS" basis, WITHOUT WARRANTY OF ANY KIND, either express or
-# implied. See the License for the specific language governing
-# rights and limitations under the License.
-#
-# The Original Code is the Bugzilla Bug Tracking System.
-#
-# The Initial Developer of the Original Code is Netscape Communications
-# Corporation. Portions created by Netscape are
-# Copyright (C) 1998 Netscape Communications Corporation. All
-# Rights Reserved.
-#
-# Contributor(s): Terry Weissman <terry@mozilla.org>
-#                 Myk Melez <myk@mozilla.org>
-#                 Marc Schumann <wurblzap@gmail.com>
-#                 Frédéric Buclin <LpSolit@gmail.com>
+# Bug attachment class (based on GenericObject)
+# License: MPL 1.1
+# Contributor(s): Vitaliy Filippov <vitalif@mail.ru>
+#   Terry Weissman <terry@mozilla.org>
+#   Myk Melez <myk@mozilla.org>
+#   Marc Schumann <wurblzap@gmail.com>
+#   Frédéric Buclin <LpSolit@gmail.com>
 
 use strict;
 
@@ -61,63 +47,24 @@ use Bugzilla::Hook;
 use LWP::MediaTypes;
 use MIME::Base64;
 
-use base qw(Bugzilla::Object);
-
-###############################
-####    Initialization     ####
-###############################
+use base qw(Bugzilla::GenericObject);
 
 use constant DB_TABLE   => 'attachments';
 use constant ID_FIELD   => 'attach_id';
 use constant LIST_ORDER => ID_FIELD;
+use constant NAME_FIELD => 'attach_id';
+use constant CLASS_NAME => 'attachment';
 
-sub DB_COLUMNS
-{
-    my $dbh = Bugzilla->dbh;
-    return qw(
-        attach_id
-        bug_id
-        description
-        filename
-        isobsolete
-        ispatch
-        isprivate
-        mimetype
-        modification_time
-        submitter_id),
-        $dbh->sql_date_format('attachments.creation_ts') . ' AS creation_ts',
-        'creation_ts AS creation_ts_orig';
-}
-
-use constant REQUIRED_CREATE_FIELDS => qw(
-    bug
-    data
-    description
-    filename
-    mimetype
-);
-
-use constant UPDATE_COLUMNS => qw(
-    description
-    filename
-    isobsolete
-    ispatch
-    isprivate
-    mimetype
-);
-
-use constant VALIDATORS => {
-    bug           => \&_check_bug,
-    description   => \&_check_description,
+use constant OVERRIDE_SETTERS => {
+    bug           => \&_set_bug,
+    bug_id        => \&_set_bug,
+    description   => \&_set_description,
     ispatch       => \&Bugzilla::Object::check_boolean,
-    isprivate     => \&_check_is_private,
-    mimetype      => \&_check_content_type,
+    isprivate     => \&_set_isprivate,
+    mimetype      => \&_set_mimetype,
     store_in_file => \&_check_store_in_file,
-};
-
-use constant UPDATE_VALIDATORS => {
-    filename   => \&_check_filename,
-    isobsolete => \&Bugzilla::Object::check_boolean,
+    filename      => \&_check_filename,
+    isobsolete    => \&_set_isobsolete,
 };
 
 =pod
@@ -205,16 +152,6 @@ already set, grouped by flag type.
 =back
 
 =cut
-
-sub bug_id { $_[0]->{bug_id} }
-sub description { $_[0]->{description} }
-sub contenttype { $_[0]->{mimetype} }
-sub attached { $_[0]->{creation_ts} }
-sub modification_time { $_[0]->{modification_time} }
-sub filename { $_[0]->{filename} }
-sub ispatch { $_[0]->{ispatch} }
-sub isobsolete { $_[0]->{isobsolete} }
-sub isprivate { $_[0]->{isprivate} }
 
 sub bug
 {
@@ -416,23 +353,23 @@ sub flag_types
     return $self->{flag_types};
 }
 
+sub set_flags
+{
+    my ($self, $flags, $new_flags, $comment) = @_;
+    Bugzilla::Flag->set_flag($self, $_) foreach (@$flags, @$new_flags);
+    $self->{flag_notify_comment} = $comment;
+}
+
 ###############################
 ####      Validators     ######
 ###############################
 
-sub set_content_type { $_[0]->set('mimetype', $_[1]); }
-sub set_description  { $_[0]->set('description', $_[1]); }
-sub set_filename     { $_[0]->set('filename', $_[1]); }
-sub set_is_patch     { $_[0]->set('ispatch', $_[1]); }
-sub set_is_private   { $_[0]->set('isprivate', $_[1]); }
-
-sub set_is_obsolete 
+sub _set_isobsolete
 {
     my ($self, $obsolete) = @_;
 
-    my $old = $self->isobsolete;
-    $self->set('isobsolete', $obsolete);
-    my $new = $self->isobsolete;
+    my $old = $self->{_old_self} ? $self->{_old_self}->{isobsolete} : 0;
+    my $new = Bugzilla::Object::check_boolean($self, $obsolete);
 
     # If the attachment is being marked as obsolete, cancel pending requests.
     if ($new && $old != $new)
@@ -446,24 +383,21 @@ sub set_is_obsolete
             @{$flagtype->{flags}} = grep { !$flag_ids{$_->id} } @{$flagtype->{flags}};
         }
     }
+
+    return $new;
 }
 
-sub set_flags
+sub _set_bug
 {
-    my ($self, $flags, $new_flags, $comment) = @_;
-    Bugzilla::Flag->set_flag($self, $_) foreach (@$flags, @$new_flags);
-    $self->{flag_notify_comment} = $comment;
-}
+    my ($self, $bug) = @_;
+    return undef if $self->id;
 
-sub _check_bug
-{
-    my ($invocant, $bug) = @_;
     my $user = Bugzilla->user;
-
-    $bug = ref $invocant ? $invocant->bug : $bug;
     $user->can_edit_bug($bug->id) || ThrowUserError("illegal_attachment_edit_bug", { bug_id => $bug->id });
 
-    return $bug;
+    $self->{bug} = $bug;
+    $self->{bug_id} = $bug->id;
+    return undef;
 }
 
 sub _legal_content_type
@@ -473,11 +407,11 @@ sub _legal_content_type
     return $content_type =~ /^($legal_types)\/.+$/;
 }
 
-sub _check_content_type
+sub _set_mimetype
 {
-    my ($invocant, $content_type) = @_;
+    my ($self, $content_type) = @_;
 
-    $content_type = 'text/plain' if ref $invocant && $invocant->ispatch;
+    $content_type = 'text/plain' if $self->ispatch;
     $content_type = trim($content_type);
     if (!$content_type || !_legal_content_type($content_type))
     {
@@ -488,9 +422,9 @@ sub _check_content_type
     return $content_type;
 }
 
-sub _check_data
+sub _set_data
 {
-    my ($invocant, $params) = @_;
+    my ($self, $params) = @_;
 
     my $data;
     if ($params->{base64_content})
@@ -521,47 +455,20 @@ sub _check_data
     return $data if ref $data;
 
     $data || ThrowUserError('zero_length_file');
-    # Make sure the attachment does not exceed the maximum permitted size.
-    my $len = length($data);
-    my $max_size = $params->{store_in_file} || Bugzilla->params->{force_attach_bigfile}
-        ? Bugzilla->params->{maxlocalattachment} * 1048576
-        : Bugzilla->params->{maxattachmentsize} * 1024;
-    if ($len > $max_size)
-    {
-        my $vars = { filesize => sprintf("%.0f", $len/1024) };
-        if ($params->{ispatch})
-        {
-            ThrowUserError('patch_too_large', $vars);
-        }
-        elsif ($params->{store_in_file})
-        {
-            ThrowUserError('local_file_too_large');
-        }
-        else
-        {
-            ThrowUserError('file_too_large', $vars);
-        }
-    }
     return $data;
 }
 
-sub _check_description
+sub _set_description
 {
-    my ($invocant, $description) = @_;
-
+    my ($self, $description) = @_;
     $description = trim($description);
     $description || ThrowUserError('missing_attachment_description');
     return $description;
 }
 
-sub _check_filename
+sub _set_filename
 {
-    my ($invocant, $filename, undef, $params) = @_;
-
-    if ($params && $params->{base64_content})
-    {
-        $filename = $params->{description};
-    }
+    my ($self, $filename) = @_;
 
     $filename = trim($filename);
     $filename || ThrowUserError('file_not_specified');
@@ -581,12 +488,12 @@ sub _check_filename
     return $filename;
 }
 
-sub _check_is_private
+sub _set_isprivate
 {
-    my ($invocant, $is_private) = @_;
-
+    my ($self, $is_private) = @_;
     $is_private = $is_private ? 1 : 0;
-    if ((ref $invocant ? ($invocant->isprivate != $is_private) : $is_private) && !Bugzilla->user->is_insider)
+    my $old = $self->{_old_self} ? $self->{_old_self}->isprivate : 0;
+    if ($old != $is_private && !Bugzilla->user->is_insider)
     {
         ThrowUserError('user_not_insider');
     }
@@ -776,138 +683,120 @@ Returns:    The new attachment object.
 
 =cut
 
-sub create
+sub _before_update
 {
-    my $class = shift;
-    my $dbh = Bugzilla->dbh;
-
-    $class->check_required_create_fields(@_);
-    my $params = $class->run_create_validators(@_);
-
-    # Extract everything which is not a valid column name.
-    my $bug = delete $params->{bug};
-    $params->{bug_id} = $bug->id;
-    my $fh = delete $params->{data};
-    my $store_in_file = delete $params->{store_in_file};
-
-    if (Bugzilla->params->{force_attach_bigfile})
+    my $self = shift;
+    $self->SUPER::_before_update($changes);
+    $self->{modification_time} = $self->{delta_ts};
+    if (!$self->id)
     {
-        # Force uploading into files instead of DB when force_attach_bigfile = On
-        $store_in_file = 1;
+        $self->{submitter_id} = Bugzilla->user->id || ThrowCodeError('invalid_user');
     }
-
-    my $attachment = $class->insert_create_data($params);
-    my $attachid = $attachment->id;
-
-    # If the file is to be stored locally, stream the file from the web server
-    # to the local file without reading it into a local variable.
-    if ($store_in_file)
+    if (!$self->id && $self->{data} && !ref $self->{data})
     {
-        my $attachdir = bz_locations()->{attachdir};
-        my $hash = ($attachid % 100) + 100;
-        $hash =~ s/.*(\d\d)$/group.$1/;
-        mkdir "$attachdir/$hash", 0770;
-        chmod 0770, "$attachdir/$hash";
-        open(AH, '>', "$attachdir/$hash/attachment.$attachid") or die "Could not write into $attachdir/$hash/attachment.$attachid: $!";
-        binmode AH;
-        if (ref $fh)
+        $self->set('filename', $self->{description});
+        # Make sure the attachment does not exceed the maximum permitted size.
+        my $len = length($self->{data});
+        my $max_size = $params->{store_in_file} || Bugzilla->params->{force_attach_bigfile}
+            ? Bugzilla->params->{maxlocalattachment} * 1048576
+            : Bugzilla->params->{maxattachmentsize} * 1024;
+        if ($len > $max_size)
         {
-            my $limit = Bugzilla->params->{maxlocalattachment} * 1048576;
-            my $sizecount = 0;
-            while (<$fh>)
+            my $vars = { filesize => sprintf("%.0f", $len/1024) };
+            if ($self->{ispatch})
             {
-                print AH $_;
-                $sizecount += length($_);
-                if ($sizecount > $limit)
-                {
-                    close AH;
-                    close $fh;
-                    unlink "$attachdir/$hash/attachment.$attachid";
-                    ThrowUserError("local_file_too_large");
-                }
+                ThrowUserError('patch_too_large', $vars);
             }
-            close $fh;
+            elsif ($self->{store_in_file})
+            {
+                ThrowUserError('local_file_too_large');
+            }
+            else
+            {
+                ThrowUserError('file_too_large', $vars);
+            }
+        }
+    }
+}
+
+sub _after_update
+{
+    my $self = shift;
+    my ($changes) = @_;
+
+    if (!$self->id && $self->{data})
+    {
+        my $fh = delete $self->{data};
+        my $store_in_file = delete $self->{store_in_file};
+        if (Bugzilla->params->{force_attach_bigfile})
+        {
+            # Force uploading into files instead of DB when force_attach_bigfile = On
+            $store_in_file = 1;
+        }
+        my $attachid = $self->id;
+        # If the file is to be stored locally, stream the file from the web server
+        # to the local file without reading it into a local variable.
+        if ($store_in_file)
+        {
+            my $attachdir = bz_locations()->{attachdir};
+            my $hash = ($attachid % 100) + 100;
+            $hash =~ s/.*(\d\d)$/group.$1/;
+            mkdir "$attachdir/$hash", 0770;
+            chmod 0770, "$attachdir/$hash";
+            open(AH, '>', "$attachdir/$hash/attachment.$attachid") or die "Could not write into $attachdir/$hash/attachment.$attachid: $!";
+            binmode AH;
+            if (ref $fh)
+            {
+                my $limit = Bugzilla->params->{maxlocalattachment} * 1048576;
+                my $sizecount = 0;
+                while (<$fh>)
+                {
+                    print AH $_;
+                    $sizecount += length($_);
+                    if ($sizecount > $limit)
+                    {
+                        close AH;
+                        close $fh;
+                        unlink "$attachdir/$hash/attachment.$attachid";
+                        ThrowUserError("local_file_too_large");
+                    }
+                }
+                close $fh;
+            }
+            else
+            {
+                print AH $fh;
+            }
+            close AH;
         }
         else
         {
-            print AH $fh;
+            # We only use $fh here in this INSERT with a placeholder, so it's safe.
+            my $sth = $dbh->prepare("INSERT INTO attach_data (id, thedata) VALUES ($attachid, ?)");
+            trick_taint($fh);
+            $sth->bind_param(1, $fh, $dbh->BLOB_TYPE);
+            $sth->execute();
         }
-        close AH;
-    }
-    else
-    {
-        # We only use $fh here in this INSERT with a placeholder, so it's safe.
-        my $sth = $dbh->prepare("INSERT INTO attach_data (id, thedata) VALUES ($attachid, ?)");
-        trick_taint($fh);
-        $sth->bind_param(1, $fh, $dbh->BLOB_TYPE);
-        $sth->execute();
+        Bugzilla::Hook::process('attachment_post_create', { attachment => $self });
     }
 
-    Bugzilla::Hook::process('attachment_post_create', { attachment => $attachment });
-
-    # Return the new attachment object.
-    return $attachment;
-}
-
-sub run_create_validators
-{
-    my ($class, $params) = @_;
-
-    # Let's validate the attachment content first as it may
-    # alter some other attachment attributes.
-    $params->{data} = $class->_check_data($params);
-    $params = $class->SUPER::run_create_validators($params);
-
-    $params->{filename} = $class->_check_filename($params->{filename}, 'filename', $params);
-    $params->{creation_ts} ||= Bugzilla->dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
-    $params->{modification_time} = $params->{creation_ts};
-    $params->{submitter_id} = Bugzilla->user->id || ThrowCodeError('invalid_user');
-
-    delete $params->{base64_content};
-    return $params;
-}
-
-sub update
-{
-    my $self = shift;
-    my $dbh = Bugzilla->dbh;
-    my $user = Bugzilla->user;
-    my $timestamp = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
-
-    my ($changes, $old_self) = $self->SUPER::update(@_);
-
-    my ($removed, $added) = Bugzilla::Flag->update_flags($self, $old_self, $timestamp, $self->{flag_notify_comment});
+    my $old_self = $self->{_old_self};
+    my ($removed, $added) = Bugzilla::Flag->update_flags($self, $old_self, $self->{delta_ts}, $self->{flag_notify_comment});
     if ($removed || $added)
     {
         $changes->{'flagtypes.name'} = [$removed, $added];
     }
     delete $self->{flag_notify_comment};
 
-    # Log activity
-    my $c;
-    foreach my $field (keys %$changes)
-    {
-        $c = $changes->{$field};
-        $field = "attachments.$field" unless $field eq 'flagtypes.name';
-        Bugzilla::Bug::LogActivityEntry(
-            $self->bug_id, $field, $c->[0], $c->[1],
-            $user->id, $timestamp, $self->id
-        );
-    }
-
     if (scalar keys %$changes)
     {
         $dbh->do(
-            'UPDATE attachments SET modification_time = ? WHERE attach_id = ?',
-            undef, $timestamp, $self->id
-        );
-        $dbh->do(
             'UPDATE bugs SET delta_ts = ? WHERE bug_id = ?',
-            undef, $timestamp, $self->bug_id
+            undef, $self->{delta_ts}, $self->bug_id
         );
     }
 
-    return $changes;
+    $self->SUPER::_after_update($changes);
 }
 
 =pod

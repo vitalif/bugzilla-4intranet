@@ -874,10 +874,28 @@ WHERE description LIKE \'%[CC:%]%\'');
         $dbh->do(
             'INSERT INTO objects_activity (class_id, object_id, field_id, who, change_ts, removed, added)'.
             ' SELECT '.Bugzilla->get_class('comment')->id.', comment_id, '.
-            Bugzilla->get_class_field('comment', 'thetext')->id.', who, bug_when, oldthetext, thetext'.
+            Bugzilla->get_class_field('thetext', 'comment')->id.', who, bug_when, oldthetext, thetext'.
             ' FROM longdescs_history'
         );
         $dbh->bz_drop_table('longdescs_history');
+    }
+    # Migrate attachments.* from bugs_activity to objects_activity
+    if (Bugzilla->get_field('attachments.description'))
+    {
+        my $cid = Bugzilla->get_class('attachment')->id;
+        $dbh->do(
+            'INSERT INTO objects_activity (class_id, object_id, field_id, who, change_ts, removed, added)'.
+            ' SELECT '.$cid.', a.attach_id, f2.id, a.who, a.bug_when, a.removed, a.added'.
+            ' FROM bugs_activity a, fielddefs f, fielddefs f2 WHERE f.class_id=1'.
+            ' AND f.name LIKE \'attachments.%\' AND a.fieldid=f.id AND f2.class_id='.$cid.' AND f2.name=SUBSTR(f.name, 13)'
+        );
+        $dbh->do(
+            'DELETE FROM bugs_activity WHERE fieldid IN (SELECT f.id FROM fielddefs f WHERE f.class_id=1'.
+            ' AND f.name LIKE \'attachments.%\')'
+        );
+        $dbh->do(
+            'DELETE FROM fielddefs WHERE f.class_id=1 AND f.name LIKE \'attachments.%\''
+        );
     }
 
     _move_old_defaults($old_params);

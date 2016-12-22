@@ -192,14 +192,6 @@ use constant DEFAULT_FIELDS => (map { my $i = 0; $_ = { (map { (DEFAULT_FIELD_CO
 
     # Comment (never stored in bugs_activity...)
     [ 'longdesc',          'Comment',           0, 0, 0 ],
-
-    # Attachment fields
-    [ 'attachments.description', 'Attachment description', 0, 0, 0 ],
-    [ 'attachments.filename',    'Attachment filename',    0, 0, 0 ],
-    [ 'attachments.mimetype',    'Attachment mime type',   0, 0, 0 ],
-    [ 'attachments.ispatch',     'Attachment is patch',    0, 0, 0 ],
-    [ 'attachments.isobsolete',  'Attachment is obsolete', 0, 0, 0 ],
-    [ 'attachments.isprivate',   'Attachment is private',  0, 0, 0 ],
 ));
 
 # Tweaks allowed for standard field properties

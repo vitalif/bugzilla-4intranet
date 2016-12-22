@@ -54,11 +54,11 @@
         [% IF a.ispatch %]
           <i>patch</i>
         [% ELSE %]
-          [% a.contenttype FILTER html %]
+          [% a.mimetype FILTER html %]
         [% END %]
       </td>
 
-      <td valign="top">[% a.attached FILTER time %]</td>
+      <td valign="top">[% a.creation_ts FILTER time %]</td>
       <td valign="top">[% a.datasize FILTER unitconvert %]</td>
 
       <td valign="top">

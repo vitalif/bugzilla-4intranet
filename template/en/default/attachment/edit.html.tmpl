@@ -89,9 +89,9 @@
           <label for="contenttypeentry">MIME Type:</label>
           <input type="text" size="20" class="block[% editable_or_hide %]"
                  id="contenttypeentry" name="contenttypeentry"
-                 value="[% attachment.contenttype FILTER html %]" />
+                 value="[% attachment.mimetype FILTER html %]" />
           [% IF !can_edit %]
-            [%+ attachment.contenttype FILTER truncate(25) FILTER html %]
+            [%+ attachment.mimetype FILTER truncate(25) FILTER html %]
           [% END %]
         </div>
 
@@ -206,7 +206,7 @@
             minrows = 10
             cols    = 80
             wrap    = 'soft'
-            defaultcontent = (attachment.contenttype.match('^text\/')) ?
+            defaultcontent = (attachment.mimetype.match('^text\/')) ?
                                attachment.data.replace('(.*\n|.+)', '>$1') : undef
           %]
           <iframe id="viewFrame" src="attachment.cgi?id=[% attachment.id %]" style="height: 400px; width: 100%;">
@@ -237,7 +237,7 @@
         <td id="noview" width="50%">
           <p><b>
             Attachment is not viewable in your browser because its MIME type 
-            ([% attachment.contenttype FILTER html %]) is not one that your browser is 
+            ([% attachment.mimetype FILTER html %]) is not one that your browser is 
             able to display.
           </b></p>
           <p><b>
