@@ -2573,7 +2573,8 @@ sub _content_matches
             $text =~ s/;/\\;/gso;
             $text =~ s/\\/\\\\/gso;
             # Space is needed after $text so Sphinx doesn't escape ";"
-            $text = "$text ;mode=extended;limit=1000;fieldweights=short_desc,5,comments,1,comments_private,1";
+            my $maxm = Bugzilla->params->{sphinx_max_matches} || 1000;
+            $text = "$text ;mode=extended;limit=$maxm;maxmatches=$maxm;fieldweights=short_desc,5,comments,1,comments_private,1";
             $self->{term} = {
                 table => "bugs_fulltext_sphinx $table",
                 where => "$table.query=".$dbh->quote($text),

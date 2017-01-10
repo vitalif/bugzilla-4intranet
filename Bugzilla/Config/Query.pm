@@ -77,6 +77,14 @@ sub get_param_list
         type => 't',
         default => 'en',
     },
+
+    {
+        name => 'sphinx_max_matches',
+        type => 't',
+        default => 1000,
+        checker => sub { $_[0] =~ /^[1-9]\d*$/so ? "" : "must be a positive integer value" },
+    },
+
     );
     return @param_list;
 }
