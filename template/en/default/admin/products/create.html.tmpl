@@ -58,6 +58,13 @@
         <b><label for="makeproductgroup">Create access group for this product</label></b>
       </td>
     </tr>
+    <tr>
+      <td colspan="2">
+        <input type="checkbox" id="makeadmingroup" name="makeadmingroup" value="1"
+          [% ' checked="checked"' IF Param('makeproductgroups') %] />
+        <b><label for="makeadmingroup">Create administration group for this product</label></b>
+      </td>
+    </tr>
   </table>
 
   <input type="submit" value="Add" />

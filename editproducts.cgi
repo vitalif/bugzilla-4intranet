@@ -191,15 +191,14 @@ if ($action eq 'new')
     }
     my $product = Bugzilla::Product->create(\%create_params);
 
-    if (!$user->in_group('editcomponents'))
+    # Create groups and series for the new product, if requested.
+    my $new_bug_group = $product->_create_bug_group() if $ARGS->{makeproductgroup};
+    if (!$user->in_group('editcomponents') || $ARGS->{makeadmingroup})
     {
         # User has no global editcomponents permission, so grant 'createproducts'
-        # group the right to manage his newly created product
-        $product->_create_bug_group(1);
+        # group the right to manage his newly created product (or admin group is explicitly requested)
+        $product->_create_bug_group(1, $new_bug_group);
     }
-
-    # Create groups and series for the new product, if requested.
-    $product->_create_bug_group() if $ARGS->{makeproductgroup};
     $product->_create_series() if $ARGS->{createseries};
 
     delete_token($token);

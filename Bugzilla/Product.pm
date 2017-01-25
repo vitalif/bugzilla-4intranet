@@ -609,7 +609,7 @@ use constant is_default => 0;
 sub _create_bug_group
 {
     my $self = shift;
-    my ($create_admin_group) = @_;
+    my ($create_admin_group, $normal_group) = @_;
     my $dbh = Bugzilla->dbh;
 
     my $group_name = ($create_admin_group ? 'admin-' : '') . $self->name;
@@ -641,6 +641,17 @@ sub _create_bug_group
         'INSERT INTO user_group_map (user_id, group_id, isbless, grant_type) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
         undef, Bugzilla->user->id, $group->id, 1, 0, Bugzilla->user->id, $group->id, 0, 0
     );
+
+    # Allow admin group to grant normal group
+    if ($create_admin_group && $normal_group)
+    {
+        $dbh->do(
+            'INSERT INTO group_group_map (member_id, grantor_id, grant_type) VALUES (?, ?, ?)',
+            undef, $group->id, $normal_group->id, GROUP_BLESS
+        );
+    }
+
+    return $group;
 }
 
 sub _create_series
