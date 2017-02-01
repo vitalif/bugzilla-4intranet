@@ -183,25 +183,15 @@ my $format = $superworktime ? "worktime/supertime" : "list/list";
 $format = $template->get_format($format, $ARGS->{format}, $ARGS->{ctype});
 
 # Use server push to display a "Please wait..." message for the user while
-# executing their query if their browser supports it and they are viewing
-# the bug list as HTML and they have not disabled it by adding &serverpush=0
-# to the URL.
-#
-# Server push is a Netscape 3+ hack incompatible with MSIE, Lynx, and others.
-# Even Communicator 4.51 has bugs with it, especially during page reload.
-# http://www.browsercaps.org used as source of compatible browsers.
-# Safari (WebKit) does not support it, despite a UA that says otherwise (bug 188712)
-# MSIE 5+ supports it on Mac (but not on Windows) (bug 190370)
-#
-my $serverpush =
-  $format->{extension} eq "html"
+# executing their query, but only in Firefox, as only Firefox supports is reliably.
+# IE11 on Win8.1 mimics itself as Mozilla, Edge mimics itself as all browsers at once.
+# Happily both have 'like Gecko' in their UA string.
+my $serverpush = $format->{extension} eq "html"
     && exists $ENV{HTTP_USER_AGENT}
-      && $ENV{HTTP_USER_AGENT} =~ /Mozilla.[3-9]/
-        && (($ENV{HTTP_USER_AGENT} !~ /[Cc]ompatible/) || ($ENV{HTTP_USER_AGENT} =~ /MSIE 5.*Mac_PowerPC/))
-          && $ENV{HTTP_USER_AGENT} !~ /WebKit/
-            && !$agent
-              && !defined($ARGS->{serverpush})
-                || $ARGS->{serverpush};
+    && $ENV{HTTP_USER_AGENT} =~ /Mozilla.[3-9]/
+    && $ENV{HTTP_USER_AGENT} !~ /compatible|msie|webkit|like\s*gecko/i
+    && !$agent && !defined($ARGS->{serverpush})
+    || $ARGS->{serverpush};
 
 # The params object to use for the actual query itself
 my $params;
