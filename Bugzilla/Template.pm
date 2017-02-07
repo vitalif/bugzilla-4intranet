@@ -340,7 +340,7 @@ sub quoteUrls
     my $q = { '<' => '&lt;', '>' => '&gt;', '&' => '&amp;', '"' => '&quot;' };
     my $safe_tags = '(?:b|i|u|hr|marquee|s|strike|strong|small|big|sub|sup|tt|em|cite|font(?:\s+color=["\']?(?:#[0-9a-f]{3,6}|[a-z]+)["\']?)?)';
     my $block_tags = '(?:h[1-6]|center|ol|ul|li)';
-    $text =~ s/<pre>((?:.*?(?:<pre>(?1)<\/pre>)?)*)<\/pre>|\s*(<\/?$block_tags>)\s*|(<\/?$safe_tags>)|([<>&\"])/$4 ? $q->{$4} : ($1 eq '' ? lc($2 eq '' ? $3 : $2) : html_quote($1))/geiso;
+    $text =~ s/<pre>((?:(?>.+?)(?:<pre>(?1)<\/pre>)?)+)?<\/pre>|\s*(<\/?$block_tags>)\s*|(<\/?$safe_tags>)|([<>&\"])/$4 ? $q->{$4} : ($1 eq '' ? lc($2 eq '' ? $3 : $2) : html_quote($1))/geiso;
 
     # Replace nowrap markers (\1\0\1)
     $text =~ s/\x01\x00\x01(.*?)\x01\x00\x01/<div style="white-space: nowrap">$1<\/div>/gso;
@@ -425,13 +425,12 @@ sub unquote_wiki_url
             my $a;
             $anchor = $1;
             # decode MediaWiki page section name (only correct UTF8 sequences)
-            $anchor =~ s/(
+            $anchor =~ s/((?:
                 \.[0-7][A-F0-9]|
                 \.[CD][A-F0-9]\.[89AB][A-F0-9]|
                 \.E[A-F0-9](?:\.[89AB][A-F0-9]){2}|
                 \.F[0-7](?:\.[89AB][A-F0-9]){3}
-            )/($a = $1), ($a =~ tr!.!\%!), ($a)/gesx;
-            $anchor = url_decode($anchor);
+            )+)/($a = $1), ($a =~ tr!.!\%!), (url_decode($a))/gesx;
             $anchor =~ tr/_/ /;
         }
         $article =~ s/&.*$//so if $wikiurl =~ /title=$/so;
@@ -440,8 +439,11 @@ sub unquote_wiki_url
         Encode::_utf8_on($linkurl);
         Encode::_utf8_on($article);
         Encode::_utf8_on($anchor);
-        $linkurl = '<a href="'.html_quote($wikiurl.$linkurl).'">'.$wikiname.':[['.$article.($anchor eq '' ? '' : '#'.$anchor).']]</a>';
-        return $linkurl;
+        if (utf8::valid($article) && utf8::valid($anchor))
+        {
+            $linkurl = '<a href="'.html_quote($wikiurl.$linkurl).'">'.$wikiname.':[['.$article.($anchor eq '' ? '' : '#'.$anchor).']]</a>';
+            return $linkurl;
+        }
     }
     $linkurl = html_quote($wikiurl.$linkurl);
     return "<a href=\"$linkurl\">$linkurl</a>";
