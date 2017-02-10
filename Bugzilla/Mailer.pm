@@ -151,6 +151,9 @@ sub MessageToMTA {
                     username => Bugzilla->params->{"smtp_username"},
                     password => Bugzilla->params->{"smtp_password"},
                     helo  => $hostname;
+        if (Bugzilla->params->{smtp_debug}) {
+            push @args, debug => 1;
+        }
     }
 
     Bugzilla::Hook::process('mailer_before_send',

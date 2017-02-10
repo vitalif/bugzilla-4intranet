@@ -12,8 +12,6 @@ BEGIN
     ($dir) = $dir =~ /^(.*)$/s;
     chdir($dir);
     $Bugzilla::HTTPServerSimple::DOCROOT = $dir;
-    # Force everyone to use buffered input!
-    *CORE::GLOBAL::sysread = sub(*$$;$) { read $_[0], $_[1], $_[2], $_[3]; };
 }
 
 use lib qw(.);
