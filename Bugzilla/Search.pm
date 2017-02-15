@@ -2565,6 +2565,12 @@ sub _content_matches
         }
         $text =~ s/((?<!\\)(?:\\\\)*)([$pattern_part])/$1\\$2/gs;
         $text =~ s/(?<=[\s-])-(?=[\s-])/\\-/gso;
+        $text =~ s/\s+$//so;
+        if (!$text)
+        {
+            ThrowUserError('invalid_fulltext_query');
+            return;
+        }
         $text = ($self->{user}->is_insider ? '@(short_desc,comments,comments_private) ' : '@(short_desc,comments) ') . $text;
         if ($dbh->isa('Bugzilla::DB::Mysql') &&
             Bugzilla->localconfig->{sphinxse_port})

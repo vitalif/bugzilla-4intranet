@@ -532,6 +532,10 @@
   Can't use [% field FILTER html %] as a field name.
 [% END %]
 
+[% BLOCK error_invalid_fulltext_query %]
+  The query text you specified cannot be handled by Bugzilla full-text search engine.
+[% END %]
+
 [% BLOCK error_in_search_needs_bugid_field %]
   Subquery search operator ("In Search Results") can only be applied to fields of type "Bug ID".
   "[% field | html %]" is not a Bug ID field.
