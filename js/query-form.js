@@ -47,7 +47,7 @@ onDomReady(function()
             addListener(s, 'mouseout', function(e) {
                 e = e || window.event;
                 var t = e.relatedTarget || e.toElement;
-                if (t == s || t.parentNode == s)
+                if (t == s || t && t.parentNode == s)
                     return;
                 s.style.width = lim+'px';
                 s.style.maxWidth = '';
