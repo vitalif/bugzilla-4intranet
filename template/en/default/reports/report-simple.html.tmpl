@@ -15,6 +15,14 @@
     <script type="text/javascript" src="[% 'js/resize-iframe.js' | ts_url %]"></script>
   </head>
   <body>
+  [% FOREACH tbl = tbl_names %]
+    [% IF tbl == "-total-" %]
+      [% tbl_disp = "Total" %]
+    [% ELSE %]
+      [% tbl_disp = tbl %]
+    [% END %]
+
     [% PROCESS "reports/report-table.html.tmpl" %]
+  [% END %]
   </body>
 </html>
