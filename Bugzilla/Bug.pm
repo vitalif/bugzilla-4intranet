@@ -353,6 +353,17 @@ sub check_exists
     return $self;
 }
 
+sub check_for_edit
+{
+    my $class = shift;
+    my $bug = $class->check(@_);
+
+    Bugzilla->user->can_edit_product($bug->product_id)
+        || ThrowUserError("product_edit_denied", { product => $bug->product });
+
+    return $bug;
+}
+
 # Check if a bug exists and is visible for the current user or throw an error
 sub check
 {
