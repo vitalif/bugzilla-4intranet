@@ -979,8 +979,9 @@ sub add_comment {
     # Append comment
     my $info = {};
     $bug->add_comment($comment, { isprivate => $params->{is_private},
-                                  work_time => $params->{work_time} });
-    $bug->update($info);
+                                  work_time => $params->{work_time},
+                                  type      => $params->{type} || CMT_NORMAL });
+    $bug->update(undef, $info);
 
     my $new_comment_id = $info->{added_comments}->[0]->{id};
 

@@ -476,7 +476,7 @@ sub create
 sub update
 {
     my $self = shift;
-    my ($additional_changes) = @_;
+    my ($delta_ts, $additional_changes) = @_;
 
     $self->make_dirty;
 
@@ -489,8 +489,7 @@ sub update
 
     my $dbh = Bugzilla->dbh;
     my $user = Bugzilla->user;
-    # FIXME 'shift ||' is just a temporary hack until all updating happens inside this function
-    my $delta_ts = shift || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
+    $delta_ts = $delta_ts || $dbh->selectrow_array('SELECT LOCALTIMESTAMP(0)');
 
     # You can't set these fields by hand
     $self->{deadline} =~ s/\s+.*$//so;
