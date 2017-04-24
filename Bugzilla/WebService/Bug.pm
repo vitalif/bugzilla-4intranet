@@ -977,11 +977,12 @@ sub add_comment {
         $params->{is_private} = delete $params->{private};
     }
     # Append comment
+    my $info = {};
     $bug->add_comment($comment, { isprivate => $params->{is_private},
                                   work_time => $params->{work_time} });
-    $bug->update();
+    $bug->update($info);
 
-    my $new_comment_id = $bug->{added_comments}[0]->id;
+    my $new_comment_id = $info->{added_comments}->[0]->{id};
 
     # Send mail.
     Bugzilla::BugMail::Send($bug->bug_id, { changer => $user });

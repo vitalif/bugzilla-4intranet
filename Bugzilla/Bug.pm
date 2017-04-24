@@ -476,6 +476,8 @@ sub create
 sub update
 {
     my $self = shift;
+    my ($additional_changes) = @_;
+
     $self->make_dirty;
 
     my $method = $self->id ? 'update' : 'create';
@@ -618,6 +620,10 @@ sub update
     $self->prepare_mail_results($changes);
 
     # Remove obsolete internal variables.
+    if ($additional_changes)
+    {
+        $additional_changes->{added_comments} = $self->{added_comments};
+    }
     delete $self->{_old_self};
     delete $self->{added_comments};
     delete $self->{edited_comments};
@@ -1499,7 +1505,7 @@ sub save_dup_id
 sub save_added_comments
 {
     my ($self, $changes) = @_;
-
+    my $dbh = Bugzilla->dbh;
     delete $self->{comments} if @{$self->{added_comments} || []};
     foreach my $comment (@{$self->{added_comments} || []})
     {
@@ -1515,7 +1521,8 @@ sub save_added_comments
         $comment->{bug_when} = $self->{delta_ts} if !$comment->{bug_when} || $comment->{bug_when} gt $self->{delta_ts};
         my $columns = join(',', keys %$comment);
         my $qmarks = join(',', ('?') x keys %$comment);
-        Bugzilla->dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, values %$comment);
+        $dbh->do("INSERT INTO longdescs ($columns) VALUES ($qmarks)", undef, values %$comment);
+        $comment->{id} = $dbh->bz_last_key('longdescs', 'id');
         if (0+$comment->{work_time} != 0)
         {
             # Log worktime
