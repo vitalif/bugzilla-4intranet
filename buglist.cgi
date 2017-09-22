@@ -981,6 +981,7 @@ if ($dotweak && scalar @bugs)
     my $visible = {};
     for my $field (Bugzilla->active_custom_fields)
     {
+        next if $field->type == FIELD_TYPE_BUG_ID_REV;
         my $vis_field = $field->visibility_field;
         my $vis = 1;
         if ($vis_field)
