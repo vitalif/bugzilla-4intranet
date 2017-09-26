@@ -76,20 +76,12 @@ sub type {
             print "HTTP/1.1 100 Continue\r\n\r\n";
         }
 
-        #my $content = q{};
         if ( !$chunked ) {
             my $buffer;
             binmode(STDIN);
-            if ( defined $ENV{'MOD_PERL'} ) {
-                while ( read( STDIN, $buffer, $length ) ) {
-                    $content .= $buffer;
-                    last if ( length($content) >= $length );
-                }
-            } else {
-                while ( sysread( STDIN, $buffer, $length ) ) {
-                    $content .= $buffer;
-                    last if ( length($content) >= $length );
-                }
+            while ( read( STDIN, $buffer, $length ) ) {
+                $content .= $buffer;
+                last if ( length($content) >= $length );
             }
             ## Line added so CGI doesn't try to slurp in the POST content after XMLRPC
             undef $ENV{CONTENT_LENGTH};
