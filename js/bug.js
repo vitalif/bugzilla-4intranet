@@ -257,7 +257,9 @@ function updateRemainingTime()
 function changeform_onsubmit()
 {
     if (check_new_keywords(document.changeform) == false)
+    {
         return false;
+    }
 
     var wtInput = document.changeform.work_time;
     if (!wtInput)
@@ -278,6 +280,19 @@ function changeform_onsubmit()
         {
             wtInput.focus();
             return false;
+        }
+    }
+    if (awt)
+    {
+        var txt = document.getElementById('comment_textarea').value.trim();
+        if (txt === '')
+        {
+            var wtonly = document.getElementById('cmt_worktime').checked;
+            if (!wtonly)
+            {
+                alert('You have to specify a comment on this change');
+                return false;
+            }
         }
     }
 
