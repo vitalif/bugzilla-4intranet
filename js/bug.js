@@ -282,7 +282,7 @@ function changeform_onsubmit()
             return false;
         }
     }
-    if (awt)
+    if (awt != 0)
     {
         var txt = document.getElementById('comment_textarea').value.trim();
         if (txt === '')
