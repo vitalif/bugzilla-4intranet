@@ -72,14 +72,14 @@ sub get_param_list
     {
         name => 'webdotbase',
         type => 't',
-        default => 'http://www.research.att.com/~north/cgi-bin/webdot.cgi/%urlbase%',
+        default => '/usr/bin/dot',
         checker => \&check_webdotbase
     },
 
     {
         name => 'webtwopibase',
         type => 't',
-        default => '',
+        default => '/usr/bin/twopi',
         checker => \&check_webdotbase
     },
 
