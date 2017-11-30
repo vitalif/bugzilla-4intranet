@@ -767,7 +767,7 @@ sub check_default_values
                 push @gids, $gid;
             }
         }
-        $self->{groups_in} = \@gids;
+        $self->{groups_in} = Bugzilla::Group->new_from_list(\@gids);
     }
     $self->set('groups', [ map { $_->id } @{$self->groups_in} ]);
     $self->{cc} = $self->component_obj->initial_cc if !$self->{cc};
