@@ -104,6 +104,12 @@ sub get_param_list
     },
 
     {
+        name => 'enable_inmail_cgi',
+        type => 'b',
+        default => 0
+    },
+
+    {
         name => 'smtpserver',
         type => 't',
         default => 'localhost'

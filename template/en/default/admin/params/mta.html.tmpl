@@ -56,6 +56,14 @@
     _ " won't get sent). This affects all mail sent by $terms.Bugzilla,"
     _ " not just $terms.bug updates.",
 
+  enable_inmail_cgi =>
+    "Enable HTTP handler for incoming e-mail (email_in.cgi). " _
+    "<b>IMPORTANT NOTE:</b> This handler is only for usage from your MTA. " _
+    "If you enable it, you MUST make sure that your nginx (or other http " _
+    "reverse proxy Bugzilla4Intranet is installed behind) denies access to " _
+    "email_in.cgi from public addresses. " _
+    "See the end of email_in.cgi for an example Postfix configuration.",
+
   sendmailnow => "Sites using anything older than version 8.12 of 'sendmail' " _
                  "can achieve a significant performance increase in the " _
                  "UI -- at the cost of delaying the sending of mail -- by " _
