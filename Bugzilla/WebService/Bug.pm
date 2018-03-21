@@ -661,9 +661,7 @@ sub update {
     }
     $dbh->bz_commit_transaction();
 
-    foreach my $bug (@bugs) {
-        $bug->send_changes($all_changes{$bug->id});
-    }
+    Bugzilla->send_mail;
 
     my %api_name = reverse %{ Bugzilla::Bug::FIELD_MAP() };
     # This doesn't normally belong in FIELD_MAP, but we do want to translate
@@ -732,7 +730,7 @@ sub create {
 
     $dbh->bz_commit_transaction();
 
-    $bug->send_changes();
+    Bugzilla->send_mail;
 
     return { id => $self->type('int', $bug->bug_id) };
 }
@@ -837,7 +835,7 @@ sub add_attachment {
     $_->bug->update($timestamp) foreach @created;
     $dbh->bz_commit_transaction();
 
-    $_->send_changes() foreach @bugs;
+    Bugzilla->send_mail;
 
     my @created_ids = map { $_->id } @created;
 
@@ -950,8 +948,9 @@ sub update_attachment {
     # Email users about the change
     foreach my $bug (values %bugs) {
         $bug->update();
-        $bug->send_changes();
     }
+
+    Bugzilla->send_mail;
 
     # Return the information to the user
     return { attachments => \@result };
