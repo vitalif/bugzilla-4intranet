@@ -257,6 +257,8 @@ if ($action eq 'delete')
 
     Bugzilla::Hook::process('editgroups-post_delete', { group => $group });
     Bugzilla::Views::refresh_some_views();
+    # Refresh fieldvaluecontrol cache
+    Bugzilla->get_field('delta_ts')->touch;
 
     $vars->{message} = 'group_deleted';
     ListGroups($vars);
@@ -273,6 +275,8 @@ if ($action eq 'postchanges')
 
     Bugzilla::Hook::process('editgroups-post_edit', {});
     Bugzilla::Views::refresh_some_views();
+    # Refresh fieldvaluecontrol cache
+    Bugzilla->get_field('delta_ts')->touch;
 
     delete_token($token);
 
@@ -320,6 +324,8 @@ if ($action eq 'remove_regexp')
 
     Bugzilla::Hook::process('editgroups-post_remove_regexp', { deleted => $del });
     Bugzilla::Views::refresh_some_views();
+    # Refresh fieldvaluecontrol cache
+    Bugzilla->get_field('delta_ts')->touch;
 
     delete_token($token);
 

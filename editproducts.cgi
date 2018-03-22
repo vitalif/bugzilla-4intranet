@@ -467,6 +467,9 @@ if ($action eq 'updategroupcontrols')
     $vars->{product} = $product;
     $vars->{changes} = $changes;
 
+    # Refresh fieldvaluecontrol cache
+    Bugzilla->get_field('delta_ts')->touch;
+
     $template->process('admin/products/groupcontrol/updated.html.tmpl', $vars)
         || ThrowTemplateError($template->error());
     exit;

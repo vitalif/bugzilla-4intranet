@@ -338,6 +338,8 @@ elsif ($action eq 'update')
 
     Bugzilla::Hook::process('editusers-post_update', { userid => $otherUserID });
     Bugzilla::Views::refresh_some_views([ $otherUser->login ]);
+    # Refresh fieldvaluecontrol cache
+    Bugzilla->get_field('delta_ts')->touch;
 
     $vars->{message} = 'account_updated';
     $vars->{changed_fields} = [ keys %$changes ];

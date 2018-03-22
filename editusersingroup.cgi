@@ -73,6 +73,8 @@ if (@add_members || @add_bless || @rm_members || @rm_bless)
     if (@add_members || @rm_members)
     {
         Bugzilla::Views::refresh_some_views();
+        # Refresh fieldvaluecontrol cache
+        Bugzilla->get_field('delta_ts')->touch;
     }
     delete_token($ARGS->{token});
     my $url = "editusersingroup.cgi?group=".$vars->{group}->id;
