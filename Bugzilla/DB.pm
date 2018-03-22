@@ -816,12 +816,18 @@ sub _bz_add_field_table {
     $self->bz_add_table($name);
 }
 
-sub bz_add_field_tables {
+sub bz_add_field_tables
+{
     my ($self, $field) = @_;
-
-    $self->_bz_add_field_table($field->name,
-                               $self->_bz_schema->FIELD_TABLE_SCHEMA, $field->type);
-    if ($field->type == FIELD_TYPE_MULTI_SELECT) {
+    if ($field->type == FIELD_TYPE_MULTI_SELECT ||
+        $field->type == FIELD_TYPE_SINGLE_SELECT)
+    {
+        $self->_bz_add_field_table(
+            $field->name, $self->_bz_schema->FIELD_TABLE_SCHEMA, $field->type
+        );
+    }
+    if ($field->type == FIELD_TYPE_MULTI_SELECT)
+    {
         my $ms_table = "bug_" . $field->name;
         $self->_bz_add_field_table($ms_table,
             $self->_bz_schema->MULTI_SELECT_VALUE_TABLE);
@@ -832,14 +838,27 @@ sub bz_add_field_tables {
         $self->bz_add_fk($ms_table, 'value_id', {TABLE  => $field->name,
                                                  COLUMN => 'id'});
     }
+    elsif ($field->type == FIELD_TYPE_EAV_TEXTAREA)
+    {
+        my $ms_table = "bug_" . $field->name;
+        $self->_bz_add_field_table($ms_table, $self->_bz_schema->EAV_TEXTAREA_VALUE_TABLE);
+        $self->bz_add_fk($ms_table, 'bug_id', {TABLE => 'bugs', COLUMN => 'bug_id', DELETE => 'CASCADE'});
+    }
 }
 
-sub bz_drop_field_tables {
+sub bz_drop_field_tables
+{
     my ($self, $field) = @_;
-    if ($field->type == FIELD_TYPE_MULTI_SELECT) {
+    if ($field->type == FIELD_TYPE_MULTI_SELECT ||
+        $field->type == FIELD_TYPE_EAV_TEXTAREA)
+    {
         $self->bz_drop_table('bug_' . $field->name);
     }
-    $self->bz_drop_table($field->name);
+    if ($field->type == FIELD_TYPE_MULTI_SELECT ||
+        $field->type == FIELD_TYPE_SINGLE_SELECT)
+    {
+        $self->bz_drop_table($field->name);
+    }
 }
 
 sub bz_drop_column

@@ -55,6 +55,7 @@
   bug.id && field.type != constants.FIELD_TYPE_BUG_ID_REV &&
   field.type != constants.FIELD_TYPE_MULTI_SELECT &&
   field.type != constants.FIELD_TYPE_TEXTAREA &&
+  field.type != constants.FIELD_TYPE_EAV_TEXTAREA &&
   field.type != constants.FIELD_TYPE_BUG_URLS &&
   field.type != constants.FIELD_TYPE_BUG_ID %]
 
@@ -259,6 +260,15 @@
         cols = 30
         defaultcontent = value
         tabindex = tabindex %]
+    [% CASE constants.FIELD_TYPE_EAV_TEXTAREA %]
+      [% INCLUDE global/textarea.html.tmpl
+        id = field.name
+        name = field.name
+        minrows = 4
+        maxrows = 8
+        cols = 30
+        defaultcontent = value
+        tabindex = tabindex %]
     [% CASE constants.FIELD_TYPE_BUG_URLS %]
       [% '<ul class="bug_urls">' IF value.size %]
       [% FOREACH url = value %]
@@ -292,7 +302,7 @@
   [% IF show_search_link %]
   </td><td style="padding-left: 5px">[% PROCESS search_link %](search)</a></td></tr></table>
   [% END %]
-[% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA %]
+[% ELSIF field.type == constants.FIELD_TYPE_TEXTAREA || field.type == constants.FIELD_TYPE_EAV_TEXTAREA %]
   <div class="uneditable_textarea">[% value | html | wrap_comment %]</div>
 [% ELSIF field.type == constants.FIELD_TYPE_BUG_ID %]
   [% IF bug.${field.name} %]

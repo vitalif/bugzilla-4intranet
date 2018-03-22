@@ -226,7 +226,7 @@ var close_status_array = [
   [% END %]
 
   [% INCLUDE custom_fields style = "width: 40em"
-    cf = Bugzilla.active_custom_fields({ 'type' => constants.FIELD_TYPE_TEXTAREA }) %]
+    cf = Bugzilla.active_custom_fields({ 'type' => [ constants.FIELD_TYPE_TEXTAREA, constants.FIELD_TYPE_EAV_TEXTAREA ] }) %]
 
   [% INCLUDE custom_fields style = "min-width: 20em; max-width: 40em"
     cf = Bugzilla.active_custom_fields({ 'type' => constants.FIELD_TYPE_MULTI_SELECT }) %]

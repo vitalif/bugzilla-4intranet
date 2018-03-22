@@ -1326,6 +1326,15 @@ use constant MULTI_SELECT_VALUE_TABLE => {
         bug_id_idx => {FIELDS => [qw(bug_id value_id)], TYPE => 'UNIQUE'},
     ],
 };
+use constant EAV_TEXTAREA_VALUE_TABLE => {
+    FIELDS => [
+        bug_id => {TYPE => 'INT4', NOTNULL => 1},
+        value => {TYPE => 'MEDIUMTEXT', NOTNULL => 1, DEFAULT => "''"},
+    ],
+    INDEXES => [
+        bug_id_idx => {FIELDS => [qw(bug_id)], TYPE => 'UNIQUE'},
+    ],
+};
 
 #--------------------------------------------------------------------------
 

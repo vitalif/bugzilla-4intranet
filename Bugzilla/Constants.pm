@@ -129,6 +129,8 @@ use Cwd qw(abs_path);
     FIELD_TYPE_NUMERIC
     FIELD_TYPE_EXTURL
     FIELD_TYPE_BUG_ID_REV
+    FIELD_TYPE_EAV_TEXTAREA
+    FIELD_TYPE__MAX
 
     FLAG_VISIBLE
     FLAG_NULLABLE
@@ -392,6 +394,8 @@ use constant FIELD_TYPE_KEYWORDS => 8;
 use constant FIELD_TYPE_NUMERIC => 30;
 use constant FIELD_TYPE_EXTURL => 31;
 use constant FIELD_TYPE_BUG_ID_REV => 32;
+use constant FIELD_TYPE_EAV_TEXTAREA => 33;
+use constant FIELD_TYPE__MAX => 33;
 
 use constant FLAG_VISIBLE => 0;
 use constant FLAG_NULLABLE => -1;

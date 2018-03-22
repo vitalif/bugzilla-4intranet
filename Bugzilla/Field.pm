@@ -306,7 +306,7 @@ sub _check_type
     # higher field type is added.
     if (!detaint_natural($type) || $type <= FIELD_TYPE_UNKNOWN ||
         $type > FIELD_TYPE_KEYWORDS && $type < FIELD_TYPE_NUMERIC ||
-        $type > FIELD_TYPE_BUG_ID_REV)
+        $type > FIELD_TYPE__MAX)
     {
         ThrowCodeError('invalid_customfield_type', { type => $saved_type });
     }
@@ -893,11 +893,8 @@ sub remove_from_db
         $dbh->bz_drop_column('bugs', $name);
     }
 
-    if ($self->is_select)
-    {
-        # Delete the table that holds the legal values for this field.
-        $dbh->bz_drop_field_tables($self);
-    }
+    # Delete the table that holds the legal values for this field.
+    $dbh->bz_drop_field_tables($self);
 
     $self->set_visibility_values(undef);
     $self->set_null_visibility_values(undef);
@@ -1278,13 +1275,8 @@ sub create
             # Create the database column that stores the data for this field.
             $dbh->bz_add_column('bugs', $name, SQL_DEFINITIONS->{$type});
         }
-
-        if ($obj->is_select)
-        {
-            # Create the table that holds the legal values for this field.
-            $dbh->bz_add_field_tables($obj);
-        }
-
+        # Create the table that holds the legal values for this field.
+        $dbh->bz_add_field_tables($obj);
         # Add foreign keys
         if ($type == FIELD_TYPE_SINGLE_SELECT)
         {

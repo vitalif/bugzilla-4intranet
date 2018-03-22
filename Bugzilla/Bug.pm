@@ -106,8 +106,13 @@ sub DB_COLUMNS
     # FIXME kill op_sys and rep_platform completely, make them custom fields
     push @columns, 'op_sys' if Bugzilla->get_field('op_sys')->enabled;
     push @columns, 'rep_platform' if Bugzilla->get_field('rep_platform')->enabled;
-    push @columns, map { $_->name }
-        grep { $_->type != FIELD_TYPE_MULTI_SELECT && $_->type != FIELD_TYPE_BUG_ID_REV }
+    push @columns,
+        map { $_->name }
+        grep {
+            $_->type != FIELD_TYPE_MULTI_SELECT &&
+            $_->type != FIELD_TYPE_EAV_TEXTAREA &&
+            $_->type != FIELD_TYPE_BUG_ID_REV
+        }
         Bugzilla->active_custom_fields;
 
     Bugzilla::Hook::process('bug_columns', { columns => \@columns });
@@ -162,6 +167,7 @@ use constant CUSTOM_FIELD_VALIDATORS => {
     FIELD_TYPE_BUG_ID_REV()     => \&_set_bugid_rev_field,
     FIELD_TYPE_BUG_URLS()       => \&_set_default_field,
     FIELD_TYPE_NUMERIC()        => \&_set_numeric_field,
+    FIELD_TYPE_EAV_TEXTAREA()   => \&_set_default_field,
 };
 
 sub SETTERS
@@ -576,6 +582,9 @@ sub update
     # Insert the values into the multiselect value tables
     $self->save_multiselects($changes);
 
+    # Insert the values into satellite value tables
+    $self->save_eavs($changes);
+
     # Save reversed bug_id fields
     $self->save_reverse_bugid_fields($changes);
 
@@ -932,6 +941,7 @@ sub check_dependent_fields
         }
         # Check other fields for empty values
         elsif (!$self->{$fn} || ($field_obj->type == FIELD_TYPE_FREETEXT ||
+            $field_obj->type == FIELD_TYPE_EAV_TEXTAREA ||
             $field_obj->type == FIELD_TYPE_TEXTAREA) && $self->{$fn} =~ /^\s*$/so)
         {
             my $nullable = $field_obj->check_is_nullable($self);
@@ -945,6 +955,7 @@ sub check_dependent_fields
                 }
             }
             if (!$nullable && (!$self->{$fn} || ($field_obj->type == FIELD_TYPE_FREETEXT ||
+                $field_obj->type == FIELD_TYPE_EAV_TEXTAREA ||
                 $field_obj->type == FIELD_TYPE_TEXTAREA) && $self->{$fn} =~ /^\s*$/so))
             {
                 ThrowUserError('field_not_nullable', { field => $field_obj });
@@ -1452,6 +1463,31 @@ sub save_multiselects
                     join(',', ('(?, ?)') x @{$self->$name}),
                     undef, map { ($self->id, $_) } @{$self->$name}
                 );
+            }
+        }
+    }
+}
+
+sub save_eavs
+{
+    my ($self, $changes) = @_;
+
+    my @eavs = Bugzilla->get_fields({ obsolete => 0, type => FIELD_TYPE_EAV_TEXTAREA });
+    foreach my $field (@eavs)
+    {
+        my $name = $field->name;
+        if (defined $self->{$name})
+        {
+            my $old = $self->{_old_self} && $self->{_old_self}->$name || '';
+            my $v = $self->{$name};
+            if ($v ne $old)
+            {
+                Bugzilla->dbh->do("DELETE FROM bug_$name WHERE bug_id=?", undef, $self->id);
+                if ($v ne '')
+                {
+                    Bugzilla->dbh->do("INSERT INTO bug_$name (bug_id, value) VALUES (?, ?)", undef, $self->id, $v);
+                }
+                $changes->{$name} = [ $old, $v ];
             }
         }
     }
@@ -3652,7 +3688,9 @@ sub GetBugActivity
         {
             my $change = $operations[$i]{changes}[$j];
             my $field = Bugzilla->get_field($change->{fieldname});
-            if ($change->{fieldname} eq 'longdesc' || $field->{type} eq FIELD_TYPE_TEXTAREA)
+            if ($change->{fieldname} eq 'longdesc' ||
+                $field->{type} == FIELD_TYPE_TEXTAREA ||
+                $field->{type} == FIELD_TYPE_EAV_TEXTAREA)
             {
                 my $diff = Bugzilla::Diff->new($change->{removed}, $change->{added})->get_table;
                 if (!@$diff)
@@ -4312,7 +4350,14 @@ sub get_value
         elsif ($field->type == FIELD_TYPE_BUG_ID_REV)
         {
             $self->{$attr} ||= Bugzilla->dbh->selectcol_arrayref(
-                "SELECT bug_id FROM bugs WHERE ".$field->value_field->name." = ".$self->id
+                "SELECT bug_id FROM bugs WHERE ".$field->value_field->name." = ?", undef, $self->id
+            );
+            return $self->{$attr};
+        }
+        elsif ($field->type == FIELD_TYPE_EAV_TEXTAREA)
+        {
+            ($self->{$attr}) = Bugzilla->dbh->selectrow_array(
+                "SELECT value FROM bug_$attr WHERE bug_id=?", undef, $self->id
             );
             return $self->{$attr};
         }
@@ -4338,7 +4383,7 @@ sub fields
         map { $_->name } Bugzilla->get_fields({
             obsolete => 0,
             custom => 1,
-            type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_ID_REV ],
+            type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_EAV_TEXTAREA, FIELD_TYPE_BUG_ID_REV ],
         }),
     );
     Bugzilla::Hook::process('bug_fields', { fields => \@fields });
@@ -4363,7 +4408,7 @@ sub _validate_attribute
             # every DB column may be returned via an autoloaded accessor
             (map { $_ => 1 } Bugzilla::Bug->DB_COLUMNS),
             # multiselect, bug_id_rev fields
-            (map { $_->name => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_BUG_ID_REV ] })),
+            (map { $_->name => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_MULTI_SELECT, FIELD_TYPE_EAV_TEXTAREA, FIELD_TYPE_BUG_ID_REV ] })),
             # get_object accessors
             (map { $_->name.'_obj' => 1 } Bugzilla->get_fields({ type => [ FIELD_TYPE_SINGLE_SELECT, FIELD_TYPE_MULTI_SELECT ] })),
         };

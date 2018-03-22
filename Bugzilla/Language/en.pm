@@ -77,6 +77,7 @@ $Bugzilla::messages->{en} = {
         FIELD_TYPE_NUMERIC()       => 'Numeric',
         FIELD_TYPE_EXTURL()        => 'External URL',
         FIELD_TYPE_BUG_ID_REV()    => $terms->{Bug}.' ID reverse',
+        FIELD_TYPE_EAV_TEXTAREA()  => 'Large Text Box (separate table)',
     },
     control_options => {
         CONTROLMAPNA() => 'NA',

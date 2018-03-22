@@ -616,6 +616,12 @@ sub STATIC_COLUMNS
                 " FROM ".$type->REL_TABLE.", $t WHERE $t.".$type->ID_FIELD."=".$type->REL_TABLE.".value_id".
                 " AND ".$type->REL_TABLE.".bug_id=bugs.bug_id)";
         }
+        elsif ($field->type == FIELD_TYPE_EAV_TEXTAREA)
+        {
+            my $t = "bug_".$field->name;
+            $columns->{$id}->{name} = "$t.value";
+            $columns->{$id}->{joins} = [ "LEFT JOIN $t ON $t.bug_id=bugs.bug_id" ];
+        }
         elsif ($bug_columns->{$id})
         {
             $columns->{$id}->{name} ||= "bugs.$id";
@@ -697,6 +703,17 @@ sub STATIC_COLUMNS
                         " AND ".$type->REL_TABLE.".bug_id=bugs_$id".".bug_id)",
                     title => $field->description . ' ' . $subfield->description,
                     joins => [ @$join ],
+                    subid => $subid,
+                    sortkey => 1,
+                };
+            }
+            elsif ($subfield->type == FIELD_TYPE_MULTI_SELECT)
+            {
+                my $t = 'bug_'.$subfield->name;
+                $columns->{$id.'_'.$subid} = {
+                    name  => "bugs_$id"."_$t.value",
+                    title => $field->description . ' ' . $subfield->description,
+                    joins => [ @$join, "LEFT JOIN $t bugs_$id"."_$t ON bugs_$id"."_$t.bug_id=bugs_$id.bug_id" ],
                     subid => $subid,
                     sortkey => 1,
                 };

@@ -126,7 +126,7 @@
             <option value="[% v.id %]"[% ' selected="selected"' IF cur_default.${v.id} %]>[% v.name | html %]</option>
           [% END %]
         </select>
-      [% ELSIF f.type == constants.FIELD_TYPE_TEXTAREA %]
+      [% ELSIF f.type == constants.FIELD_TYPE_TEXTAREA || f.type == constants.FIELD_TYPE_EAV_TEXTAREA %]
         <textarea cols="50" rows="5" name="default_[% f.name | html %]" id="default_[% f.name | html %]">[% f.get_default_value(this_value.id) | html %]</textarea>
       [% ELSE %]
         <input type="text" name="default_[% f.name | html %]" id="default_[% f.name | html %]" value="[% f.get_default_value(this_value.id) | html %]" />
