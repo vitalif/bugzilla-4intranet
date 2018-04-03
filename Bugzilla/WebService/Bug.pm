@@ -12,6 +12,7 @@ use warnings;
 
 use base qw(Bugzilla::WebService);
 
+use Bugzilla;
 use Bugzilla::Comment;
 use Bugzilla::Constants;
 use Bugzilla::Error;
@@ -20,7 +21,7 @@ use Bugzilla::WebService::Constants;
 use Bugzilla::WebService::Util qw(extract_flags filter filter_wants validate translate user_to_hash);
 use Bugzilla::Bug;
 use Bugzilla::BugMail;
-use Bugzilla::Util qw(trick_taint trim diff_arrays detaint_natural);
+use Bugzilla::Util qw(trick_taint trim diff_arrays detaint_natural Dumper);
 use Bugzilla::Version;
 use Bugzilla::Milestone;
 use Bugzilla::Status;
@@ -985,7 +986,7 @@ sub add_comment {
     my $new_comment_id = $info->{added_comments}->[0]->{id};
 
     # Send mail.
-    Bugzilla::BugMail::Send($bug->bug_id, { changer => $user });
+    Bugzilla->send_mail;
 
     return { id => $self->type('int', $new_comment_id) };
 }
@@ -1013,7 +1014,7 @@ sub update_see_also {
             $bug->add_see_also($_) foreach @$add;
         }
     }
-    
+
     my %changes;
     foreach my $bug (@bugs) {
         my $change = $bug->update();
@@ -1027,9 +1028,9 @@ sub update_see_also {
             # We still want a changes entry, for API consistency.
             $changes{$bug->id}->{see_also} = { added => [], removed => [] };
         }
-
-        Bugzilla::BugMail::Send($bug->id, { changer => $user });
     }
+
+    Bugzilla->send_mail;
 
     return { changes => \%changes };
 }
