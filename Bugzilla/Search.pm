@@ -680,6 +680,17 @@ sub STATIC_COLUMNS
                     ],
                 };
             }
+            elsif ($subid eq 'deadline')
+            {
+                $columns->{$id.'_'.$subid} = {
+                    name => $dbh->sql_date_format("bugs_$id.deadline", '%Y-%m-%d'),
+                    raw_name => "bugs_$id.deadline",
+                    title => $field->description . ' ' . $subfield->description,
+                    subid => $subid,
+                    sortkey => 1,
+                    joins => [ @$join ],
+                };
+            }
             elsif ($subfield->type == FIELD_TYPE_SINGLE_SELECT)
             {
                 my $type = $subfield->value_type;
@@ -999,10 +1010,11 @@ sub FUNCTIONS
         type     => FIELD_TYPE_BUG_ID_REV,
         obsolete => 0
     });
-    my $date_fields = join '|', map { $_->name } Bugzilla->get_fields({
+    my @bugid_fields = Bugzilla->get_fields({ type => FIELD_TYPE_BUG_ID });
+    my $date_fields = join '|', ((map { $_->name } Bugzilla->get_fields({
         type     => FIELD_TYPE_DATETIME,
         obsolete => 0
-    });
+    })), (map { $_->name.'_deadline' } @bugid_fields));
     $FUNCTIONS = {
         'blocked|dependson' => {
             '*' => \&_blocked_dependson,
@@ -2665,7 +2677,11 @@ sub _timestamp_compare
 {
     my $self = shift;
     my $dbh = Bugzilla->dbh;
-    $self->{fieldsql} = 'bugs.'.$self->{field};
+    if ($self->{columns}->{$self->{field}}->{joins})
+    {
+        push @{$self->{supptables}}, @{$self->{columns}->{$self->{field}}->{joins}};
+    }
+    $self->{fieldsql} = $self->{columns}->{$self->{field}}->{raw_name} || 'bugs.'.$self->{field};
     if ($self->{value} =~ /^[+-]?\d+[dhwmy]$/is)
     {
         $self->{value} = SqlifyDate($self->{value});
