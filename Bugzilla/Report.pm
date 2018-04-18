@@ -224,6 +224,12 @@ sub execute
         $measure = 'count';
     }
 
+    # If the user has no access to the measured column, reset it to 'count'
+    if (!Bugzilla::Search->COLUMNS($runner)->{$measures->{$measure}})
+    {
+        $measure = 'count';
+    }
+
     # Validate the values in the axis fields or throw an error.
     my %a;
     my @group_by = grep { !($a{$_}++) } values %$field;
