@@ -2209,18 +2209,32 @@ sub _set_keywords
 sub _set_product
 {
     my ($self, $name) = @_;
-    $name = trim($name);
-    # If we're updating the bug and they haven't changed the product, always allow it.
-    if ($self->product_obj && $self->product_obj->name eq $name)
+    my $product;
+    if (!ref $name)
     {
-        return undef;
+        $name = trim($name);
+        # If we're updating the bug and they haven't changed the product, always allow it.
+        if ($self->product_obj && $self->product_obj->name eq $name)
+        {
+            return undef;
+        }
+        # Check that the product exists and that the user
+        # is allowed to enter bugs into this product.
+        Bugzilla->user->can_enter_product($name, THROW_ERROR);
+        # can_enter_product already does everything that check_product
+        # would do for us, so we don't need to use it.
+        $product = new Bugzilla::Product({ name => $name });
     }
-    # Check that the product exists and that the user
-    # is allowed to enter bugs into this product.
-    Bugzilla->user->can_enter_product($name, THROW_ERROR);
-    # can_enter_product already does everything that check_product
-    # would do for us, so we don't need to use it.
-    my $product = new Bugzilla::Product({ name => $name });
+    else
+    {
+        $product = $name;
+        # If we're updating the bug and they haven't changed the product, always allow it.
+        if ($self->product_id == $product->id)
+        {
+            return undef;
+        }
+        Bugzilla->user->can_enter_product($product, THROW_ERROR);
+    }
     if (($self->product_id || 0) != $product->id)
     {
         $self->{product_id}  = $product->id;
