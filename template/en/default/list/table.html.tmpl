@@ -225,6 +225,10 @@
       [% ELSIF field_obj.type == constants.FIELD_TYPE_NUMERIC %]
         [%# Remove trailing zeros %]
         [% bug.$column.replace('((\.\d*[1-9])|\.)0+$', '$2') %]
+      [% ELSIF field_obj.type == constants.FIELD_TYPE_TEXTAREA ||
+        field_obj.type == constants.FIELD_TYPE_EAV_TEXTAREA %]
+        [%- v = bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) -%]
+        [%- v | quoteUrls(bug.bug_id) | wrap_comment -%]
       [% ELSIF column == 'work_time' ||
                column == 'remaining_time' ||
                column == 'estimated_time' ||
@@ -267,7 +271,8 @@
         [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
         </a>
       [% ELSE %]
-        [%- bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+        [%- v = bug.$column.truncate(abbrev.$column.maxlength, abbrev.$column.ellipsis) FILTER html -%]
+        [%- v.replace("\n", '<br>') -%]
       [% END %]
     </td>
     [% END %]
