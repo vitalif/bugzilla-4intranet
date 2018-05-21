@@ -1107,14 +1107,6 @@ sub _check_bug_status
         }
         $self->set('resolution', undef);
     }
-    else
-    {
-        # Changing between closed statuses zeroes the remaining time.
-        if ($old_status && $new_status->id != $old_status->id && $self->remaining_time != 0)
-        {
-            $self->set('remaining_time', 0);
-        }
-    }
 }
 
 sub _check_resolution
