@@ -26,7 +26,7 @@
 .bz_comment .attachment_image { max-width: 50em; margin: 10px 0px 0px 0px; }
 
 .bz_comment_text.bz_fullscreen_comment { min-width: 50em; width: 100%; word-wrap: break-word; }
-#commentpreviewhtml .bz_comment_text.bz_fullscreen_comment { min-width: 40em; }
+#commentpreviewhtml .bz_comment_text.bz_fullscreen_comment { min-width: 0px; }
 
 .bz_comment .bz_fmt_table td, .bz_comment .bz_fmt_table th { border: 1px solid gray; padding: 5px; }
 
