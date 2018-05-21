@@ -171,13 +171,17 @@ sub makeTables
         {
             if (scalar($line =~ s/(\t+|│+)/$1/gso) > 0)
             {
-                $line =~ s/^\s*│\s*//;
-                $table->add(split /\t+|\s*│+\s*/, $line);
+                $line =~ /[─┌┐└┘├┴┬┤┼]+/gso; # legacy ascii tables
+                $line =~ s/^\s*│\s*//s;
+                $line =~ s/\s*│\s*$//s;
+                $line = [ split /\t+\s*|\s*│+\s*/, $line ];
+                $line = '<tr><td>'.join('</td><td>', @$line).'</td></tr>';
+                $table .= "\n".$line;
                 next;
             }
             else
             {
-                $wrappedcomment .= "\0\1".$table->render."\0\1";
+                $wrappedcomment .= "<table class='bz_fmt_table'>$table</table>\n";
                 $table = undef;
             }
         }
@@ -185,21 +189,19 @@ sub makeTables
         if ($n > 1 && length($line) < MAX_TABLE_COLS)
         {
             # Table
-            $line =~ s/^\s*│\s*//;
-            $line =~ s/\s*│\s*$//;
-            $table = Text::TabularDisplay::Utf8->new;
-            $table->add(split /\t+|\s*│+\s*/, $line);
+            $line =~ /[─┌┐└┘├┴┬┤┼]+/gso; # legacy ascii tables
+            $line =~ s/^\s*│\s*//s;
+            $line =~ s/\s*│\s*$//s;
+            $line = [ split /\t+\s*|\s*│+\s*/, $line ];
+            $table = "<tr><td>".join('</td><td>', @$line)."</td></tr>\n";
             next;
         }
-        unless ($line =~ /^[│─┌┐└┘├┴┬┤┼].*[│─┌┐└┘├┴┬┤┼]$/iso)
-        {
-            $line =~ s/\t/    /gso;
-        }
+        $line =~ s/\t/    /gso;
         $wrappedcomment .= $line . "\n";
     }
     if ($table)
     {
-        $wrappedcomment .= "\0\1".$table->render."\0\1";
+        $wrappedcomment .= "<table class='bz_fmt_table'>$table</table>\n";
     }
     return $wrappedcomment;
 }
@@ -214,8 +216,6 @@ sub quoteUrls
 {
     my ($text, $bug, $comment) = (@_);
     return $text unless $text;
-
-    $text = makeTables($text);
 
     # We use /g for speed, but uris can have other things inside them
     # (http://foo/bug#3 for example). Filtering that out filters valid
@@ -344,6 +344,9 @@ sub quoteUrls
 
     # Replace nowrap markers (\1\0\1)
     $text =~ s/\x01\x00\x01(.*?)\x01\x00\x01/<div style="white-space: nowrap">$1<\/div>/gso;
+
+    # Replace tables
+    $text = makeTables($text);
 
     # Color quoted text
     $text = makeCitations($text);

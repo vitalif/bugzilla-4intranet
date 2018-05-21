@@ -131,11 +131,6 @@ sub REQUIRED_MODULES {
         version => '2013.0426',
     },
     {
-        package => 'Text-TabularDisplay',
-        module  => 'Text::TabularDisplay',
-        feature => 'Table formatting inside bug comments',
-    },
-    {
         package => 'LWP-MediaTypes',
         module  => 'LWP::MediaTypes',
         feature => 'Guessing attachment types',

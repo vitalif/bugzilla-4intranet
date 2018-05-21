@@ -60,7 +60,6 @@ use List::Util qw(first);
 use Scalar::Util qw(tainted blessed);
 use Template::Filters;
 use Text::Wrap;
-use Text::TabularDisplay::Utf8;
 use JSON;
 
 use Data::Dumper qw(Dumper);
@@ -457,17 +456,18 @@ sub wrap_comment # makeParagraphs
     my $tmp;
     my $text = '';
     my $block_tags = '(?:div|h[1-6]|center|ol|ul|li)';
+    my $table_tags = '(?:table|tbody|thead|tr|td|th)';
     while ($input ne '')
     {
         # Convert double line breaks to new paragraphs
-        if ($input =~ m!\n\s*\n|(</?$block_tags[^<>]*>)!so)
+        if ($input =~ m!\n\s*\n|(</?$table_tags[^<>]*>)|(</?$block_tags[^<>]*>)!so)
         {
-            @m = (substr($input, 0, $-[0]), $1);
+            @m = (substr($input, 0, $-[0]), $1||$2, $1);
             $input = substr($input, $+[0]);
         }
         else
         {
-            @m = ($input, '');
+            @m = ($input, '', '');
             $input = '';
         }
         if ($m[0] ne '')
@@ -476,7 +476,7 @@ sub wrap_comment # makeParagraphs
             $m[0] =~ s/^\s*\n//s;
             $m[0] =~ s/^([ \t]+)/$tmp = $1; s!\t!    !g; $tmp/emog;
             $m[0] =~ s/(<[^<>]*>)|(  +)/$1 || ' '.('&nbsp;' x (length($2)-1))/ge;
-            if (!$p && $m[0] ne '')
+            if (!$p && $m[0] ne '' && !$m[2])
             {
                 $text .= '<p>';
                 $p = 1;
