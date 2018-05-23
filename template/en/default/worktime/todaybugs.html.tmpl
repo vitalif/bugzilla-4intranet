@@ -30,7 +30,7 @@
     <td align="center">
       <form name="lastdaysform" action="fill-day-worktime.cgi" method="get">
       <input value="Select last days" type="submit" />
-      <select name="lastdays">
+      <select [% lastdays <= 7 ? 'name="lastdays"' : 'style="display: none"' %] id="_lastdays" onchange="check_other(this)">
         <option value="1" [% " selected=\"selected\"" IF (!lastdays)||(lastdays==1) %]>1</option>
         <option value="2" [% " selected=\"selected\"" IF (lastdays==2) %]>2</option>
         <option value="3" [% " selected=\"selected\"" IF (lastdays==3) %]>3</option>
@@ -38,7 +38,9 @@
         <option value="5" [% " selected=\"selected\"" IF (lastdays==5) %]>5</option>
         <option value="6" [% " selected=\"selected\"" IF (lastdays==6) %]>6</option>
         <option value="7" [% " selected=\"selected\"" IF (lastdays==7) %]>7</option>
+        <option value="other">other...</option>
       </select>
+      <input [% lastdays > 7 ? 'name="lastdays" style="width: 80px"' : 'style="display: none; width: 80px"' %] value="[% lastdays || 1 %]" />
       </form>
     </td>
   </tr>
@@ -124,12 +126,29 @@
 </td></tr></table>
 </form>
 
+<script>
+function check_other(sel)
+{
+  if (sel.style.display != 'none' && sel.value == 'other')
+  {
+    var txt = sel.nextSibling;
+    while (txt && txt.nodeName != 'INPUT')
+      txt = txt.nextSibling;
+    txt.setAttribute('name', sel.name);
+    txt.style.display = '';
+    sel.setAttribute('name', '');
+    sel.style.display = 'none';
+  }
+}
+check_other(document.getElementById('_lastdays'));
+</script>
+
 [% PROCESS global/footer.html.tmpl %]
 
 [% BLOCK today_or_lastdays %]
-    [% IF lastdays>1 %]
-      Last [% lastdays %] Days
-    [% ELSE %]
-      Today
-    [% END %]
+  [% IF lastdays>1 %]
+    Last [% lastdays %] Days
+  [% ELSE %]
+    Today
+  [% END %]
 [% END %]
