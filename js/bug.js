@@ -297,7 +297,6 @@ function changeform_onsubmit()
     }
 
     wtInput.value = awt;
-    adjustRemainingTime();
     window.checkCommentOnUnload = false;
     return true;
 }
