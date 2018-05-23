@@ -225,7 +225,7 @@ sub execute
     }
 
     # If the user has no access to the measured column, reset it to 'count'
-    if (!Bugzilla::Search->COLUMNS($runner)->{$measures->{$measure}})
+    if (!Bugzilla::Search->COLUMNS($runner)->{$measure eq 'times' ? 'remaining_time' : $measures->{$measure}})
     {
         $measure = 'count';
     }
