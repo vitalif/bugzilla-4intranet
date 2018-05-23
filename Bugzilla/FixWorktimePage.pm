@@ -110,7 +110,7 @@ sub AddWorktime
     my $remaining_time = $bug->remaining_time;
     my $newrtime = $remaining_time - $sum;
     $newrtime = 0 if $newrtime < 0;
-    $bug->remaining_time($newrtime) if $newrtime != $remaining_time;
+    $bug->set('remaining_time', $newrtime) if $newrtime != $remaining_time;
 
     $bug->update();
 
