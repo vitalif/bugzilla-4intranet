@@ -1,7 +1,0 @@
-# Nothing in this directory is retrievable unless overridden by an .htaccess
-# in a subdirectory; the only exception is duplicates.rdf, which is used by
-# duplicates.xul and must be accessible from the web server
-deny from all
-<Files duplicates.rdf>
-  allow from all
-</Files>

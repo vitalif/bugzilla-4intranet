@@ -1,5 +1,0 @@
-1
-include .
-exclude data/params.bugs3
-exclude data/params.bugs3-sm
-exclude data/hgsvn-filemap
