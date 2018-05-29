@@ -707,22 +707,16 @@ $buglist_sth->execute();
 
 # Retrieve the query results one row at a time and write the data into a list of Perl records.
 
-# If we're doing time tracking, then keep totals for all bugs.
-my $percentage_complete = 1 && grep { $_ eq 'percentage_complete' } @$displaycolumns;
-my $estimated_time      = 1 && grep { $_ eq 'estimated_time' } @$displaycolumns;
-my $remaining_time      = $percentage_complete || grep { $_ eq 'remaining_time' } @$displaycolumns;
-my $work_time           = $percentage_complete || grep { $_ eq 'work_time' } @$displaycolumns;
-my $interval_time       = $percentage_complete || grep { $_ eq 'interval_time' } @$displaycolumns;
-
-my $time_info = {
-    estimated_time => 0,
-    remaining_time => 0,
-    work_time => 0,
-    percentage_complete => 0,
-    interval_time => 0, # CustIS Bug 68921
-    time_present => ($estimated_time || $remaining_time ||
-        $work_time || $percentage_complete || $interval_time),
-};
+# Calculate totals
+my $total_info;
+for my $column (@$displaycolumns)
+{
+    if (Bugzilla::Search->COLUMNS->{$column}->{numeric})
+    {
+        $total_info ||= {};
+        $total_info->{$column} = 0;
+    }
+}
 
 my $bugowners = {};
 my $bugproducts = {};
@@ -763,10 +757,10 @@ while (my @row = $buglist_sth->fetchrow_array())
     push(@bugidlist, $bug->{bug_id});
 
     # Compute time tracking info.
-    $time_info->{estimated_time} += $bug->{estimated_time} if $estimated_time;
-    $time_info->{remaining_time} += $bug->{remaining_time} if $remaining_time;
-    $time_info->{work_time}      += $bug->{work_time}      if $work_time;
-    $time_info->{interval_time}  += $bug->{interval_time}  if $interval_time;
+    for my $column (keys %$total_info)
+    {
+        $total_info->{$column} += $bug->{$column} if $column ne 'percentage_complete';
+    }
 }
 
 my $query_template_time = gettimeofday();
@@ -806,15 +800,18 @@ if (@bugidlist)
 }
 
 # Compute percentage complete without rounding.
-my $sum = $time_info->{work_time} + $time_info->{remaining_time};
-if ($sum > 0)
+if (exists $total_info->{percentage_complete})
 {
-    $time_info->{percentage_complete} = 100*$time_info->{work_time}/$sum;
-}
-else
-{
-    # remaining_time <= 0
-    $time_info->{percentage_complete} = 0
+    my $sum = $total_info->{work_time} + $total_info->{remaining_time};
+    if ($sum > 0)
+    {
+        $total_info->{percentage_complete} = 100*$total_info->{work_time}/$sum;
+    }
+    else
+    {
+        # remaining_time <= 0
+        $total_info->{percentage_complete} = 0
+    }
 }
 
 ################################################################################
@@ -877,7 +874,7 @@ $vars->{order_columns} = $orderstrings;
 $vars->{order_dir} = [ map { s/ DESC$// ? 1 : 0 } @{$vars->{order_columns}} ];
 
 $vars->{caneditbugs} = 1;
-$vars->{time_info} = $time_info;
+$vars->{total_info} = $total_info;
 
 $vars->{query_params} = { %$params }; # now used only in superworktime
 $vars->{query_params}->{chfieldfrom} = $search->{interval_from};

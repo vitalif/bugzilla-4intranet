@@ -78,7 +78,8 @@ td.bz_total {
 .bz_buglist .bz_estimated_time_column,
 .bz_buglist .bz_remaining_time_column,
 .bz_buglist .bz_work_time_column,
-.bz_buglist .bz_percentage_complete_column { text-align: right; }
+.bz_buglist .bz_percentage_complete_column,
+.bz_buglist .bz_f30 { text-align: right; }
 
 .bz_buglist .bz_short_desc_column,
 .bz_buglist .bz_short_short_desc_column,

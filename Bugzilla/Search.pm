@@ -463,11 +463,12 @@ sub STATIC_COLUMNS
         reporter_short       => { title => 'Reporter Login' },
         qa_contact_short     => { title => 'QA Contact Login' },
         # FIXME save aggregated work_time in bugs table and search on it
-        work_time            => { name => $actual_time },
-        interval_time        => { name => $actual_time, title => 'Period Worktime', noreports => 1 },
+        work_time            => { name => $actual_time, numeric => 1 },
+        interval_time        => { name => $actual_time, title => 'Period Worktime', noreports => 1, numeric => 1 },
         percentage_complete  => {
             name => "(CASE WHEN $actual_time + bugs.remaining_time = 0.0 THEN 0.0" .
                 " ELSE 100 * ($actual_time / ($actual_time + bugs.remaining_time)) END)",
+            numeric => 1,
         },
         'flagtypes.name' => {
             name =>
@@ -625,6 +626,10 @@ sub STATIC_COLUMNS
         elsif ($bug_columns->{$id})
         {
             $columns->{$id}->{name} ||= "bugs.$id";
+            if ($field->type == FIELD_TYPE_NUMERIC)
+            {
+                $columns->{$id}->{numeric} = 1;
+            }
         }
     }
 
