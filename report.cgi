@@ -110,7 +110,7 @@ $vars->{saved_report_id} = $ARGS->{saved_report_id};
 $vars->{debug} = $ARGS->{debug};
 $vars->{report_columns} = Bugzilla::Search->REPORT_COLUMNS();
 
-$ARGS->{ctype} = $ARGS->{format} eq 'csv' ? 'csv' : 'html';
+$ARGS->{ctype} = $ARGS->{action} eq 'plot' ? 'png' : ($ARGS->{format} eq 'csv' ? 'csv' : 'html');
 $ARGS->{format} = $ARGS->{format} eq 'csv' ? 'table' : $ARGS->{format};
 my $formatparam = $ARGS->{format};
 
