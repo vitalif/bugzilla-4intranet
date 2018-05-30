@@ -18,11 +18,5 @@
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #%]
 [% FOREACH tbl = tbl_names %]
-  [% measure_descs = {
-    rtime => 'Remaining time'
-    etime => 'Estimated time'
-    wtime => 'Actual time'
-    count => "Number of $terms.bugs"
-  } %]
   [% PROCESS "reports/report-table.csv.tmpl" %]
 [% END %]

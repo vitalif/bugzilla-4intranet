@@ -86,6 +86,8 @@ $Bugzilla::messages->{en} = {
         CONTROLMAPMANDATORY() => 'Mandatory',
     },
     field_descs => {
+        count                     => 'Number of '.$terms->{Bugs},
+        times                     => 'Estimated/Actual/Remaining',
         alias                     => 'Alias',
         assigned_to               => 'Assignee',
         blocked                   => 'Blocks',

@@ -135,8 +135,8 @@ sub get_measures
 {
     my $cols = Bugzilla::Search->REPORT_COLUMNS();
     my $descs = {
-        count => '',
-        times => '',
+        count => Bugzilla->messages->{field_descs}->{count},
+        times => Bugzilla->messages->{field_descs}->{times},
     };
     for my $f (keys %$cols)
     {
