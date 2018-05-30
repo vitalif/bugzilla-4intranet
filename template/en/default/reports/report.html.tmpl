@@ -17,14 +17,14 @@
   #
   # Contributor(s): Gervase Markham <gerv@gerv.net>
   #%]
-  
+
 [%# INTERFACE:
   # col_field: string. Name of the field being plotted as columns.
   # row_field: string. Name of the field being plotted as rows.
   # tbl_field: string. Name of the field being plotted as tables.
   # tbl_names: array. List of values for the field being plotted as tables.
   # time: integer. Seconds since the epoch.
-  # data: <depends on format>. Data to plot. 
+  # data: <depends on format>. Data to plot.
   # format: string. Format of the individual reports.
   # width: integer. For image charts, height of the image.
   # height: integer. For image charts, width of the image.
@@ -41,10 +41,9 @@
 [% tbl_field_disp = field_descs.$tbl_field || tbl_field %]
 [% col_field_disp = field_descs.$col_field || col_field %]
 [% row_field_disp = field_descs.$row_field || row_field %]
-[% switchbase     = switchbase FILTER html %]
 
 [% title = BLOCK %]
-  Report: 
+  Report:
   [% IF tbl_field %]
     [% tbl_field_disp FILTER html %]
   [% END %]
@@ -58,12 +57,12 @@
 
 [% time = time FILTER time('%Y-%m-%d %H:%M:%S') FILTER html %]
 
-[% PROCESS global/header.html.tmpl 
+[% PROCESS global/header.html.tmpl
   style = "
     .t1     { background-color: #ffffff } /* white       */
     .t2     { background-color: #dfefff } /* light blue  */
-    .t3     { background-color: #dddddd } /* grey        */
-    .t4     { background-color: #c3d3ed } /* darker blue */
+    .t3     { background-color: #ffffff } /* white       */
+    .t4     { background-color: #dfefff } /* light blue  */
     .ttotal { background-color: #cfffdf } /* light green */
   "
   style_urls = ['skins/standard/reports.css']
@@ -74,9 +73,9 @@
   <p>[% query FILTER html %]</p>
 [% END %]
 
-<div align="center">
+<div>
 
-  [% FOREACH tbl = tbl_names %]    
+  [% FOREACH tbl = tbl_names %]
     [% IF tbl == "-total-" %]
       [% tbl_disp = "Total" %]
     [% ELSE %]
@@ -89,7 +88,7 @@
       [% IF tbl %]
         <h2>[% tbl_disp FILTER email FILTER html %]</h2>
       [% END %]
-      
+
       [% imageurl = BLOCK %]report.cgi?[% imagebase FILTER html %]&amp;format=
         [% format FILTER url_quote %]&amp;ctype=png&amp;action=plot&amp;
         [% IF tbl_field %]
@@ -102,91 +101,93 @@
               [% END %]
             [% END %]
           [% END %]
-        [% END %]width=[% width %]&amp;height=[% height %]      
+        [% END %]width=[% width %]&amp;height=[% height %]
       [% END %]
-      
+
       <img alt="Graphical report results" src="[% imageurl %]"
         width="[% width %]" height="[% height %]">
     [% END %]
     <br />
-  [% END %]  
+  [% END %]
 
-  <table>
+  <form method="GET" action="?">
+  <input type="hidden" name="action" value="wrap" />
+  [% FOR k = switchparams.keys.sort %]
+  <input type="hidden" name="[% k | html %]" value="[% switchparams.$k | html %]" />
+  [% END %]
+  <table class="admin_table">
+    <tr>
+      <th>
+        Format:
+      </th>
+      <td>
+        [% formats = [
+          { name => "pie",   description => "Pie" },
+          { name => "bar",   description => "Bar" },
+          { name => "line",  description => "Line" },
+          { name => "table", description => "Table" }
+        ] %]
+        <select name="format" style="width: 100%; border: 0; margin-top: 2px">
+          [% FOR f = formats %]
+          <option value="[% f.name | html %]"[% IF f.name == format %] selected="selected"[% END %]>[% f.description | html %]</option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    <tr>
+      <th>
+        Show:
+      </th>
+      <td>
+        [% measure_descs = {
+          rtime => 'Remaining time'
+          etime => 'Estimated time'
+          wtime => 'Actual time'
+          times => 'Estimated/Actual/Remaining'
+          count => "Number of $terms.bugs"
+        } %]
+        <select name="measure" style="width: 100%; border: 0; margin-top: 2px">
+          [% FOR m = measure_descs.keys.sort %]
+          <option value="[% m %]"[% IF measure == m %] selected="selected"[% END %]>[% measure_descs.$m %]</option>
+          [% END %]
+        </select>
+      </td>
+    </tr>
+    [% IF format != "table" %]
     <tr>
       <td>
-        [% formats = [ { name => "pie",   description => "Pie" },
-                       { name => "bar",   description => "Bar" },
-                       { name => "line",  description => "Line" },
-                       { name => "table", description => "Table" } ] %]
-
-        [% formaturl = "report.cgi?$switchbase&amp;width=$width" _ 
-                       "&amp;height=$height&amp;action=wrap" %]
-        [% FOREACH other_format = formats %]
-          [% NEXT IF other_format.name == "pie" AND row_field AND col_field %]
-          [% UNLESS other_format.name == format %]
-            <a href="[% formaturl %]&amp;format=[% other_format.name %]&amp;measure=[% measure %]">
-          [% END %]
-          [% other_format.description FILTER html %]
-          [% "</a>" UNLESS other_format.name == format %] | 
-        [% END %]
-        <a href="[% formaturl %]&amp;measure=[% measure %]&amp;ctype=csv&amp;format=table">CSV</a> 
+        Width:
       </td>
-      
-      [% IF format != "table" %]
-        <td>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        </td>
-
-        [% sizeurl = BLOCK %]report.cgi?
-          [% switchbase %]&amp;action=wrap&amp;format=[% format FILTER html %]&amp;measure=[% measure FILTER html %][% END %]
-        <td align="center">
-          <a href="[% sizeurl %]&amp;width=[% width %]&amp;height=
-                   [% height + 100 %]">Taller</a><br />
-          <a href="[% sizeurl %]&amp;width=[% width - 100 %]&amp;height=
-                   [% height %]">Thinner</a> * 
-          <a href="[% sizeurl %]&amp;width=[% width + 100 %]&amp;height=
-                   [% height %]">Fatter</a>&nbsp;&nbsp;&nbsp;&nbsp;<br />
-          <a href="[% sizeurl %]&amp;width=[% width %]&amp;height=
-                   [% height - 100 %]">Shorter</a><br />
-        </td>
-      [% END %]
+      <td>
+        <input type="text" name="width" value="[% width %]" />
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Height:
+      </td>
+      <td>
+        <input type="text" name="height" value="[% height %]" />
+      </td>
+    </tr>
+    [% END %]
+    <tr>
+      <td colspan="2" style="text-align: center">
+        <input type="submit" value="Apply Format" />
+      </td>
     </tr>
   </table>
-
-  <table><tr><td>
-    [% measure_descs = {
-      rtime => 'Remaining time'
-      etime => 'Estimated time'
-      wtime => 'Actual time'
-      times => 'Estimated/Actual/Remaining'
-      count => "Number of $terms.bugs"
-    } %]
-    [% FOR m = measure_descs.keys.sort %]
-      [% IF m != 'times' || format == 'table' %]
-        [%+ IF measure != m %]<a href="[% formaturl %]&amp;format=[% format %]&amp;measure=[% m %]">[% END %]
-        [% measure_descs.$m %]
-        [% IF measure != m %]</a>[% END %]
-        [% IF NOT loop.last %] | [% END %]
-      [% END %]
-    [% END %]
-  </td></tr></table>
-
-
-  <p>
-    [% IF format == "table" %]
-      <a href="query.cgi?[% switchbase %]&amp;format=report-table">Edit 
-      this report</a>
-    [% ELSE %]
-      <a href="query.cgi?[% switchbase %]&amp;chart_format=
-        [% format %]&amp;format=report-graph&amp;cumulate=[% cumulate %]">
-        Edit this report
-      </a>
-    [% END %]
+  </form>
+  <div style="margin-top: 1em">
+    <input type="button" onclick="window.location.href='query.cgi?[% switchbase | html %]
+      [%- IF format == "table" -%]&amp;format=report-table
+      [%- ELSE -%]&amp;chart_format=[% format %]&amp;format=report-graph&amp;cumulate=[% cumulate %]
+      [%- END -%]'" value="Edit this report" />
     [% IF saved_report_id %]
       | <a href="report.cgi?action=del&amp;saved_report_id=[% saved_report_id FILTER uri %]&amp;token=
-              [%~ issue_hash_token(['delete_report', saved_report_id]) FILTER uri %]">Forget this report</a>
+        [%~ issue_hash_token(['delete_report', saved_report_id]) FILTER uri %]">Forget this report</a>
     [% ELSE %]
-      <form method="get" action="report.cgi">
+      <form method="get" action="report.cgi" style="display: inline">
         <input type="submit" id="remember" value="Remember report" /> as
         <input type="hidden" name="query" value="[% switchbase %]&amp;format=[% format FILTER html %]&amp;action=wrap" />
         <input type="hidden" name="action" value="add" />
@@ -194,8 +195,8 @@
         <input type="text" id="name" name="name" size="20" value="" maxlength="64" />
       </form>
     [% END %]
-  </p>
- 
+  </div>
+
 </div>
 
 [% PROCESS global/footer.html.tmpl %]

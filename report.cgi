@@ -129,6 +129,11 @@ if ($action eq "wrap")
     $vars->{imagebase} = http_build_query($a);
     $a = { %$ARGS };
     delete $a->{$_} for qw(query_format action ctype format width height measure);
+    for (keys %$a)
+    {
+        delete $a->{$_} if $a->{$_} eq '';
+    }
+    $vars->{switchparams} = $a;
     $vars->{switchbase} = http_build_query($a);
 }
 elsif ($action eq "plot")

@@ -53,21 +53,6 @@ END; %]
   <h2>[% tbl_disp FILTER email FILTER html %]</h2>
 [% END %]
 
-<table>
-  <tr>
-    <td>
-    </td>
-    <td align="center">
-      <strong>[% col_field_disp FILTER html %]</strong>
-    </td>
-  </tr>
-
-  <tr>
-    <td valign="middle">
-      <strong>[% row_field_disp FILTER html %]</strong>
-    </td>
-    <td>
-
 [% classes = [ [ "t1", "t2" ] , [ "t3", "t4" ] ] %]
 [% col_idx = 0 %]
 [% row_idx = 0 %]
@@ -76,14 +61,30 @@ END; %]
 <table class="report" border="1" style="border-collapse: collapse">
   [% IF col_field %]
     <tr>
-      <td class="[% classes.$row_idx.$col_idx %]">
-      </td>
+      <td class="[% classes.$row_idx.$col_idx %]"><div style="position: relative; height: 100%">
+        <img style="position: absolute; left: 0; top: 0; width: 100%; height: 100%" src="skins/standard/global/diag.svg" />
+        <table>
+          <tr><td></td><td><strong>[% col_field_disp FILTER html %]</strong></td></tr>
+          <tr><td><strong>[% row_field_disp FILTER html %]</strong></td><td></td></tr>
+        </table>
+      </div></td>
       [% FOREACH col = col_names %]
         [% col_idx = 1 - col_idx %]
         <td class="[% classes.$row_idx.$col_idx %]"[% ' colspan="3"' IF measure == 'times' %]>
           [% PROCESS value_display value = col field = col_field %]
         </td>
       [% END %]
+      [% IF col_names.size > 1 %]
+      <td class="ttotal"[% ' colspan="3"' IF measure == 'times' %]>
+        Total
+      </td>
+      [% END %]
+    </tr>
+  [% ELSE %]
+    <tr>
+      <td class="[% classes.$row_idx.$col_idx %]">
+        <strong>[% row_field_disp FILTER html %]</strong>
+      </td>
       <td class="ttotal"[% ' colspan="3"' IF measure == 'times' %]>
         Total
       </td>
@@ -157,10 +158,6 @@ END; %]
       </td>
       [% END %]
     [% END %]
-  </tr>
-</table>
-
-    </td>
   </tr>
 </table>
 
