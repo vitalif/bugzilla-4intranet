@@ -131,6 +131,23 @@ sub _get_names
     }
 }
 
+sub get_measures
+{
+    my $cols = Bugzilla::Search->REPORT_COLUMNS();
+    my $descs = {
+        count => '',
+        times => '',
+    };
+    for my $f (keys %$cols)
+    {
+        if ($cols->{$f}->{numeric})
+        {
+            $descs->{$f} = $cols->{$f}->{title};
+        }
+    }
+    return $descs;
+}
+
 sub execute
 {
     my $class = shift;
@@ -206,24 +223,34 @@ sub execute
         }
     }
 
-    my $measures = {
+    my $measure_alias = {
         etime => 'estimated_time',
         rtime => 'remaining_time',
         wtime => 'interval_time',
-        count => '_count',
     };
+    my $measures = {
+        count => 'count',
+    };
+    my $old_columns = { %{Bugzilla::Search->COLUMNS($runner)} };
     # Trick Bugzilla::Search: replace report columns SQL + add '_count' column
     # FIXME: Remove usage of global variable COLUMNS in search generation code
-    my %old_columns = %{Bugzilla::Search->COLUMNS($runner)};
-    %{Bugzilla::Search->COLUMNS($runner)} = (%{Bugzilla::Search->COLUMNS($runner)}, %{Bugzilla::Search->REPORT_COLUMNS});
-    Bugzilla::Search->COLUMNS($runner)->{_count}->{name} = '1';
-
+    %{Bugzilla::Search->COLUMNS($runner)} = (%{Bugzilla::Search->COLUMNS($runner)}, %{Bugzilla::Search->REPORT_COLUMNS($runner)});
+    Bugzilla::Search->COLUMNS($runner)->{count}->{name} = '1';
+    my $columns = Bugzilla::Search->COLUMNS($runner);
+    for my $column (keys %$columns)
+    {
+        if ($columns->{$column}->{numeric})
+        {
+            $measures->{$column} = $column;
+        }
+    }
     my $measure = $ARGS->{measure} || '';
+    $measure = $measure_alias->{$measure} || $measure;
+    # Check that $measure is available (+ etime/rtime/wtime is usable only in table mode)
     if ($measure eq 'times' ? !$is_table : !$measures->{$measure})
     {
         $measure = 'count';
     }
-
     # If the user has no access to the measured column, reset it to 'count'
     if (!Bugzilla::Search->COLUMNS($runner)->{$measure eq 'times' ? 'remaining_time' : $measures->{$measure}})
     {
@@ -234,7 +261,7 @@ sub execute
     my %a;
     my @group_by = grep { !($a{$_}++) } values %$field;
     my @axis_fields = @group_by;
-    for ($measure eq 'times' ? qw(etime rtime wtime) : $measure)
+    for ($measure eq 'times' ? qw(estimated_time remaining_time interval_time) : $measure)
     {
         push @axis_fields, $measures->{$_} unless $a{$measures->{$_}};
     }
@@ -251,7 +278,7 @@ sub execute
         ($field->{x} || "''")." x, ".
         ($field->{y} || "''")." y, ".
         ($field->{z} || "''")." z, ".
-        join(', ', map { "SUM($measures->{$_}) $_" } $measure eq 'times' ? qw(etime rtime wtime) : $measure).
+        join(', ', map { "SUM($measures->{$_}) $_" } ($measure eq 'times' ? qw(etime rtime wtime) : $measure)).
         " FROM ($query) _report_table GROUP BY ".join(", ", @group_by);
 
     $::SIG{TERM} = 'DEFAULT';
@@ -264,11 +291,9 @@ sub execute
     my %data;
     my %names;
 
-    # Read the bug data and count the bugs for each possible value of row, column
-    # and table.
+    # Read the bug data and count the bugs for each possible value of row, column and table.
     #
-    # We detect a numerical field, and sort appropriately, if all the values are
-    # numeric.
+    # We detect a numerical field, and sort appropriately, if all the values are numeric.
     my %isnumeric;
 
     foreach my $group (@$results)
@@ -369,7 +394,7 @@ sub execute
     $vars->{cumulate} = $ARGS->{cumulate} ? 1 : 0;
     $vars->{x_labels_vertical} = $ARGS->{x_labels_vertical} ? 1 : 0;
 
-    %{Bugzilla::Search->COLUMNS($runner)} = %old_columns;
+    %{Bugzilla::Search->COLUMNS($runner)} = %$old_columns;
 
     return $vars;
 }

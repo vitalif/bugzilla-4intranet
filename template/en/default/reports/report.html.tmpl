@@ -139,13 +139,8 @@
         Show:
       </th>
       <td>
-        [% measure_descs = {
-          rtime => 'Remaining time'
-          etime => 'Estimated time'
-          wtime => 'Actual time'
-          times => 'Estimated/Actual/Remaining'
-          count => "Number of $terms.bugs"
-        } %]
+        [% measure_descs.times = 'Estimated/Actual/Remaining' %]
+        [% measure_descs.count = "Number of $terms.bugs" %]
         <select name="measure" style="width: 100%; border: 0; margin-top: 2px">
           [% FOR m = measure_descs.keys.sort %]
           <option value="[% m %]"[% IF measure == m %] selected="selected"[% END %]>[% measure_descs.$m %]</option>

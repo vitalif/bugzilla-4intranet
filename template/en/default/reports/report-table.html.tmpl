@@ -112,7 +112,7 @@ END; %]
               <a href="[% urlbase %]&amp;
                 [% PROCESS value_url value=row field=row_field %]&amp;
                 [% PROCESS value_url value=col field=col_field %]">
-                [% data.$tbl.$col.$row.$m %]</a>
+                [% data.$tbl.$col.$row.$m | format("%.01f") %]</a>
             [% END %]
           </td>
         [% END %]
@@ -124,7 +124,7 @@ END; %]
           <a href="[% urlbase %]&amp;
             [% PROCESS value_url value=row field=row_field %]
             [% "&amp;$col_vals" IF col_vals %]">
-          [% row_total.$m %]</a>
+          [% row_total.$m | format("%.01f") %]</a>
           [% grand_total.$m = grand_total.$m + row_total.$m %]
         </td>
         [% END %]
@@ -142,7 +142,7 @@ END; %]
           <a href="[% urlbase %]&amp;
             [% PROCESS value_url value=col field=col_field %]
             [% "&amp;$row_vals" IF row_vals %]">
-          [% col_totals.$col_n.$m %]</a>
+          [% col_totals.$col_n.$m | format("%.01f") %]</a>
         </td>
       [% END %]
       [% col_n = col_n + 1 %]
@@ -153,7 +153,7 @@ END; %]
         <strong>
           <a href="[% urlbase %]
             [% "&amp;$row_vals" IF row_vals %]
-            [% "&amp;$col_vals" IF col_vals %]">[% grand_total.$m %]</a>
+            [% "&amp;$col_vals" IF col_vals %]">[% grand_total.$m | format("%.01f") %]</a>
         </strong>
       </td>
       [% END %]

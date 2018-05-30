@@ -51,7 +51,8 @@ my $dbh = Bugzilla->switch_to_shadow_db();
 my $action = $ARGS->{action} || 'menu';
 my $token  = $ARGS->{token};
 
-if ($action eq "menu")
+$vars->{measure_descs} = Bugzilla::Report->get_measures();
+if ($action eq 'menu')
 {
     # No need to do any searching in this case, so bail out early.
     $template->process("reports/menu.html.tmpl", $vars)
@@ -111,7 +112,7 @@ $vars->{report_columns} = Bugzilla::Search->REPORT_COLUMNS();
 
 my $formatparam = $ARGS->{format};
 
-if ($action eq "wrap")
+if ($action eq 'wrap')
 {
     # So which template are we using? If action is "wrap", we will be using
     # no format (it gets passed through to be the format of the actual data),
