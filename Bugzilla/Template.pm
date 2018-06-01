@@ -289,15 +289,12 @@ sub quoteUrls
             ~gesix;
     }
 
-    $text =~ s~
-            \b((?:$safe_protocols): # The protocol:
-            [^\s<>\"]+       # Any non-whitespace
-            [\w\/])          # so that we end in \w or /
-        ~
+    # the protocol + non-whitespace + recursive braces + ending in [\w/~=)]
+    $text =~ s/\b((?:$safe_protocols):([^\s<>\"\(\)]+|\((?2)*\))+(?<=[\w\/~=)]))/
             ($tmp = html_quote($1)) &&
-            ($things[$count++] = "<a href=\"$tmp\">$tmp</a>") &&
+            ($things[$count++] = "<a href=\"$tmp\">$tmp<\/a>") &&
             ("\0\0" . ($count-1) . "\0\0")
-        ~gesox;
+        /gesox;
 
     if ($custom_proto && %$custom_proto)
     {
