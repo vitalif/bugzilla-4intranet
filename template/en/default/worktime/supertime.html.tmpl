@@ -243,9 +243,9 @@ function wt_user_blur()
     ed.style.color = 'red';
     document.getElementById('divide_other_bug_id').value = '';
   }
-  document.getElementById('divide_other_bug_id_text').style.color = ed.value ? 'gray' : '';
-  document.getElementById('divide_other_bug_id_text_2').style.color = ed.value ? 'gray' : '';
-  document.getElementById('divide_other_bug_id').disabled = ed.value ? true : false;
+  document.getElementById('divide_other_bug_id_text').style.color = ed.value && ed.value != 'за всех участников' ? 'gray' : '';
+  document.getElementById('divide_other_bug_id_text_2').style.color = ed.value && ed.value != 'за всех участников' ? 'gray' : '';
+  document.getElementById('divide_other_bug_id').disabled = ed.value && ed.value != 'за всех участников' ? true : false;
 }
 function wt_user_focus()
 {
