@@ -31,6 +31,11 @@ our %FORMATS = map { $_ => 1 } qw(rss showteamwork);
 
 my $who = $ARGS->{who};
 
+my $fields = [ list($ARGS->{fields}) ];
+my $use_comments = (!$fields || grep { $_ eq 'longdesc' } @$fields) ? 1 : 0;
+my $use_fields = (!$fields || grep { $_ ne 'longdesc' } @$fields) ? 1 : 0;
+@$fields = grep { $_ ne 'longdesc' } @$fields;
+
 my $limit;
 my $format = $ARGS->{ctype};
 trick_taint($format);
@@ -104,7 +109,7 @@ $join = "INNER JOIN $join i" if $join;
 # First query selects descriptions of new bugs and added comments (without duplicate information).
 # Worktime-only comments are excluded.
 # FIXME: Also use longdescs_history.
-my $longdescs = $dbh->selectall_arrayref(
+my $longdescs = $use_comments ? $dbh->selectall_arrayref(
 "SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, bs.value, st.value,
     l.work_time, l.thetext,
@@ -125,10 +130,10 @@ my $longdescs = $dbh->selectall_arrayref(
  WHERE l.isprivate=0 ".($who ? " AND l.who=".$who->id : "")."
     AND l.bug_id$subq AND l.type!=".CMT_WORKTIME." AND l.type!=".CMT_BACKDATED_WORKTIME."
  ORDER BY l.bug_when DESC
- LIMIT $limit", {Slice=>{}});
+ LIMIT $limit", {Slice=>{}}) : [];
 
 # Second query selects bug field change history
-my $activity = $dbh->selectall_arrayref(
+my $activity = $use_fields ? $dbh->selectall_arrayref(
 "SELECT
     b.bug_id, b.short_desc, pr.name product, cm.name component, bs.value, st.value,
     0 AS work_time, '' thetext,
@@ -149,8 +154,9 @@ my $activity = $dbh->selectall_arrayref(
  LEFT JOIN fielddefs f ON f.id=a.fieldid
  LEFT JOIN attachments at ON at.attach_id=a.attach_id
  WHERE at.isprivate=0 ".($who ? " AND a.who=".$who->id : "")." AND a.bug_id$subq
+ ".(@$fields ? " AND f.name IN (".join(", ", ("?") x @$fields).")" : "")."
  ORDER BY a.bug_when DESC, f.name ASC
- LIMIT $limit", {Slice=>{}});
+ LIMIT $limit", {Slice=>{}}, @$fields) : [];
 
 my $events = [ sort {
     ($b->{bug_when} cmp $a->{bug_when}) ||
