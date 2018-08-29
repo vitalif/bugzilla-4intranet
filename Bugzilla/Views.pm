@@ -80,11 +80,11 @@ sub refresh_some_views
         my $storedquery = Bugzilla::Search::Saved->new({ name => $q, user => $userid }) or next;
         $storedquery = http_decode_query($storedquery->query);
         # get SQL code
-        my $search = new Bugzilla::Search(
+        my $search = eval { new Bugzilla::Search(
             params => $storedquery,
             fields => [ 'bug_id', grep { $_ ne 'bug_id' } split(/[ ,]+/, $storedquery->{columnlist} || '') ],
             user   => $userobj,
-        ) or next;
+        ) } or next;
         # Re-create views
         my $drop = "DROP VIEW IF EXISTS view\$$user\$$query\$";
         my $create = "CREATE VIEW view\$$user\$$query\$";
