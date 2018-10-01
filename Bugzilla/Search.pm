@@ -914,6 +914,7 @@ sub CHANGEDFROMTO_FIELDS
 # Search operators
 use constant OPERATORS => {
     equals          => \&_equals,
+    notequals       => \&_notequals,
     casesubstring   => \&_casesubstring,
     substring       => \&_substring,
     substr          => \&_substring,
@@ -3137,7 +3138,7 @@ sub _notequals
     else
     {
         $self->{allow_null} = 1;
-        $self->{term} = "$self->{fieldsql} != $self->{quoted}";
+        $self->{term} = "($self->{fieldsql} != $self->{quoted} OR $self->{fieldsql} IS NULL)";
     }
 }
 
