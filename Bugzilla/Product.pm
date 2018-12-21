@@ -502,6 +502,9 @@ sub remove_from_db
         }
     }
 
+    # Clear external product reference
+    $dbh->do('UPDATE products SET extproduct=NULL WHERE extproduct=?', undef, $self->id);
+
     $self->SUPER::remove_from_db();
 
     $dbh->bz_commit_transaction();
