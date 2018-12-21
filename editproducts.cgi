@@ -189,6 +189,9 @@ if ($action eq 'new')
         $create_params{maxvotesperbug} = $ARGS->{maxvotesperbug};
         $create_params{votestoconfirm} = $ARGS->{votestoconfirm};
     }
+
+    Bugzilla->dbh->bz_start_transaction();
+
     my $product = Bugzilla::Product->create(\%create_params);
 
     # Create groups and series for the new product, if requested.
@@ -200,8 +203,10 @@ if ($action eq 'new')
         $product->_create_bug_group(1, $new_bug_group);
     }
     $product->_create_series() if $ARGS->{createseries};
-
+    $product->check_open_product();
     delete_token($token);
+
+    Bugzilla->dbh->bz_commit_transaction();
 
     $vars->{message} = 'product_created';
     $vars->{product} = $product;

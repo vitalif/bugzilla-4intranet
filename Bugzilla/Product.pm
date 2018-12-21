@@ -168,6 +168,7 @@ sub update
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
+    # This is for future when we'll have a single "save" (create/update) method
     my $is_new = !$self->id;
 
     # Don't update the DB if something goes wrong below -> transaction.
@@ -277,31 +278,7 @@ sub update
         my $new_settings = $self->group_controls;
         my $timestamp = $dbh->selectrow_array('SELECT NOW()');
 
-        if (Bugzilla->config->{forbid_open_products})
-        {
-            my $has_mandatory = 0;
-            my $has_entry = 0;
-            foreach my $gid (keys %$new_settings)
-            {
-                if ($new_settings->{$gid}->{entry})
-                {
-                    $has_entry = 1;
-                }
-                if ($new_settings->{$gid}->{membercontrol} == CONTROLMAPMANDATORY &&
-                    $new_settings->{$gid}->{othercontrol} == CONTROLMAPMANDATORY)
-                {
-                    $has_mandatory = 1;
-                }
-            }
-            if (!$has_mandatory)
-            {
-                ThrowUserError('product_mandatory_group_required');
-            }
-            if (!$has_entry)
-            {
-                ThrowUserError('product_entry_group_required');
-            }
-        }
+        $self->check_open_product;
 
         foreach my $gid (keys %$new_settings)
         {
@@ -438,6 +415,37 @@ sub update
     Bugzilla->get_field(FIELD_NAME)->touch;
 
     return $changes;
+}
+
+sub check_open_product
+{
+    my $self = shift;
+    if (Bugzilla->params->{forbid_open_products})
+    {
+        my $new_settings = $self->group_controls;
+        my $has_mandatory = 0;
+        my $has_entry = 0;
+        foreach my $gid (keys %$new_settings)
+        {
+            if ($new_settings->{$gid}->{entry})
+            {
+                $has_entry = 1;
+            }
+            if ($new_settings->{$gid}->{membercontrol} == CONTROLMAPMANDATORY &&
+                $new_settings->{$gid}->{othercontrol} == CONTROLMAPMANDATORY)
+            {
+                $has_mandatory = 1;
+            }
+        }
+        if (!$has_mandatory)
+        {
+            ThrowUserError('product_mandatory_group_required');
+        }
+        if (!$has_entry)
+        {
+            ThrowUserError('product_entry_group_required');
+        }
+    }
 }
 
 sub remove_from_db
@@ -660,9 +668,9 @@ sub _create_bug_group
 
     # Associate the new group and new product.
     $dbh->do(
-        'INSERT INTO group_control_map (group_id, product_id, membercontrol, othercontrol, editcomponents)'.
-        ' VALUES (?, ?, ?, ?, ?)', undef, $group->id, $self->id,
-        ($create_admin_group ? (0, 0, 1) : (CONTROLMAPMANDATORY, CONTROLMAPMANDATORY, 0))
+        'INSERT INTO group_control_map (group_id, product_id, membercontrol, othercontrol, editcomponents, entry)'.
+        ' VALUES (?, ?, ?, ?, ?, ?)', undef, $group->id, $self->id,
+        ($create_admin_group ? (0, 0, 1, 0) : (CONTROLMAPMANDATORY, CONTROLMAPMANDATORY, 0, 1))
     );
 
     # Grant current user permission to edit the new group and include him in it
