@@ -168,8 +168,11 @@ sub update
     my $self = shift;
     my $dbh = Bugzilla->dbh;
 
+    my $is_new = !$self->id;
+
     # Don't update the DB if something goes wrong below -> transaction.
     $dbh->bz_start_transaction();
+
     # Bugzilla::Field::Choice is not a threat as we don't have 'value' field
     # Yet do not call its update() for the future
     my ($changes, $old_self) = Bugzilla::Object::update($self, @_);
@@ -266,13 +269,39 @@ sub update
     }
 
     # Also update group settings.
-    if ($self->{check_group_controls})
+    if ($is_new || $self->{check_group_controls})
     {
         require Bugzilla::Bug;
 
-        my $old_settings = $old_self->group_controls;
+        my $old_settings = !$is_new ? $old_self->group_controls : {};
         my $new_settings = $self->group_controls;
         my $timestamp = $dbh->selectrow_array('SELECT NOW()');
+
+        if (Bugzilla->config->{forbid_open_products})
+        {
+            my $has_mandatory = 0;
+            my $has_entry = 0;
+            foreach my $gid (keys %$new_settings)
+            {
+                if ($new_settings->{$gid}->{entry})
+                {
+                    $has_entry = 1;
+                }
+                if ($new_settings->{$gid}->{membercontrol} == CONTROLMAPMANDATORY &&
+                    $new_settings->{$gid}->{othercontrol} == CONTROLMAPMANDATORY)
+                {
+                    $has_mandatory = 1;
+                }
+            }
+            if (!$has_mandatory)
+            {
+                ThrowUserError('product_mandatory_group_required');
+            }
+            if (!$has_entry)
+            {
+                ThrowUserError('product_entry_group_required');
+            }
+        }
 
         foreach my $gid (keys %$new_settings)
         {

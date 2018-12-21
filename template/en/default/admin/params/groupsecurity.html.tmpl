@@ -31,32 +31,37 @@
     "If this is on, $terms.Bugzilla will by default associate newly created groups"
     _ " with each product in the database. Generally only useful for small databases.",
 
-  chartgroup => "The name of the group of users who can use the 'New Charts' " _
-                "feature. Administrators should ensure that the public categories " _
-                "and series definitions do not divulge confidential information " _
-                "before enabling this for an untrusted population. If left blank, " _
-                "no users will be able to use New Charts.",
+  chartgroup =>
+    "The name of the group of users who can use the 'New Charts' "
+    _ "feature. Administrators should ensure that the public categories "
+    _ "and series definitions do not divulge confidential information "
+    _ "before enabling this for an untrusted population. If left blank, "
+    _ "no users will be able to use New Charts.",
 
-  insidergroup => "The name of the group of users who can see/change private " _
-                  "comments and attachments.",
+  insidergroup =>
+    "The name of the group of users who can see/change private "
+    _ "comments and attachments.",
 
-  timetrackinggroup => "The name of the group of users who can see/change time tracking " _
-                       "information.",
+  timetrackinggroup =>
+    "The name of the group of users who can see/change time tracking information.",
 
-  querysharegroup => "The name of the group of users who can share their " _
-                     "saved searches with others.",
+  querysharegroup =>
+    "The name of the group of users who can share their saved searches with others.",
 
   usevisibilitygroups =>
     "<p>Do you wish to restrict visibility of users to members of specific groups,"
     _ " based on the configuration specified in group settings?</p>"
     _ "<p>If yes, each group can be allowed to see members of selected other groups.</p>",
 
-  strict_isolation => "Don't allow users to be assigned to, " _
-                      "be qa-contacts on, " _
-                      "be added to CC list, " _
-                      "or make or remove dependencies " _
-                      "involving any bug that is in a product on which that " _
-                      "user is forbidden to edit.", 
+  strict_isolation =>
+    "Don't allow users to be assigned to, be qa-contacts on, "
+    _ "be added to CC list, or make or remove dependencies "
+    _ "involving any bug that is in a product on which that "
+    _ "user is forbidden to edit.",
 
+  forbid_open_products =>
+    "Don't allow 'open' products, i.e. force everyone to set at least"
+    _ " one MANDATORY/MANDATORY and one ENTRY group for each product."
+    _ " This is checked for new products and for products whose group controls are being modified.",
  }
 %]

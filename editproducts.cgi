@@ -374,8 +374,9 @@ if ($action eq 'updategroupcontrols')
     my $product = $user->check_can_admin_product($product_name);
     check_token_data($token, 'edit_group_controls');
 
-    my @now_na = ();
-    my @now_mandatory = ();
+    my @now_na;
+    my @now_mandatory;
+    my @now_entry;
     my %membercontrol_g;
     my %othercontrol_g;
     foreach my $f (keys %$ARGS)

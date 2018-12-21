@@ -1602,6 +1602,19 @@
   "[% suggested | html %]"?
 [% END %]
 
+[% BLOCK error_product_mandatory_group_required %]
+  Bugzilla group security policy requires that all products have at least
+  one group which is set as MANDATORY/MANDATORY, which means that only users of
+  this group or users explicitly added as CC/Assignee/QA may access bugs in
+  the corresponding product.
+[% END %]
+
+[% BLOCK error_product_entry_group_required %]
+  [% terms.Bugzilla %] group security policy requires that all products have at least
+  one group which is set as ENTRY, which means that only users of
+  this group may file new bugs in the corresponding product.
+[% END %]
+
 [% BLOCK error_product_name_already_in_use %]
   [% title = "Product name already exists" %]
   [% admindocslinks = {'products.html' => 'Administering products'} %]

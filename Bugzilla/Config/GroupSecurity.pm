@@ -109,6 +109,12 @@ sub get_param_list
         type => 'b',
         default => 0
     },
+
+    {
+        name => 'forbid_open_products',
+        type => 'b',
+        default => 0
+    },
     );
     return @param_list;
 }
