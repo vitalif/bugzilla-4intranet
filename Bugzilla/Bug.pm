@@ -1722,7 +1722,9 @@ sub _sync_fulltext
         $sql = "UPDATE $table SET short_desc=$row->[0],".
             " comments=$row->[1], comments_private=$row->[2] WHERE $id_field=".$self->id;
     }
-    return $sph->do($sql);
+    my $r = eval { $sph->do($sql) };
+    if ($@) { warn $@; }
+    return $r;
 }
 
 # This is the correct way to delete bugs from the DB.

@@ -138,7 +138,7 @@ sub connect_sphinx
         mysql_enable_utf8 => 1,
         # Needs to be explicitly specified for command-line processes.
         mysql_auto_reconnect => 1,
-        raise_error => 0,
+        raise_error => 1,
     });
 
     $sphinx->do("SET NAMES utf8") if $sphinx;
