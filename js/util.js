@@ -33,6 +33,16 @@ function htmlspecialchars(s)
     return s;
 }
 
+window.http_build_query = function(data)
+{
+    var encoded = '';
+    for (var i in data)
+    {
+        encoded = encoded+'&'+encodeURIComponent(i)+'='+(data[i] === false || data[i] === null ? '' : encodeURIComponent(data[i]));
+    }
+    return encoded.substr(1);
+};
+
 // Checks if a specified value 'val' is in the specified array 'arr'
 function bz_isValueInArray(arr, val)
 {

@@ -6,6 +6,8 @@
 
 [% PROCESS "bug/show-header.html.tmpl" %]
 
+[% Hook.process('bug_link_hook') %]
+
 [% PROCESS bug/navigate.html.tmpl %]
 
 [% PROCESS bug/edit.html.tmpl %]

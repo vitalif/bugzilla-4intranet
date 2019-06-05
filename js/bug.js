@@ -94,8 +94,10 @@ function addCollapseLink(id)
 function addReplyLink(num, id)
 {
     var e = document.getElementById('comment_act_'+id);
+
     if (!e)
         return;
+
     var s = '[';
     if (user_settings.quote_replies != 'off')
     {
@@ -104,11 +106,16 @@ function addReplyLink(num, id)
     }
     s += ', clone to <a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;cloned_comment='+num+'">other</a>';
     s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.product)+'&amp;cloned_comment='+num+'">same</a>';
+
     // 4Intranet Bug 69514 - Clone to external product button
     if (bug_info.extprod)
         s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.extprod)+'&amp;cloned_comment='+num+'">ext</a>';
     else if (bug_info.intprod)
         s += '/<a href="enter_bug.cgi?cloned_bug_id='+bug_info.id+'&amp;product='+encodeURIComponent(bug_info.intprod)+'&amp;cloned_comment='+num+'">int</a>';
+
+    if (window.bugLinkHook)
+        s += bugLinkHook(num, id);
+
     s += ' product]';
     e.innerHTML += s;
 }
