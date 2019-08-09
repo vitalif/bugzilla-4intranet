@@ -615,7 +615,7 @@ sub update {
 
     # We skip certain fields because their set_ methods actually use
     # the external names instead of the internal names.
-    $params = Bugzilla::Bug::map_fields($params, 
+    $params = Bugzilla::Bug::map_fields($params,
         { summary => 1, platform => 1, severity => 1, url => 1 });
 
     my $ids = delete $params->{ids};
@@ -624,11 +624,7 @@ sub update {
     my @bugs = map { Bugzilla::Bug->check_for_edit($_) } @$ids;
 
     my %values = %$params;
-    $values{other_bugs} = \@bugs;
-
-    if (exists $values{comment} and exists $values{comment}{comment}) {
-        $values{comment}{body} = delete $values{comment}{comment};
-    }
+    my $comment = delete $values{comment};
 
     # Prevent bugs that could be triggered by specifying fields that
     # have valid "set_" functions in Bugzilla::Bug, but shouldn't be
@@ -649,6 +645,13 @@ sub update {
 
     foreach my $bug (@bugs) {
         $bug->set_all(\%values);
+        if ($comment) {
+            $bug->add_comment($comment->{body} || $comment->{comment}, {
+                isprivate => $comment->{is_private},
+                type => $comment->{type} || CMT_NORMAL,
+                work_time => $comment->{work_time},
+            });
+        }
         if ($flags) {
             my ($old_flags, $new_flags) = extract_flags($flags, $bug);
             $bug->set_flags($old_flags, $new_flags);
