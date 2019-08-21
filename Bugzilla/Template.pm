@@ -956,6 +956,21 @@ sub create
             # html_quote in the form of a function
             html => \&html_quote,
 
+            # escape regular expression characters
+            regex_escape => sub
+            {
+                my ($s) = @_;
+                return "\Q$s\E";
+            },
+
+            # escape regular expression replacement characters
+            replacement_escape => sub
+            {
+                my ($s) = @_;
+                $s =~ s/([\\\$])/\\$1/gso;
+                return $s;
+            },
+
             # HTML <select>
             # html_select(name, <selected value>, <values>, [<value names>], [<attr_hash>])
             #   <values> may be one of:
