@@ -20,6 +20,7 @@ use Bugzilla::Mailer;
 use Date::Format;
 use JSON;
 use Data::Dumper;
+use Scalar::Util qw(blessed);
 
 use overload '""' => sub { $_[0]->{message} };
 
@@ -66,10 +67,31 @@ sub _error_message
     {
         $cgivars->{$_} = $cgi->uploadInfo($cgivars->{$_}) if $cgi->upload($_);
     }
-    $mesg .= Data::Dumper->Dump([$vars, $cgivars, { %ENV }], ['error_vars', 'cgi_params', 'env']);
+    $mesg .= Data::Dumper->Dump([remove_objects($vars), $cgivars, { %ENV }], ['error_vars', 'cgi_params', 'env']);
     # ugly workaround for Data::Dumper's \x{425} unicode characters
     $mesg =~ s/((?:\\x\{(?:[\dA-Z]+)\})+)/eval("\"$1\"")/egiso;
     return $mesg;
+}
+
+sub remove_objects
+{
+    my ($v) = @_;
+    if (blessed $v)
+    {
+        return "$v";
+    }
+    elsif (ref($v) eq 'HASH')
+    {
+        return { map { ($_ => remove_objects($v->{$_})) } keys %$v };
+    }
+    elsif (ref($v) eq 'ARRAY')
+    {
+        return [ map { remove_objects($_) } @$v ];
+    }
+    else
+    {
+        return $v;
+    }
 }
 
 sub throw
