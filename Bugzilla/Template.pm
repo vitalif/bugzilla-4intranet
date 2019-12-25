@@ -290,7 +290,7 @@ sub quoteUrls
     }
 
     # the protocol + non-whitespace + recursive braces + ending in [\w/~=)]
-    $text =~ s/\b((?:$safe_protocols):([^\s<>\"\(\)]+|\((?2)*\))+(?<=[\w\/~=)]))/
+    $text =~ s/\b((?:$safe_protocols):((?>[^\s<>\"\(\)]+|\((?:(?2)|\")*\)))+(?<=[\w\/~=)]))/
             ($tmp = html_quote($1)) &&
             ($things[$count++] = "<a href=\"$tmp\">$tmp<\/a>") &&
             ("\0\0" . ($count-1) . "\0\0")
