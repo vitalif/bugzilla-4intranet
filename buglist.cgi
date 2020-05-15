@@ -73,12 +73,27 @@ Bugzilla->login();
 # also for different people and for the past dates.
 # FIXME SuperWorkTime is built-in here (search for 'superworktime' word),
 # because a lot of the query execution logic is here and not in Bugzilla::Search :-(.
-my $superworktime;
+my ($superworktime, $prioritize);
 if (($ARGS->{format}||'') eq 'superworktime')
 {
     $superworktime = 1;
     Bugzilla->login(LOGIN_REQUIRED);
     Bugzilla::FixWorktimePage::HandleSuperWorktime($vars, $ARGS);
+}
+elsif (($ARGS->{format}||'') eq 'prioritize')
+{
+    Bugzilla->login(LOGIN_REQUIRED);
+    Bugzilla::FixWorktimePage::HandlePrioritize($vars, $ARGS);
+    my $prio_field = Bugzilla->get_field(ref $ARGS->{prio_field} ? $ARGS->{prio_field}->[0] : $ARGS->{prio_field});
+    if ($prio_field)
+    {
+        $prioritize = 1;
+        $vars->{prio_field} = $prio_field;
+    }
+    else
+    {
+        delete $ARGS->{format};
+    }
 }
 
 # If a parameter starts with cmd-, this means the And or Or button has been
@@ -107,7 +122,7 @@ if ($cgi->request_method() eq 'POST')
     }
 }
 
-if ($superworktime)
+if ($superworktime || $prioritize)
 {
     delete $ARGS->{$_} for qw(format ctype);
 }
@@ -179,7 +194,9 @@ my $agent = ($cgi->http('X-Moz') && $cgi->http('X-Moz') =~ /\bmicrosummary\b/);
 # Determine the format in which the user would like to receive the output.
 # Uses the default format if the user did not specify an output format;
 # otherwise validates the user's choice against the list of available formats.
-my $format = $superworktime ? "worktime/supertime" : "list/list";
+my $format = $superworktime
+    ? "worktime/supertime"
+    : ($prioritize ? 'list/list-prioritize' : 'list/list');
 $format = $template->get_format($format, $ARGS->{format}, $ARGS->{ctype});
 
 # Use server push to display a "Please wait..." message for the user while
@@ -642,6 +659,10 @@ if ($superworktime)
         $vars->{worktime_user} = Bugzilla->user->login;
     }
     $vars->{token} = issue_session_token('superworktime');
+}
+elsif ($prioritize)
+{
+    $vars->{token} = issue_session_token('prioritize');
 }
 
 ################################################################################

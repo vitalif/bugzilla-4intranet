@@ -1,0 +1,242 @@
+[%# Drag&drop bug list prioritization
+  # License: Dual-license GPL 3.0+ or MPL 1.1+
+  # Author: Vitaliy Filippov <vitalif@mail.ru>
+  #%]
+
+[% title = "Prioritize Bug List" %]
+[% PROCESS global/header.html.tmpl
+    title = title
+    javascript_urls = [ "js/calendar.js", "js/change-columns.js" ]
+    style_urls = [ "skins/standard/calendar.css", "skins/standard/buglist.css" ]
+%]
+
+[% search_description | none %]
+
+<hr />
+
+[% IF bugs.size > 9 %]
+<p class="bz_result_count">
+    [% bugs.size %] [%+ terms.bugs %] found.
+</p>
+[% END %]
+
+<p>
+  Drag&drop bugs in the list to change <b>[% prio_field.description %]</b>.
+</p>
+
+<hr />
+
+[% MACRO hidden_inputs BLOCK %]
+    [% FOR k = query_params.keys %]
+        [% IF !hidden_fields.$k || hidden_fields.$k == HideIndex %]
+            [% IF query_params.$k.size %]
+                [% FOR vk = query_params.$k %]
+                    <input type="hidden" name="[% k | html %]" value="[% vk | html %]" />
+                [% END %]
+            [% ELSE %]
+                <input type="hidden" name="[% k | html %]" value="[% query_params.$k | html %]" />
+            [% END %]
+        [% END %]
+    [% END %]
+[% END %]
+
+<form action="?" method="POST">
+
+<input type="hidden" name="format" value="prioritize" />
+<input type="hidden" name="save" value="1" />
+<input type="hidden" name="token" value="[% token | html %]" />
+[% hidden_inputs(HideIndex=1) %]
+
+[% BLOCK prioritize_th %]
+<th class="bz_f[% prio_field.type %]">New [% prio_field.description %]</th>
+[% END %]
+
+[% BLOCK prioritize_td %]
+<td style="width: 1%" class="bz_f[% prio_field.type %]">
+    <input type="text" style="text-align: right" name="new_[% prio_field.name %]_[% bug.bug_id %]"
+        id="prio_[% bug.bug_id %]" class="prio" value="[% bug.${prio_field.name}.replace('((\.\d*[1-9])|\.)0+$', '$2') %]" />
+</td>
+[% END %]
+
+[% BLOCK prioritize_total %]
+<td class="bz_total"></td>
+[% END %]
+
+[% SET bug_table_callback = "prioritize_td" %]
+[% SET bug_header_callback = "prioritize_th" %]
+[% SET bug_time_summary_line_callback = "prioritize_total" %]
+[% PROCESS list/table.html.tmpl %]
+
+<input value=" Save " type="submit" style="font-weight: bold" />
+
+</form>
+
+<style>
+tr.dragged
+{
+    opacity: 0.3;
+}
+
+.bz_buglist > tbody > tr:not(.bz_time_summary_line):hover
+{
+    background: #e0e0e0;
+}
+</style>
+
+<script type="text/javascript">
+<!--
+(function()
+{
+    var dragDiv;
+    var dragRow;
+    var dragOffset = {};
+    var table = document.querySelector('.bz_buglist');
+    var tbody = document.querySelector('.bz_buglist > tbody');
+    tbody.addEventListener('mousedown', startDrag);
+
+    var multiplier;
+    multiplier = initMultiplier();
+
+    function initMultiplier()
+    {
+        var dont_sort = false;
+        var multiplier = 1e10;
+        var indexes = [], priorities = [];
+        for (var i = 0; i < tbody.children.length; i++)
+        {
+            if (!/bz_time_summary_line/.exec(tbody.children[i].className))
+            {
+                indexes.push(i);
+                var prio = Number(tbody.children[i].querySelector('.prio').value);
+                if (prio)
+                {
+                    priorities[i] = prio;
+                    var mul = multiplier;
+                    while (prio % mul)
+                    {
+                        mul = mul / 10;
+                    }
+                    multiplier = mul;
+                }
+                else if (prio == null || isNaN(prio))
+                {
+                    dont_sort = true;
+                }
+            }
+            else
+            {
+                indexes.push(i);
+                priorities[i] = 1e100;
+            }
+        }
+        if (!dont_sort)
+        {
+            // Sort table initially for Firefox "form-restore" on F5
+            var sorted = indexes.sort(function(a, b)
+            {
+                return priorities[a] < priorities[b] ? -1 : (priorities[a] > priorities[b] ? 1 : 0);
+            }).map(function(i) { return tbody.children[i]; });
+            for (var i = 0; i < sorted.length; i++)
+            {
+                tbody.appendChild(sorted[i]);
+            }
+        }
+        return multiplier == 1e10 ? 1 : multiplier;
+    }
+
+    function startDrag(ev)
+    {
+        var target = ev.target || ev.srcElement;
+        while (target && target.nodeName != 'A' && target.nodeName != 'INPUT' && target.parentNode != tbody)
+        {
+            target = target.parentNode;
+        }
+        if (!target || target.parentNode != tbody || /bz_time_summary_line/.exec(target.className))
+        {
+            return;
+        }
+        dragRow = target;
+        var rect = target.getBoundingClientRect();
+        target.className += ' dragged';
+        dragOffset.x = ev.pageX - document.documentElement.scrollLeft - rect.left;
+        dragOffset.y = ev.pageY - document.documentElement.scrollTop - rect.top;
+        dragOffset.left = ev.pageX - dragOffset.x + rect.width/2;
+        dragOffset.w = rect.width;
+        dragOffset.h = rect.height;
+        dragDiv = document.createElement('div');
+        dragDiv.style.position = 'absolute';
+        dragDiv.style.background = '#000000';
+        dragDiv.style.opacity = 0.3;
+        dragDiv.style.top = (ev.pageY - dragOffset.y)+'px';
+        dragDiv.style.left = (ev.pageX - dragOffset.x)+'px';
+        dragDiv.style.width = rect.width+'px';
+        dragDiv.style.height = rect.height+'px';
+        document.documentElement.appendChild(dragDiv);
+        document.documentElement.addEventListener('mousemove', dragMove);
+        document.documentElement.addEventListener('mouseup', stopDrag);
+        ev.preventDefault();
+    }
+
+    function dragMove(ev)
+    {
+        var x = (ev.pageX - dragOffset.x);
+        var y = (ev.pageY - dragOffset.y);
+        var ww = document.documentElement.clientWidth;
+        var wh = document.documentElement.clientHeight;
+        dragDiv.style.width = (x - document.documentElement.scrollLeft + dragOffset.w > ww ? ww-x : dragOffset.w)+'px';
+        dragDiv.style.height = (y - document.documentElement.scrollTop + dragOffset.h > wh ? wh-y : dragOffset.h)+'px';
+        dragDiv.style.left = x+'px';
+        dragDiv.style.top = y+'px';
+    }
+
+    function stopDrag(ev)
+    {
+        // Center of the dragged row
+        dragRow.className = dragRow.className.replace(/ dragged/, '');
+        document.documentElement.removeChild(dragDiv);
+        document.documentElement.removeEventListener('mousemove', dragMove);
+        document.documentElement.removeEventListener('mouseup', stopDrag);
+        var x = (ev.pageX - dragOffset.x + dragOffset.w/2);
+        var y = (ev.pageY - dragOffset.y + dragOffset.h/2);
+        var elements;
+        var body_rect = tbody.getBoundingClientRect();
+        if (y < body_rect.top + document.documentElement.scrollTop)
+            elements = [ tbody.rows[0] ];
+        else if (y > body_rect.top + document.documentElement.scrollTop + body_rect.height)
+            elements = [ tbody.rows[tbody.rows.length-1] ];
+        else
+            elements = document.elementsFromPoint(dragOffset.left, y - document.documentElement.scrollTop);
+        for (var i = 0; i < elements.length; i++)
+        {
+            var target = elements[i];
+            while (target && target.parentNode != tbody)
+            {
+                target = target.parentNode;
+            }
+            if (target)
+            {
+                if (/bz_time_summary_line/.exec(target.className))
+                    target = target.previousSibling;
+                // Move dragged row to the target position
+                if (dragRow.rowIndex > target.rowIndex)
+                    tbody.insertBefore(dragRow, target);
+                else
+                    tbody.insertBefore(dragRow, target.nextSibling);
+                break;
+            }
+        }
+        dragRow = null;
+        // Recalculate priorities
+        for (var i = 0; i < tbody.children.length; i++)
+        {
+            if (!/bz_time_summary_line/.exec(tbody.children[i].className))
+            {
+                tbody.children[i].querySelector('.prio').value = (i+1) * multiplier;
+            }
+        }
+    }
+})();
+//-->
+</script>
+
+[% PROCESS global/footer.html.tmpl %]

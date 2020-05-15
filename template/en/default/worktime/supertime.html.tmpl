@@ -1,4 +1,4 @@
-[%# "Dry run" of SuperWorktime
+[%# SuperWorktime form
   # License: Dual-license GPL 3.0+ or MPL 1.1+
   # Author: Vitaliy Filippov <vitalif@mail.ru>
   #%]
@@ -17,6 +17,8 @@
   требуется членство в группе <b>worktimeadmin</b>.
 </p>
 
+[% for_all_users = "за всех участников" %]
+
 [% hidden_fields = {
   'chfieldfrom'    => 1
   'chfieldto'      => 1
@@ -33,8 +35,6 @@
   'divide_min_inc' => 2
   'divide_other_bug_id' => 2
 } %]
-
-[% for_all_users = "за всех участников" %]
 
 [% MACRO hidden_inputs BLOCK %]
   [% FOR k = query_params.keys %]

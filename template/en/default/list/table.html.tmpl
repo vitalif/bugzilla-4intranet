@@ -121,7 +121,7 @@
 [% BLOCK columnheader %]
   [% i = lsearch(order_columns, id) %]
   [% type = Bugzilla.get_field(id).type %]
-  <th colspan="[% splitheader ? 2 : 1 %]" class="sortable_column_[% key %]
+  <th colspan="[% splitheader ? 2 : 1 %]" class="sortable_column_[% key %] bz_f[% type %]
     [%- IF i>=0 || type == constants.FIELD_TYPE_NUMERIC || type == constants.FIELD_TYPE_BUG_ID %] sorttable_numeric[% END %]
     [%- IF i>=0 %] sorted_[% i %] sorttable_sorted[% "_reverse" IF order_dir.$i %][% END %]">
     <a href="buglist.cgi?[% urlquerypart FILTER html %]&amp;order=
@@ -135,11 +135,9 @@
 
 
 [% BLOCK columnheaderfilter %]
-  [% i = lsearch(order_columns, id) %]
-  [% idd = id %]
   [% type = Bugzilla.get_field(id).type %]
   [% IF id == "bug_severity" || id == "priority" || id == "bug_status" || id == "resolution" %]
-  <td>
+  <td class="bz_f[% type %]">
     <input type="text" value="[% list_params.$id.join(",") %]" id="usr_filter_[% id %]"
         style="width: 1px; height: 1px; border: 0px; margin-top: -5px; display: block;" />
 
@@ -156,6 +154,10 @@
         //-->
         </script>
     <a href="javascript:void(0)" onclick="filter_[% id %].show(); return false;">Filter</a>
+  </td>
+  [% ELSIF type == constants.FIELD_TYPE_NUMERIC %]
+  <td class="bz_f[% type %]">
+    <a href="buglist.cgi?[% urlquerypart.replace('[&\?](format|dotweak|prio_field)[^&]*', '') | html %][%- "&order=$qorder" | html IF order %]&amp;format=prioritize&prio_field=[% id %]">Prioritize</a>
   </td>
   [% ELSE %]
   <td>&nbsp;</td>

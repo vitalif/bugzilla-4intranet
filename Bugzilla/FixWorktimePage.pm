@@ -389,5 +389,68 @@ sub HandleSuperWorktime
     }
 }
 
+sub HandlePrioritize
+{
+    my ($vars, $args) = @_;
+    # Меняем приоритеты, а потом делаем редирект на себя же
+    if ($args->{save})
+    {
+        my $dbh = Bugzilla->dbh;
+        # Проверяем токен
+        check_token_data($args->{token}, 'prioritize');
+        $dbh->bz_start_transaction();
+        my $changes = {};
+        for my $k (keys %$args)
+        {
+            if ($k =~ /^new_(.*)_(\d+)$/s)
+            {
+                my $bugid = $2;
+                my $field = $1;
+                $changes->{$bugid}->{$field} = $args->{$k};
+            }
+        }
+        my $failed = 0;
+        my $r = {};
+        for my $bugid (keys %$changes)
+        {
+            my $bug = Bugzilla::Bug->new({ id => $bugid, for_update => 1 });
+            if ($bug)
+            {
+                for my $field (keys %{$changes->{$bugid}})
+                {
+                    $bug->set($field, $changes->{$bugid}->{$field});
+                }
+                $dbh->bz_start_transaction();
+                $bug->update();
+                if (@{$bug->{failed_checkers} || []} && !$bug->{passed_checkers})
+                {
+                    $failed = 1;
+                    next;
+                }
+                else
+                {
+                    # Не отправлять почту
+                    $dbh->do('UPDATE bugs SET lastdiffed=NOW() WHERE bug_id=?', undef, $bug->id);
+                    $dbh->bz_commit_transaction();
+                }
+            }
+        }
+        delete_token($args->{token});
+        if (!$failed)
+        {
+            $dbh->bz_commit_transaction();
+        }
+        else
+        {
+            $dbh->bz_rollback_transaction();
+            Bugzilla::CheckerUtils::show_checker_errors();
+        }
+        # Удаляем параметры
+        delete $args->{$_} for 'format', 'prio_field', 'token', 'save', grep { /^new_(.*)_(\d+)$/ } keys %$args;
+        print Bugzilla->cgi->redirect(-location => 'buglist.cgi?'.http_build_query($args));
+        exit;
+    }
+}
+
 1;
 __END__
