@@ -99,18 +99,14 @@ tr.dragged
 
     function initMultiplier()
     {
-        var dont_sort = false;
         var multiplier = 1e10;
-        var indexes = [], priorities = [];
         for (var i = 0; i < tbody.children.length; i++)
         {
             if (!/bz_time_summary_line/.exec(tbody.children[i].className))
             {
-                indexes.push(i);
                 var prio = Number(tbody.children[i].querySelector('.prio').value);
                 if (prio)
                 {
-                    priorities[i] = prio;
                     var mul = multiplier;
                     while (prio % mul)
                     {
@@ -118,27 +114,6 @@ tr.dragged
                     }
                     multiplier = mul;
                 }
-                else if (prio == null || isNaN(prio))
-                {
-                    dont_sort = true;
-                }
-            }
-            else
-            {
-                indexes.push(i);
-                priorities[i] = 1e100;
-            }
-        }
-        if (!dont_sort)
-        {
-            // Sort table initially for Firefox "form-restore" on F5
-            var sorted = indexes.sort(function(a, b)
-            {
-                return priorities[a] < priorities[b] ? -1 : (priorities[a] > priorities[b] ? 1 : 0);
-            }).map(function(i) { return tbody.children[i]; });
-            for (var i = 0; i < sorted.length; i++)
-            {
-                tbody.appendChild(sorted[i]);
             }
         }
         return multiplier == 1e10 ? 1 : multiplier;
