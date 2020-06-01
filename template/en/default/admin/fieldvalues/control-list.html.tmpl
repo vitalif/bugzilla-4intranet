@@ -17,6 +17,7 @@
       <tr>
         <th align="left">Active</th>
         <th align="left">Value</th>
+        <th align="right">ID</th>
       </tr>
       [% FOREACH value = field.legal_values %]
       <tr class="[% loop.index % 2 == 1 ? 'odd' : 'even' +%]_row">
@@ -27,6 +28,9 @@
         <td>
           <label for="val_[% value.id %]">[% value.name | html %]</label>
           <a title="Edit this value" href="editvalues.cgi?action=edit&field=[% field.name %]&value=[% value.name | uri %]">&rarr;</a>
+        </td>
+        <td align="right">
+          [% value.id %]
         </td>
       </tr>
       [% END %]
