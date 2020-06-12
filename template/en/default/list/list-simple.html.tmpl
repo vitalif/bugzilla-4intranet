@@ -39,6 +39,11 @@
     <base href="[% urlbase FILTER html %]" [% IF Bugzilla.cgi.param('target') == '_blank' %] target="_blank"[% END %] />
     <link href="skins/standard/buglist.css" rel="stylesheet" type="text/css" />
     <script type="text/javascript" src="[% 'js/resize-iframe.js' | ts_url %]"></script>
+    <style>
+      body { font-size: 87.5%; }
+      table { font-size: 100%; }
+      .bz_buglist td { white-space: normal !important; }
+    </style>
   </head>
 
   <body>
