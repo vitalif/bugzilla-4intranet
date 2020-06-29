@@ -228,7 +228,7 @@ sub get_all
     {
         $all = [ grep { $_->is_active } @$all ];
     }
-    if (!$f->value_field_id || $f->value_field->name ne 'product')
+    if (!$f->value_field_id || $f->value_field->name ne 'product' || Bugzilla->user->in_group('editvalues'))
     {
         # Just return unfiltered list
         return @$all;
